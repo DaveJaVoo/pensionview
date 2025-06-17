@@ -1,6 +1,7 @@
 
 "use client";
 import type { FC } from 'react';
+import React from 'react'; // Import React for React.Fragment
 import type { PensionDataRow } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -29,14 +30,67 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
     return header === "AGE";
   }
 
+  const formatHeaderForDisplay = (header: string): React.ReactNode => {
+    const specificHeaders: Record<string, string[]> = {
+      'DC PENSION GROWTH @ % SHOWN BELOW': [
+        'DC PENSION',
+        'GROWTH',
+        '@ %',
+        'SHOWN BELOW',
+      ],
+      'DC PENSION AMC CHARGE @ % SHOWN BELOW': [
+        'DC PENSION',
+        'AMC CHARGE',
+        '@ %',
+        'SHOWN BELOW',
+      ],
+      'TAXABLE INCOME = DRAWDOWN + FAS + STATE': [
+        'TAXABLE INCOME',
+        '= DRAWDOWN',
+        '+ FAS + STATE',
+      ],
+      'MY INCOME PER YEAR': ['MY INCOME', 'PER YEAR'],
+      'MY INCOME PER MONTH': ['MY INCOME', 'PER MONTH'],
+      "KATE'S INCOME PER YEAR": ["KATE'S INCOME", 'PER YEAR'],
+      "KATE'S INCOME PER MONTH": ["KATE'S INCOME", 'PER MONTH'],
+      'JOINT INCOME PER YEAR': ['JOINT INCOME', 'PER YEAR'],
+      'JOINT INCOME PER MONTH': ['JOINT INCOME', 'PER MONTH'],
+      'INITIAL DC PENSION': ['INITIAL DC', 'PENSION'],
+      'DC PENSION PLUS GROWTH': ['DC PENSION', 'PLUS GROWTH'],
+      'DC PENSION MINUS CHARGES': ['DC PENSION', 'MINUS CHARGES'],
+      'DC PENSION UFPLS DRAWDOWN': ['DC PENSION', 'UFPLS DRAWDOWN'],
+      'DC PENSION BALANCE': ['DC PENSION', 'BALANCE'],
+      'DB PENSION (FAS)': ['DB PENSION', '(FAS)'],
+      'STATE PENSION': ['STATE', 'PENSION'],
+      'WITHDRAW FROM SAVINGS': ['WITHDRAW FROM', 'SAVINGS'],
+      'TOTAL INCOME': ['TOTAL', 'INCOME'],
+      'INCOME TAX PAID': ['INCOME TAX', 'PAID'],
+    };
+
+    if (specificHeaders[header.toUpperCase()]) { // Match case-insensitively, but use original header for key
+      const lines = specificHeaders[header.toUpperCase()];
+      return lines.map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          {index < lines.length - 1 && <br />}
+        </React.Fragment>
+      ));
+    }
+    return header;
+  };
+
   return (
     <ScrollArea className="w-full whitespace-nowrap rounded-md border shadow-lg bg-card">
       <Table className="min-w-full">
         <TableHeader>
           <TableRow>
             {headers.map((header) => (
-              <TableHead key={header} className="px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline">
-                {header}
+              <TableHead 
+                key={header} 
+                className="px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top"
+                style={{ whiteSpace: 'normal' }} // Allow text to wrap
+              >
+                {formatHeaderForDisplay(header)}
               </TableHead>
             ))}
           </TableRow>
@@ -47,7 +101,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
               {headers.map((header) => {
                 const cellValue = row[header];
                 let displayValue: string | number | undefined = cellValue;
-                let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left";
+                let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left align-top";
 
                 if (isMonetaryHeader(header) || (typeof cellValue === 'string' && cellValue.includes('£'))) {
                   displayValue = formatCurrency(cellValue);
