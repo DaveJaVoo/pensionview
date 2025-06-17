@@ -29,7 +29,7 @@ export function formatCurrency(value: number | undefined | string, showSymbol: b
   }
 
   const symbol = showSymbol ? "£" : "";
-  return `${symbol}${numValue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${numValue.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 export function parsePercentage(value: string | undefined): number | undefined {
@@ -37,3 +37,4 @@ export function parsePercentage(value: string | undefined): number | undefined {
   const num = parseFloat(value.replace('%', ''));
   return isNaN(num) ? undefined : num;
 }
+
