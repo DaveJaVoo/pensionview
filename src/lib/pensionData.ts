@@ -37,9 +37,45 @@ const cleanHeader = (header: string): string => {
   return header.trim();
 };
 
+// Function to parse a CSV line, respecting quotes
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      // Check for escaped quote ("")
+      if (inQuotes && i + 1 < line.length && line[i+1] === '"') {
+        currentField += '"';
+        i++; // Skip next quote
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(currentField);
+      currentField = '';
+    } else {
+      currentField += char;
+    }
+  }
+  result.push(currentField); // Add the last field
+
+  // Remove surrounding quotes from fields if they were used for CSV delimiting
+  return result.map(field => {
+    const trimmedField = field.trim();
+    if (trimmedField.startsWith('"') && trimmedField.endsWith('"')) {
+      return trimmedField.substring(1, trimmedField.length - 1).replace(/""/g, '"');
+    }
+    return trimmedField;
+  });
+}
+
+
 export function getPensionData(): ParsedPensionData {
   const lines = RAW_CSV_DATA.trim().split('\n');
   const headerLine = lines[0];
+  // Header parsing can remain simple as headers don't usually contain commas or quotes
   const headers = headerLine.split(',').map(cleanHeader);
   
   const dataRows: PensionDataRow[] = [];
@@ -66,23 +102,29 @@ export function getPensionData(): ParsedPensionData {
       continue;
     }
 
-    if (!dataSectionEnded && line.trim() !== "" && line.split(',')[0].trim() !== "") { // Ensure first cell (AGE) is not empty for data rows
-      const values = line.split(',');
-      dataCsvForAI.push(line); // Add data line to CSV for AI
-      const row: any = {};
-      headers.forEach((header, index) => {
-        const rawValue = values[index] ? values[index].trim() : undefined;
-        if (header === 'AGE') {
-          row[header] = parseInt(rawValue || "0", 10);
-        } else if (header === 'INCOME TAX PAID') {
-          row[header] = rawValue?.toLowerCase() === 'no tax' ? 'NO TAX' : parseCurrency(rawValue);
-        } else if (header.includes('PENSION') || header.includes('INCOME') || header.includes('SAVINGS') || header.includes('CHARGE') || header.includes('GROWTH') || header.includes('BALANCE') || header.includes('DRAWDOWN') || header.includes('TAXABLE INCOME')) {
-          row[header] = parseCurrency(rawValue);
-        } else {
-          row[header] = rawValue;
-        }
-      });
-      dataRows.push(row as PensionDataRow);
+    if (!dataSectionEnded && line.trim() !== "") {
+      const values = parseCsvLine(line); // Use the new robust CSV parser
+
+      // Ensure first cell (AGE) is not empty for data rows and values array has enough elements
+      if (values.length > 0 && values[0] && values[0].trim() !== "") {
+        dataCsvForAI.push(line); // Add original data line to CSV for AI
+        const row: any = {};
+        headers.forEach((header, index) => {
+          // Ensure we don't try to access an index out of bounds for values
+          const rawValue = index < values.length ? values[index] : undefined;
+          
+          if (header === 'AGE') {
+            row[header] = parseInt(rawValue || "0", 10);
+          } else if (header === 'INCOME TAX PAID') {
+            row[header] = rawValue?.toLowerCase() === 'no tax' ? 'NO TAX' : parseCurrency(rawValue);
+          } else if (header.includes('PENSION') || header.includes('INCOME') || header.includes('SAVINGS') || header.includes('CHARGE') || header.includes('GROWTH') || header.includes('BALANCE') || header.includes('DRAWDOWN') || header.includes('TAXABLE INCOME')) {
+            row[header] = parseCurrency(rawValue);
+          } else {
+            row[header] = rawValue;
+          }
+        });
+        dataRows.push(row as PensionDataRow);
+      }
     }
   }
 
@@ -95,12 +137,16 @@ export function getPensionData(): ParsedPensionData {
   };
 
   parameterLines.forEach(line => {
-    const parts = line.split(',');
-    if (parts[0] === "INITIAL DC PENSION VALUE") parameters.initialDcPensionValue = parseCurrency(parts[1]) || 0;
-    if (parts[0] === "INVESTMENT PERCENTAGE GROWTH") parameters.investmentPercentageGrowth = parsePercentage(parts[2]) || 0;
-    if (parts[0] === "INFLATION") parameters.inflationRate = parsePercentage(parts[2]) || 0;
-    if (parts[0] === "WITHDRAWAL RATE") parameters.withdrawalRate = parsePercentage(parts[2]) || 0;
-    if (parts[0] === "(ANNUAL CHARGE) AMC") parameters.annualChargeAMC = parsePercentage(parts[2]) || 0;
+    // Parameters lines are also CSV, so parse them carefully
+    const parts = parseCsvLine(line);
+    if (parts.length > 0) {
+      const key = parts[0];
+      if (key === "INITIAL DC PENSION VALUE" && parts.length > 1) parameters.initialDcPensionValue = parseCurrency(parts[1]) || 0;
+      if (key === "INVESTMENT PERCENTAGE GROWTH" && parts.length > 2) parameters.investmentPercentageGrowth = parsePercentage(parts[2]) || 0;
+      if (key === "INFLATION" && parts.length > 2) parameters.inflationRate = parsePercentage(parts[2]) || 0;
+      if (key === "WITHDRAWAL RATE" && parts.length > 2) parameters.withdrawalRate = parsePercentage(parts[2]) || 0;
+      if (key === "(ANNUAL CHARGE) AMC" && parts.length > 2) parameters.annualChargeAMC = parsePercentage(parts[2]) || 0;
+    }
   });
   
   // Filter out empty headers for display
