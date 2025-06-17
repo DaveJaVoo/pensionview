@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { cn } from '@/lib/utils'; // Added missing import
 
 import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
@@ -325,3 +326,4 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
