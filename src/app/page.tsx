@@ -1,16 +1,16 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
 import PensionCharts from '@/components/PensionCharts';
 import ViewModeToggle, { type ViewMode } from '@/components/ViewModeToggle';
 import PensionInsightsCard from '@/components/PensionInsightsCard';
 import DrawdownOptimizationCard from '@/components/DrawdownOptimizationCard';
-import { getPensionData } from '@/lib/pensionData'; // Will now be async and take a File
+import { getPensionData } from '@/lib/pensionData';
 import type { ParsedPensionData } from '@/lib/types';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { Input as FileInput } from "@/components/ui/input"; // Renamed to avoid conflicts
+import { Input as FileInput } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,19 @@ export default function PensionPilotPage() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const errorFileInputRef = useRef<HTMLInputElement>(null);
+
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    const currentInput = event.target; // Keep a reference to the input
+
     if (!file) {
       setPensionInfo(null);
       setFileError(null);
       setFileName(null);
+      if (currentInput) currentInput.value = ''; // Clear the specific input
       return;
     }
 
@@ -36,8 +43,7 @@ export default function PensionPilotPage() {
         setPensionInfo(null);
         setFileError("Please upload a valid .xlsx file.");
         setFileName(null);
-        // Clear the file input
-        event.target.value = ''; 
+        if (currentInput) currentInput.value = ''; // Clear the specific input
         return;
     }
 
@@ -47,15 +53,16 @@ export default function PensionPilotPage() {
     setFileName(file.name);
 
     try {
-      const data = await getPensionData(file); 
+      const data = await getPensionData(file);
       setPensionInfo(data);
+      if (currentInput) currentInput.value = ''; // Clear input on success to allow re-upload of same file
     } catch (error) {
       console.error("Failed to load or parse pension data from XLSX:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while processing the file.";
       setFileError(errorMessage);
-      setFileName(null); // Clear filename on error
-       // Clear the file input if there was an error
-      event.target.value = '';
+      setPensionInfo(null);
+      setFileName(null);
+      if (currentInput) currentInput.value = ''; // Clear input on error
     } finally {
       setIsLoading(false);
     }
@@ -66,9 +73,9 @@ export default function PensionPilotPage() {
     setFileError(null);
     setIsLoading(false);
     setFileName(null);
-    // This is tricky for file inputs; usually done by resetting the form or keying the input
-    // For simplicity, we'll rely on the user re-selecting if they click "Try Again" on error page
-    // Or, we can clear the fileName and let the onChange handler on a new selection clear the error.
+    // Clear both potential file inputs
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (errorFileInputRef.current) errorFileInputRef.current.value = '';
   };
 
 
@@ -101,7 +108,14 @@ export default function PensionPilotPage() {
               <label htmlFor="file-upload-error" className="block text-sm font-medium text-foreground mb-1">
                 Select a different .xlsx file:
               </label>
-              <FileInput id="file-upload-error" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleFileChange} className="w-full" />
+              <FileInput 
+                id="file-upload-error" 
+                ref={errorFileInputRef}
+                type="file" 
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+                onChange={handleFileChange} 
+                className="w-full" 
+              />
             </CardContent>
             <CardFooter>
                 <Button onClick={resetStateAndClearInput} className="w-full" variant="outline">
@@ -132,7 +146,14 @@ export default function PensionPilotPage() {
             </CardHeader>
             <CardContent className="mt-6">
               <label htmlFor="file-upload-initial" className="sr-only">Upload XLSX file</label>
-              <FileInput id="file-upload-initial" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleFileChange} className="w-full text-base p-3 border-dashed border-2 border-input hover:border-primary focus:border-primary cursor-pointer" />
+              <FileInput 
+                id="file-upload-initial" 
+                ref={fileInputRef}
+                type="file" 
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+                onChange={handleFileChange} 
+                className="w-full text-base p-3 border-dashed border-2 border-input hover:border-primary focus:border-primary cursor-pointer" 
+              />
             </CardContent>
           </Card>
         </main>
@@ -144,7 +165,6 @@ export default function PensionPilotPage() {
     );
   }
 
-  // If we have pensionInfo, render the main content
   const { rows, headers, parameters, csvString } = pensionInfo;
 
   return (

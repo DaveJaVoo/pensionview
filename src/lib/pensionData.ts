@@ -15,9 +15,8 @@ const isMonetaryHeader = (header: string): boolean => {
          lowerHeader.includes('charge') ||
          lowerHeader.includes('balance') ||
          lowerHeader.includes('drawdown') ||
-         lowerHeader.includes('taxable income') || // Added taxable income
+         lowerHeader.includes('taxable income') || 
          lowerHeader.includes('tax paid');
-  // Note: 'growth' might be ambiguous (percentage or value), handled by specific parsing logic later
 };
 
 
@@ -28,71 +27,88 @@ export async function getPensionData(file: File): Promise<ParsedPensionData> {
       try {
         const arrayBuffer = event.target?.result;
         if (!arrayBuffer) {
-          reject(new Error("Failed to read file."));
+          reject(new Error("Failed to read file buffer."));
           return;
         }
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const workbook = XLSX.read(arrayBuffer, { type: 'array', cellNF: false, cellDates: true });
         const firstSheetName = workbook.SheetNames[0];
         if (!firstSheetName) {
-            reject(new Error("No sheets found in the Excel file."));
+            reject(new Error("No sheets found in the Excel file. Please ensure the file contains at least one sheet."));
             return;
         }
         const worksheet = workbook.Sheets[firstSheetName];
+        if (!worksheet) {
+            reject(new Error(`Sheet named "${firstSheetName}" could not be found or is empty.`));
+            return;
+        }
         
-        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true, defval: "" });
+        const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true, defval: null }); // Use null for empty cells
 
-        if (jsonData.length === 0 || jsonData[0].length === 0) {
-          reject(new Error("Spreadsheet is empty or has an unexpected format. Ensure headers are in the first row."));
+        if (jsonData.length === 0) {
+          reject(new Error("Spreadsheet is empty. Ensure data and headers are present."));
           return;
         }
+        if (jsonData[0].every(cell => cell === null || String(cell).trim() === "")) {
+             reject(new Error("Spreadsheet headers are missing or empty. Ensure headers are in the first row."));
+            return;
+        }
 
-        const rawHeaders: string[] = jsonData[0].map(String);
+
+        const rawHeaders: string[] = jsonData[0].map(h => String(h === null ? "" : h)); // Handle null headers
         const displayHeaders = rawHeaders.map(cleanHeader).filter(h => h !== "");
+
+        if (displayHeaders.length === 0) {
+            reject(new Error("No valid headers found in the first row of the spreadsheet."));
+            return;
+        }
 
         const dataRows: PensionDataRow[] = [];
         const parameterLinesValues: any[][] = [];
         let dataSectionEnded = false;
 
-        const csvForAI: string[] = [rawHeaders.join(',')];
+        const csvForAI: string[] = [rawHeaders.map(h => `"${cleanHeader(h).replace(/"/g, '""')}"`).join(',')];
+
 
         for (let i = 1; i < jsonData.length; i++) {
           const lineValues: any[] = jsonData[i];
           
-          // Reconstruct a CSV-like line for AI, handling potential commas in string values
-          const csvLineParts = lineValues.map(v => {
-            const valStr = String(v);
-            return (valStr.includes(',')) ? `"${valStr.replace(/"/g, '""')}"` : valStr;
+          if (lineValues === null || lineValues.every(cell => cell === null || String(cell).trim() === "")) { // Skip entirely empty rows
+            continue;
+          }
+
+          const csvLineParts = rawHeaders.map((_, index) => { // Iterate based on headers length
+            const val = lineValues[index] === null ? "" : String(lineValues[index]);
+            return val.includes(',') || val.includes('"') || val.includes('\n') ? `"${val.replace(/"/g, '""')}"` : val;
           });
           const csvLine = csvLineParts.join(',');
 
-          if (lineValues.some(cell => String(cell).includes("THE GOAL IS TO END WITH ZERO"))) {
-            dataSectionEnded = true;
-            continue;
-          }
-
-          const firstCellAsString = String(lineValues[0]).trim();
-
-          if (firstCellAsString === "INITIAL DC PENSION VALUE" ||
-              firstCellAsString === "INVESTMENT PERCENTAGE GROWTH" ||
-              firstCellAsString === "INFLATION" ||
-              firstCellAsString === "REAL GROWTH" ||
-              firstCellAsString === "WITHDRAWAL RATE" ||
-              firstCellAsString === "(ANNUAL CHARGE) AMC" ||
+          // Check for parameter section markers
+          const firstCellContent = lineValues[0] === null ? "" : String(lineValues[0]).trim();
+          if (firstCellContent.includes("THE GOAL IS TO END WITH ZERO") ||
+              firstCellContent === "INITIAL DC PENSION VALUE" ||
+              firstCellContent === "INVESTMENT PERCENTAGE GROWTH" ||
+              firstCellContent === "INFLATION" ||
+              firstCellContent === "REAL GROWTH" || // Assuming this is also a parameter marker
+              firstCellContent === "WITHDRAWAL RATE" ||
+              firstCellContent === "(ANNUAL CHARGE) AMC" ||
               (lineValues.length > 4 && String(lineValues[4]).trim() === "TOTAL AMC CHARGES")) {
-            dataSectionEnded = true; 
-            parameterLinesValues.push(lineValues);
-            continue;
+            dataSectionEnded = true;
+            if (firstCellContent !== "" && !firstCellContent.includes("THE GOAL IS TO END WITH ZERO")) { // Don't add the goal line to params
+                 parameterLinesValues.push(lineValues.map(v => v === null ? "" : v));
+            }
+            continue; 
           }
 
-          if (!dataSectionEnded && firstCellAsString !== "" && lineValues.length > 0) {
+
+          if (!dataSectionEnded && firstCellContent !== "") {
             csvForAI.push(csvLine);
             const row: any = {};
-            rawHeaders.forEach((rawHeader, index) => {
-              const headerKey = cleanHeader(rawHeader);
-              if (!headerKey) return; // Skip empty headers
+            displayHeaders.forEach((headerKey) => { // Iterate over cleaned displayHeaders
+              const originalHeaderIndex = rawHeaders.findIndex(rh => cleanHeader(rh) === headerKey);
+              if (originalHeaderIndex === -1) return;
 
-              const rawValue = lineValues[index];
-              const stringValue = String(rawValue).trim();
+              const rawValue = lineValues[originalHeaderIndex];
+              const stringValue = rawValue === null ? "" : String(rawValue).trim();
               
               if (headerKey === 'AGE') {
                 row[headerKey] = parseInt(stringValue || "0", 10);
@@ -105,19 +121,18 @@ export async function getPensionData(file: File): Promise<ParsedPensionData> {
                          headerKey.toLowerCase().includes('inflation') ||
                          headerKey.toLowerCase().includes('withdrawal rate') ||
                          headerKey.toLowerCase().includes('amc')) {
-                 // Try to parse as percentage if header suggests it
                  row[headerKey] = parsePercentage(stringValue);
-                 // If parsing as percentage fails but it's a monetary header (e.g. DC PENSION GROWTH @ % SHOWN BELOW which is a value)
-                 // then parse as currency. This handles cases where '%' is in the header but value is monetary.
                  if (row[headerKey] === undefined && isMonetaryHeader(headerKey)){
                     row[headerKey] = parseCurrency(stringValue);
                  }
               }
               else {
-                row[headerKey] = rawValue; // Keep as is if not specifically handled
+                row[headerKey] = rawValue === null ? "" : rawValue; 
               }
             });
-            dataRows.push(row as PensionDataRow);
+            if (Object.keys(row).length > 0) { // Ensure row is not empty
+                 dataRows.push(row as PensionDataRow);
+            }
           }
         }
         
@@ -132,22 +147,33 @@ export async function getPensionData(file: File): Promise<ParsedPensionData> {
         parameterLinesValues.forEach(parts => {
           if (parts.length > 0) {
             const key = String(parts[0]).trim();
-            if (key === "INITIAL DC PENSION VALUE" && parts.length > 1) parameters.initialDcPensionValue = parseCurrency(String(parts[1])) || 0;
-            if (key === "INVESTMENT PERCENTAGE GROWTH" && parts.length > 2) parameters.investmentPercentageGrowth = parsePercentage(String(parts[2])) || 0;
-            if (key === "INFLATION" && parts.length > 2) parameters.inflationRate = parsePercentage(String(parts[2])) || 0;
-            if (key === "WITHDRAWAL RATE" && parts.length > 2) parameters.withdrawalRate = parsePercentage(String(parts[2])) || 0;
-            if (key === "(ANNUAL CHARGE) AMC" && parts.length > 2) parameters.annualChargeAMC = parsePercentage(String(parts[2])) || 0;
+            const val1 = parts.length > 1 ? String(parts[1]) : undefined;
+            const val2 = parts.length > 2 ? String(parts[2]) : undefined;
+
+            if (key === "INITIAL DC PENSION VALUE") parameters.initialDcPensionValue = parseCurrency(val1) || 0;
+            if (key === "INVESTMENT PERCENTAGE GROWTH") parameters.investmentPercentageGrowth = parsePercentage(val2) || 0;
+            if (key === "INFLATION") parameters.inflationRate = parsePercentage(val2) || 0;
+            if (key === "WITHDRAWAL RATE") parameters.withdrawalRate = parsePercentage(val2) || 0;
+            if (key === "(ANNUAL CHARGE) AMC") parameters.annualChargeAMC = parsePercentage(val2) || 0;
           }
         });
         
+        if (dataRows.length === 0 && displayHeaders.length > 0 && !parameterLinesValues.some(p => String(p[0]).trim() === "INITIAL DC PENSION VALUE") ) {
+             // If we have headers but no data rows and didn't find clear parameter markers, it might be a format issue.
+             // However, an empty table is also possible. For now, resolve, but this could be a point for more specific errors.
+        }
+
         resolve({ rows: dataRows, headers: displayHeaders, parameters, csvString: csvForAI.join('\n') });
 
       } catch (e) {
-        console.error("Error parsing XLSX file:", e);
-        reject(e instanceof Error ? e : new Error(String(e)));
+        console.error("Error processing XLSX file:", e);
+        reject(e instanceof Error ? e : new Error("An unexpected error occurred during Excel file processing: " + String(e)));
       }
     };
-    reader.onerror = (error) => reject(error);
+    reader.onerror = (error) => {
+        console.error("FileReader error:", error);
+        reject(new Error("Failed to read the file with FileReader."));
+    };
     reader.readAsArrayBuffer(file);
   });
 }
