@@ -12,29 +12,39 @@ export interface PensionDataRow {
   'DC PENSION BALANCE': number;
   'DB PENSION (FAS)'?: number;
   'STATE PENSION'?: number;
-  'WITHDRAW FROM SAVINGS'?: number;
-  'TOTAL INCOME': number;
-  'TAXABLE INCOME = DRAWDOWN + FAS + STATE'?: number;
-  'INCOME TAX PAID': string | number; // Can be "NO TAX" or a number
   'MY INCOME PER YEAR': number;
-  'MY INCOME PER MONTH': number;
   "KATE'S INCOME PER YEAR": number;
-  "KATE'S INCOME PER MONTH": number;
   'JOINT INCOME PER YEAR': number;
-  'JOINT INCOME PER MONTH': number;
+  'TOTAL INCOME': number; // Sum of all income sources for the year
+  'TAXABLE INCOME = DRAWDOWN + FAS + STATE': number; // Taxable part of pension income
+  'INCOME TAX PAID': string | number; // Can be "NO TAX" or a number
+  'WITHDRAW FROM SAVINGS'?: number; // This column was in the original list, but no calc logic provided yet
 }
 
-export interface FinancialParameters {
+export interface PensionCalculationParameters {
+  currentAge: number;
+  projectionEndAge: number;
   initialDcPensionValue: number;
   investmentPercentageGrowth: number;
-  inflationRate: number;
-  withdrawalRate: number;
   annualChargeAMC: number;
+  withdrawalRatePost66: number;
+  inflationRate: number;
+  ufplsAge63?: number;
+  ufplsAge64?: number;
+  ufplsAge65?: number;
+  ufplsAge66?: number;
+  initialDbPensionAmount?: number;
+  dbPensionStartAge?: number;
+  initialStatePensionAmount?: number;
+  statePensionStartAge?: number;
+  myInitialAnnualIncome: number;
+  katesInitialAnnualIncome: number;
+  averageTaxRate: number; // For simplified tax calculation
 }
 
-export interface ParsedPensionData {
+export interface CalculatedPensionData {
   rows: PensionDataRow[];
   headers: string[];
-  parameters: FinancialParameters;
-  csvString: string; // The relevant part of CSV for AI
+  parameters: PensionCalculationParameters; // The input parameters used for this calculation
+  csvString: string;
 }

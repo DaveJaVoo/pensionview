@@ -41,6 +41,25 @@ const PensionInsightsCard: FC<PensionInsightsCardProps> = ({ csvDataString }) =>
       }
     });
   };
+  
+  if (!csvDataString) { // Don't render if no data to process
+    return (
+        <Card className="shadow-xl rounded-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6">
+                <div className="flex items-center gap-3">
+                    <SparklesIcon className="w-8 h-8" />
+                    <CardTitle className="font-headline text-2xl">AI Pension Insights</CardTitle>
+                </div>
+                <CardDescription className="text-primary-foreground/80 pt-1">
+                    Calculate a pension projection first to enable AI-powered insights.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+                <p className="text-muted-foreground text-center">Please fill out the form and click "Calculate Projection" to unlock insights.</p>
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Card className="shadow-xl rounded-xl overflow-hidden">
@@ -80,11 +99,14 @@ const PensionInsightsCard: FC<PensionInsightsCardProps> = ({ csvDataString }) =>
             />
           </div>
         )}
+        {!insights && !isPending && !error && (
+           <p className="text-muted-foreground text-center py-4">Click the button below to generate AI-powered insights based on your projection.</p>
+        )}
       </CardContent>
       <CardFooter className="p-6 border-t border-border bg-background/50">
         <Button
           onClick={handleGenerateInsights}
-          disabled={isPending}
+          disabled={isPending || !csvDataString}
           className="w-full text-base py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-2"
           aria-label="Generate pension insights"
         >
@@ -106,3 +128,4 @@ const PensionInsightsCard: FC<PensionInsightsCardProps> = ({ csvDataString }) =>
 };
 
 export default PensionInsightsCard;
+
