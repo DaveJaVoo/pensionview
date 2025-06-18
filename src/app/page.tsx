@@ -49,62 +49,78 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface FormFieldProps {
   name: keyof FormValues;
-  label: string;
+  label: React.ReactNode;
   control: any;
   type?: string;
   placeholder?: string;
   description?: string;
-  unit?: string;
+  suffix?: string;
   infoLink?: string;
   infoLinkText?: string;
 }
 
-const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "number", placeholder, description, unit, infoLink, infoLinkText }) => (
-  <div className="space-y-1">
-    <div className="flex items-center justify-between">
-      <Label htmlFor={name} className="text-sm font-medium">
-        {label} {unit && <span className="text-xs text-muted-foreground">({unit})</span>}
-      </Label>
-      {description && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
-              <InfoIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-60 text-sm" side="top" align="end">
-            {description}
-            {infoLink && infoLinkText && (
-              <p className="mt-2">
-                <a href={infoLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  {infoLinkText}
-                </a>
-              </p>
-            )}
-          </PopoverContent>
-        </Popover>
-      )}
+const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "number", placeholder, description, suffix, infoLink, infoLinkText }) => {
+  const defaultPlaceholder = typeof label === 'string' && !React.isValidElement(label)
+    ? `Enter ${label.toLowerCase()}`
+    : 'Enter value';
+  
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <Label htmlFor={name} className="text-sm font-medium">
+          {label}
+        </Label>
+        {description && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                <InfoIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60 text-sm" side="top" align="end">
+              {description}
+              {infoLink && infoLinkText && (
+                <p className="mt-2">
+                  <a href={infoLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    {infoLinkText}
+                  </a>
+                </p>
+              )}
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
+      <Controller
+        name={name}
+        control={control}
+        render={({ field, fieldState: { error } }) => (
+          <>
+            <div className="w-full max-w-[150px]">
+              <div className="relative">
+                <Input
+                  id={name}
+                  type={type}
+                  step={type === "number" ? (name.includes("Rate") || name.includes("Charge") || name.includes("Growth") || name.includes("Inflation") || name.includes("AMC") ? "0.1" : "1") : undefined}
+                  placeholder={placeholder || defaultPlaceholder}
+                  {...field}
+                  onChange={e => field.onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+                  className={cn(error ? "border-destructive" : "", suffix ? "pr-6" : "")}
+                />
+                {suffix && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <span className="text-muted-foreground sm:text-sm">{suffix}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            {error && <p className="text-xs text-destructive mt-1">{error.message}</p>}
+          </>
+        )}
+      />
     </div>
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState: { error } }) => (
-        <>
-          <Input
-            id={name}
-            type={type}
-            step={type === "number" ? (name.includes("Rate") || name.includes("Charge") || name === "investmentPercentageGrowth" || name === "inflationRate" || name === "annualChargeAMC" ? "0.1" : "1") : undefined}
-            placeholder={placeholder || `Enter ${label.toLowerCase()}`}
-            {...field}
-            onChange={e => field.onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
-            className={cn("w-full max-w-[200px]", error ? "border-destructive" : "")}
-          />
-          {error && <p className="text-xs text-destructive mt-1">{error.message}</p>}
-        </>
-      )}
-    />
-  </div>
-);
+  );
+};
+
 
 export default function PensionPilotPage() {
   const [calculatedData, setCalculatedData] = useState<CalculatedPensionData | null>(null);
@@ -116,15 +132,11 @@ export default function PensionPilotPage() {
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: formSchema.parse({}), // Initialize with Zod defaults
+    defaultValues: formSchema.parse({}), 
   });
-
-  const initialDcPensionValueWatched = watch("initialDcPensionValue");
-  const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
-
+  
   useEffect(() => {
     const clientCurrentYear = new Date().getFullYear();
-    // Reset with client-specific and other standard defaults after mount
     reset({
       currentAge: 55,
       projectionStartYear: clientCurrentYear,
@@ -143,6 +155,9 @@ export default function PensionPilotPage() {
     });
     setIsFormInitialized(true);
   }, [reset]);
+
+  const initialDcPensionValueWatched = watch("initialDcPensionValue");
+  const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
 
   useEffect(() => {
     if (!isFormInitialized) return;
@@ -186,24 +201,24 @@ export default function PensionPilotPage() {
   };
 
   const coreParamsFields: FormFieldProps[] = [
-    { name: "currentAge", label: "Current Age", control: control, unit: "Years", description: "Your current age." },
-    { name: "projectionStartYear", label: "Projection Start Year", control: control, unit: "Year", description: "The year the projection should begin from." },
-    { name: "initialSavingsAmount", label: "Initial Savings Amount", control: control, unit: "£", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
-    { name: "targetAnnualNetIncome", label: "Target Annual Income (After Tax)", control: control, unit: "£ pa", description: "Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount. The calculation aims to get as close as possible; precision can vary." },
+    { name: "currentAge", label: "Current Age", control: control, description: "Your current age." },
+    { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from." },
+    { name: "initialSavingsAmount", label: "Total Savings", control: control, placeholder: "Enter amount in £", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
+    { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount. The calculation aims to get as close as possible; precision can vary." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
-    { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, unit: "£", description: "Your current total Defined Contribution pension pot value." },
-    { name: "investmentPercentageGrowth", label: "Investment Growth Rate", control: control, unit: "% pa", description: "Expected annual growth rate of your DC pension investments." },
-    { name: "annualChargeAMC", label: "Annual Mgmt. Charge (AMC)", control: control, unit: "% pa", description: "Annual Management Charge on your DC pension pot." },
-    { name: "dcWithdrawalRate", label: "DC UFPLS Withdrawal Rate", control: control, unit: "% pa", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering, or if this withdrawal is higher than what's needed for the target net income." },
+    { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution pension pot value." },
+    { name: "investmentPercentageGrowth", label: "Investment Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your DC pension investments." },
+    { name: "annualChargeAMC", label: "Annual Management Charge", control: control, suffix: "%", description: "Annual Management Charge on your DC pension pot. Please refer to your Fund Fact Sheet supplied by your Pension Provider" },
+    { name: "dcWithdrawalRate", label: "DC Withdrawal Rate", control: control, suffix: "%", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering, or if this withdrawal is higher than what's needed for the target net income." },
   ];
 
   const dbStatePensionFields: FormFieldProps[] = [
-    { name: "initialDbPensionAmount", label: "Initial DB Pension Amount", control: control, unit: "£ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
-    { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, unit: "Years", description: "Age at which DB Pension payments begin." },
-    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, unit: "£ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
-    { name: "statePensionAge", label: "State Pension Age", control: control, unit: "Years", description: "Age at which State Pension payments begin." },
+    { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
+    { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
+    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
+    { name: "statePensionAge", label: "Qualify at Age", control: control, description: "Age at which State Pension payments begin." },
   ];
 
   const economicAssumptionsFields: FormFieldProps[] = [
@@ -211,7 +226,7 @@ export default function PensionPilotPage() {
        name: "inflationRate",
        label: "Inflation Rate",
        control: control,
-       unit: "% pa",
+       suffix: "%",
        description: "Expected average annual inflation rate. For current UK rates, refer to the ONS.",
        infoLink: "https://www.ons.gov.uk/economy/inflationandpriceindices",
        infoLinkText: "Check ONS for latest rates (opens new tab). If unsure, use a long-term average like 2-3%."
@@ -279,7 +294,7 @@ export default function PensionPilotPage() {
                         name="takeTaxFreeLumpSum"
                         control={control}
                         render={({ field }) => (
-                            <div className="flex items-center space-x-2 pt-2"> {/* Added pt-2 for spacing similar to Input */}
+                            <div className="flex items-center space-x-2 pt-2">
                                 <Switch
                                     id="takeTaxFreeLumpSum"
                                     checked={field.value}
@@ -323,7 +338,7 @@ export default function PensionPilotPage() {
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Economic Assumptions</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 {economicAssumptionsFields.map(field => <FormInput key={field.name} {...field} />)}
-                 <div>
+                 <div className="w-full max-w-[150px]">
                     <Label className="text-sm font-medium">
                       Real Growth Rate <span className="text-xs text-muted-foreground font-normal">(Investment Growth Rate minus Inflation Rate)</span>
                     </Label>
@@ -408,7 +423,7 @@ export default function PensionPilotPage() {
                 <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimization</h2>
                 <DrawdownOptimizationCard
                   csvDataString={calculatedData.csvString}
-                  financialParams={calculatedData.parameters} // Pass all parameters including new ones
+                  financialParams={calculatedData.parameters}
                 />
               </section>
             </div>
