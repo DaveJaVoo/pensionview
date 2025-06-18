@@ -30,7 +30,7 @@ const currentYear = new Date().getFullYear();
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89),
-  projectionStartYear: z.coerce.number().min(currentYear - 10).max(currentYear + 10),
+  projectionStartYear: z.coerce.number().min(currentYear - 10).max(currentYear + 10).default(currentYear),
   initialSavingsAmount: z.coerce.number().min(0),
   targetAnnualNetIncome: z.coerce.number().min(0).describe("Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount."),
   initialDbPensionAmount: z.coerce.number().min(0),
@@ -192,7 +192,7 @@ export default function PensionPilotPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <AppHeader title="MY PENSION PILOT" />
+      <AppHeader title="PensionView+" />
       
       <main className="flex-grow container mx-auto px-4 py-8 space-y-8">
         <Card className="shadow-xl rounded-xl">
@@ -244,12 +244,13 @@ export default function PensionPilotPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 {economicAssumptionsFields.map(field => <FormInput key={field.name} {...field} />)}
                  <div>
-                    <Label className="text-sm font-medium">Real Growth Rate</Label>
+                    <Label className="text-sm font-medium">
+                      Real Growth Rate <span className="text-xs text-muted-foreground font-normal">(Investment Growth Rate minus Inflation Rate)</span>
+                    </Label>
                     <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
                         <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
                         <span className="text-sm font-semibold">{realGrowth}% pa</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Investment Growth Rate minus Inflation Rate.</p>
                  </div>
               </div>
               
@@ -328,11 +329,12 @@ export default function PensionPilotPage() {
       </main>
 
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border mt-auto">
-        <p>&copy; {new Date().getFullYear()} MY PENSION PILOT. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} PensionView+. All rights reserved.</p>
         <p>Pension planning, simplified.</p>
       </footer>
     </div>
   );
 }
+    
 
     
