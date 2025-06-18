@@ -1,6 +1,5 @@
 
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
-import { formatCurrency, parseCurrency } from './utils'; // Assuming parseCurrency might still be useful for direct inputs if needed
 
 export const DEFAULT_HEADERS = [
   'AGE', 'YEAR', 
@@ -25,11 +24,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const rows: PensionDataRow[] = [];
   let previousRow: PensionDataRow | null = null;
 
-  const invGrowthDecimal = investmentPercentageGrowth / 100;
-  const amcDecimal = annualChargeAMC / 100;
-  const withdrawDecimal = withdrawalRatePost66 / 100;
-  const inflationDecimal = inflationRate / 100;
-  const avgTaxDecimal = averageTaxRate / 100;
+  const invGrowthDecimal = (investmentPercentageGrowth || 0) / 100;
+  const amcDecimal = (annualChargeAMC || 0) / 100;
+  const withdrawDecimal = (withdrawalRatePost66 || 0) / 100;
+  const inflationDecimal = (inflationRate || 0) / 100;
+  const avgTaxDecimal = (averageTaxRate || 0) / 100;
 
   const currentYear = new Date().getFullYear();
 
@@ -57,28 +56,39 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     };
 
     // DC Pension Calculations
-    row['INITIAL DC PENSION'] = previousRow ? previousRow['DC PENSION BALANCE'] : initialDcPensionValue;
-    row['DC PENSION GROWTH @ % SHOWN BELOW'] = row['INITIAL DC PENSION'] * invGrowthDecimal;
-    row['DC PENSION PLUS GROWTH'] = row['INITIAL DC PENSION'] + row['DC PENSION GROWTH @ % SHOWN BELOW'];
-    row['DC PENSION AMC CHARGE @ % SHOWN BELOW'] = row['DC PENSION PLUS GROWTH'] * amcDecimal;
-    row['DC PENSION MINUS CHARGES'] = row['DC PENSION PLUS GROWTH'] - row['DC PENSION AMC CHARGE @ % SHOWN BELOW'];
+    row['INITIAL DC PENSION'] = previousRow ? (previousRow['DC PENSION BALANCE'] || 0) : (initialDcPensionValue || 0);
+    row['DC PENSION GROWTH @ % SHOWN BELOW'] = (row['INITIAL DC PENSION'] || 0) * invGrowthDecimal;
+    row['DC PENSION PLUS GROWTH'] = (row['INITIAL DC PENSION'] || 0) + (row['DC PENSION GROWTH @ % SHOWN BELOW'] || 0);
+    row['DC PENSION AMC CHARGE @ % SHOWN BELOW'] = (row['DC PENSION PLUS GROWTH'] || 0) * amcDecimal;
+    row['DC PENSION MINUS CHARGES'] = (row['DC PENSION PLUS GROWTH'] || 0) - (row['DC PENSION AMC CHARGE @ % SHOWN BELOW'] || 0);
 
-    if (age === 63 && ufplsAge63 !== undefined) row['DC PENSION UFPLS DRAWDOWN'] = ufplsAge63;
-    else if (age === 64 && ufplsAge64 !== undefined) row['DC PENSION UFPLS DRAWDOWN'] = ufplsAge64;
-    else if (age === 65 && ufplsAge65 !== undefined) row['DC PENSION UFPLS DRAWDOWN'] = ufplsAge65;
-    else if (age === 66 && ufplsAge66 !== undefined) row['DC PENSION UFPLS DRAWDOWN'] = ufplsAge66;
-    else if (age > 66) row['DC PENSION UFPLS DRAWDOWN'] = row['DC PENSION MINUS CHARGES'] * withdrawDecimal;
-    else row['DC PENSION UFPLS DRAWDOWN'] = 0; // Default if not specified for ages <63 or those specific years
+    let specificUfplsAmount: number | undefined = undefined;
+    if (age === 63 && ufplsAge63 !== undefined) specificUfplsAmount = ufplsAge63;
+    else if (age === 64 && ufplsAge64 !== undefined) specificUfplsAmount = ufplsAge64;
+    else if (age === 65 && ufplsAge65 !== undefined) specificUfplsAmount = ufplsAge65;
+    else if (age === 66 && ufplsAge66 !== undefined) specificUfplsAmount = ufplsAge66;
 
-    row['DC PENSION BALANCE'] = row['DC PENSION MINUS CHARGES'] - row['DC PENSION UFPLS DRAWDOWN'];
-    if (row['DC PENSION BALANCE'] < 0) row['DC PENSION BALANCE'] = 0; // Cannot go below zero
+    if (specificUfplsAmount !== undefined) {
+      row['DC PENSION UFPLS DRAWDOWN'] = specificUfplsAmount;
+    } else if (age > 66) {
+      row['DC PENSION UFPLS DRAWDOWN'] = (row['DC PENSION MINUS CHARGES'] || 0) * withdrawDecimal;
+    } else {
+      row['DC PENSION UFPLS DRAWDOWN'] = 0;
+    }
+    
+    // Ensure drawdown doesn't exceed available balance after charges
+    row['DC PENSION UFPLS DRAWDOWN'] = Math.min(row['DC PENSION UFPLS DRAWDOWN'] || 0, row['DC PENSION MINUS CHARGES'] || 0);
+
+
+    row['DC PENSION BALANCE'] = (row['DC PENSION MINUS CHARGES'] || 0) - (row['DC PENSION UFPLS DRAWDOWN'] || 0);
+    if (row['DC PENSION BALANCE'] < 0) row['DC PENSION BALANCE'] = 0;
 
     // DB Pension (FAS)
     if (dbPensionStartAge !== undefined && initialDbPensionAmount !== undefined) {
       if (age === dbPensionStartAge) {
         row['DB PENSION (FAS)'] = initialDbPensionAmount;
       } else if (age > dbPensionStartAge && previousRow && previousRow['DB PENSION (FAS)'] !== undefined) {
-        row['DB PENSION (FAS)'] = previousRow['DB PENSION (FAS)']! * (1 + inflationDecimal);
+        row['DB PENSION (FAS)'] = (previousRow['DB PENSION (FAS)']! || 0) * (1 + inflationDecimal);
       }
     }
     
@@ -87,24 +97,24 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       if (age === statePensionStartAge) {
         row['STATE PENSION'] = initialStatePensionAmount;
       } else if (age > statePensionStartAge && previousRow && previousRow['STATE PENSION'] !== undefined) {
-        row['STATE PENSION'] = previousRow['STATE PENSION']! * (1 + inflationDecimal);
+        row['STATE PENSION'] = (previousRow['STATE PENSION']! || 0) * (1 + inflationDecimal);
       }
     }
 
     // My Income & Kate's Income (inflating from initial)
     if (yearOffset === 0) {
-      row['MY INCOME PER YEAR'] = myInitialAnnualIncome;
-      row["KATE'S INCOME PER YEAR"] = katesInitialAnnualIncome;
+      row['MY INCOME PER YEAR'] = myInitialAnnualIncome || 0;
+      row["KATE'S INCOME PER YEAR"] = katesInitialAnnualIncome || 0;
     } else if (previousRow) {
-      row['MY INCOME PER YEAR'] = previousRow['MY INCOME PER YEAR'] * (1 + inflationDecimal);
-      row["KATE'S INCOME PER YEAR"] = previousRow["KATE'S INCOME PER YEAR"] * (1 + inflationDecimal);
+      row['MY INCOME PER YEAR'] = (previousRow['MY INCOME PER YEAR'] || 0) * (1 + inflationDecimal);
+      row["KATE'S INCOME PER YEAR"] = (previousRow["KATE'S INCOME PER YEAR"] || 0) * (1 + inflationDecimal);
     }
-    row['MY INCOME PER MONTH'] = row['MY INCOME PER YEAR'] / 12;
-    row["KATE'S INCOME PER MONTH"] = row["KATE'S INCOME PER YEAR"] / 12;
+    // row['MY INCOME PER MONTH'] = (row['MY INCOME PER YEAR'] || 0) / 12; // Not in DEFAULT_HEADERS
+    // row["KATE'S INCOME PER MONTH"] = (row["KATE'S INCOME PER YEAR"] || 0) / 12; // Not in DEFAULT_HEADERS
 
 
-    row['JOINT INCOME PER YEAR'] = row['MY INCOME PER YEAR'] + row["KATE'S INCOME PER YEAR"];
-    row['JOINT INCOME PER MONTH'] = row['JOINT INCOME PER YEAR'] / 12;
+    row['JOINT INCOME PER YEAR'] = (row['MY INCOME PER YEAR'] || 0) + (row["KATE'S INCOME PER YEAR"] || 0);
+    // row['JOINT INCOME PER MONTH'] = (row['JOINT INCOME PER YEAR'] || 0) / 12; // Not in DEFAULT_HEADERS
 
     // Taxable Pension Income
     row['TAXABLE INCOME = DRAWDOWN + FAS + STATE'] = 
@@ -119,16 +129,38 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       (row['STATE PENSION'] || 0) +
       (row['MY INCOME PER YEAR'] || 0) +
       (row["KATE'S INCOME PER YEAR"] || 0);
-      // Not including 'WITHDRAW FROM SAVINGS' here as its calculation isn't defined yet.
 
     // Income Tax Paid (Simplified)
-    const taxableIncomeForTaxCalc = row['TAXABLE INCOME = DRAWDOWN + FAS + STATE'] + row['MY INCOME PER YEAR'] + row["KATE'S INCOME PER YEAR"]; // Simplified: all income is taxed
+    const taxableIncomeForTaxCalc = (row['TAXABLE INCOME = DRAWDOWN + FAS + STATE'] || 0) + (row['MY INCOME PER YEAR'] || 0) + (row["KATE'S INCOME PER YEAR"] || 0);
     if (taxableIncomeForTaxCalc > 0 && avgTaxDecimal > 0) {
       row['INCOME TAX PAID'] = taxableIncomeForTaxCalc * avgTaxDecimal;
     } else {
       row['INCOME TAX PAID'] = 'NO TAX';
     }
     
+    // Ensure all numeric fields are numbers, default to 0 if NaN or undefined after calculation
+    DEFAULT_HEADERS.forEach(header => {
+        if (typeof row[header] === 'number' && isNaN(row[header] as number)) {
+            row[header] = 0;
+        } else if (row[header] === undefined && 
+                   header !== 'DB PENSION (FAS)' && 
+                   header !== 'STATE PENSION' && 
+                   header !== 'WITHDRAW FROM SAVINGS') { // these can legitimately be undefined
+             // Check if it's a field that should be numeric
+            const numericHeaders = [
+                'INITIAL DC PENSION', 'DC PENSION GROWTH @ % SHOWN BELOW', 'DC PENSION PLUS GROWTH',
+                'DC PENSION AMC CHARGE @ % SHOWN BELOW', 'DC PENSION MINUS CHARGES',
+                'DC PENSION UFPLS DRAWDOWN', 'DC PENSION BALANCE',
+                'MY INCOME PER YEAR', "KATE'S INCOME PER YEAR", 'JOINT INCOME PER YEAR',
+                'TOTAL INCOME', 'TAXABLE INCOME = DRAWDOWN + FAS + STATE'
+            ];
+            if (numericHeaders.includes(header) || (header === 'INCOME TAX PAID' && row['INCOME TAX PAID'] !== 'NO TAX')) {
+                 row[header] = 0;
+            }
+        }
+    });
+
+
     rows.push(row);
     previousRow = row;
   }
@@ -138,9 +170,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     return DEFAULT_HEADERS.map(header => {
       let val = r[header];
       if (typeof val === 'number') {
-        return String(val.toFixed(2)); // AI might prefer consistent decimal places
+        if (isNaN(val)) { // Check for NaN before calling toFixed
+          return ""; // Return empty string for CSV if NaN
+        }
+        return String(val.toFixed(2));
       }
-      if (val === undefined || val === null) return "";
+      if (val === undefined || val === null) return ""; // Handle undefined or null for non-numeric types
       const sVal = String(val);
       return sVal.includes(',') || sVal.includes('"') || sVal.includes('\n') ? `"${sVal.replace(/"/g, '""')}"` : sVal;
     }).join(',');
@@ -149,3 +184,4 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers: DEFAULT_HEADERS, parameters: params, csvString };
 }
+
