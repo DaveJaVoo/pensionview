@@ -38,7 +38,7 @@ const formSchema = z.object({
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
   initialDcPensionValue: z.coerce.number().min(0).default(188000),
-  takeTaxFreeLumpSum: z.boolean().default(false), // New field
+  takeTaxFreeLumpSum: z.boolean().default(false),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   inflationRate: z.coerce.number().min(-10).max(20).default(4),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
@@ -97,7 +97,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
             placeholder={placeholder || `Enter ${label.toLowerCase()}`}
             {...field}
             onChange={e => field.onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
-            className={cn("w-full", error ? "border-destructive" : "")}
+            className={cn("w-full max-w-[200px]", error ? "border-destructive" : "")}
           />
           {error && <p className="text-xs text-destructive mt-1">{error.message}</p>}
         </>
@@ -116,6 +116,7 @@ export default function PensionPilotPage() {
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues: formSchema.parse({}), // Initialize with Zod defaults
   });
 
   const initialDcPensionValueWatched = watch("initialDcPensionValue");
@@ -123,6 +124,7 @@ export default function PensionPilotPage() {
 
   useEffect(() => {
     const clientCurrentYear = new Date().getFullYear();
+    // Reset with client-specific and other standard defaults after mount
     reset({
       currentAge: 55,
       projectionStartYear: clientCurrentYear,
@@ -133,7 +135,7 @@ export default function PensionPilotPage() {
       statePensionAge: 67,
       initialStatePensionAmount: 11973,
       initialDcPensionValue: 188000,
-      takeTaxFreeLumpSum: false, // Default for new field
+      takeTaxFreeLumpSum: false,
       investmentPercentageGrowth: 4,
       inflationRate: 4,
       dcWithdrawalRate: 4,
