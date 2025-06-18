@@ -40,7 +40,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
       'DC Pension + Growth': ['DC Pension', '+ Growth'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Minus AMC': ['DC Minus', 'AMC'],
-      'DC Pension Drawdown': ['DC Pension', 'Drawdown'], // Updated from 'DC UFPLS Drawdown'
+      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC Pension Balance': ['DC Pension', 'Balance'],
       'DB Pension': ['DB Pension'],
       'State Pension': ['State Pension'],
@@ -69,6 +69,10 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
 
   const isGreenStyledHeader = (header: string): boolean => {
     return header === 'DC Pension Drawdown' || header === 'State Pension' || header === 'Withdraw from Savings';
+  };
+
+  const isBlueStyledHeader = (header: string): boolean => {
+    return header === 'Net Income Per Year' || header === 'Net Income Per Month';
   };
 
   return (
@@ -105,12 +109,16 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
                     cellClasses = cn(cellClasses, "bg-destructive/20 text-destructive-foreground font-semibold");
                   } else if (numericValueForStyling === 0) {
-                     cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400"); // Existing style for no tax
+                     cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400"); 
                      displayValue = "£0"; 
                   }
                 } else if (isGreenStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
                     cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium");
+                  }
+                } else if (isBlueStyledHeader(header)) {
+                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                    cellClasses = cn(cellClasses, "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 font-medium");
                   }
                 }
                 
