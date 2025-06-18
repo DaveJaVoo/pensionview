@@ -26,7 +26,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
            lowerHeader.includes('balance') || // 'DC Pension Balance'
            lowerHeader.includes('drawdown') || // 'DC UFPLS Drawdown'
            lowerHeader.includes('tax paid') || // 'Income Tax Paid'
-           lowerHeader.includes('value'); // 'Initial DC Pension Value'
+           lowerHeader.includes('value') || // 'Initial DC Pension Value'
+           lowerHeader.includes('dc minus amc'); // Added this check
   };
   
   const isNumericHeader = (header: string): boolean => {
@@ -134,3 +135,4 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
 };
 
 export default PensionDataTable;
+
