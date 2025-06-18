@@ -68,7 +68,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   };
 
   const isGreenStyledHeader = (header: string): boolean => {
-    return header === 'DC Pension Drawdown' || header === 'State Pension' || header === 'Withdraw from Savings';
+    return header === 'DC Pension Drawdown' || header === 'State Pension' || header === 'Withdraw from Savings' || header === 'DB Pension';
   };
 
   const isBlueStyledHeader = (header: string): boolean => {
@@ -138,3 +138,4 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
 };
 
 export default PensionDataTable;
+
