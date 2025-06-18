@@ -27,7 +27,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
            lowerHeader.includes('drawdown') || // 'DC UFPLS Drawdown'
            lowerHeader.includes('tax paid') || // 'Income Tax Paid'
            lowerHeader.includes('value') || // 'Initial DC Pension Value'
-           lowerHeader.includes('dc minus amc'); // Added this check
+           lowerHeader.includes('dc minus amc');
   };
   
   const isNumericHeader = (header: string): boolean => {
@@ -95,13 +95,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
 
                 if (isMonetaryHeader(header) || (typeof cellValue === 'string' && cellValue.includes('£'))) {
                   displayValue = formatCurrency(cellValue);
-                  cellClasses = cn(cellClasses, "font-mono");
-                } else if (isNumericHeader(header)) {
-                   cellClasses = cn(cellClasses, "font-mono");
-                } else if (header === 'Year') {
-                   cellClasses = cn(cellClasses, "font-mono");
                 }
-
+                // Removed font-mono application from numeric and year headers to use default body font.
 
                 if (header === 'Income Tax Paid') {
                   const taxPaidNum = typeof cellValue === 'number' ? cellValue : parseCurrency(String(cellValue));
@@ -109,16 +104,10 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
                     cellClasses = cn(cellClasses, "bg-destructive/20 text-destructive-foreground font-semibold");
                   } else if (taxPaidNum === 0) {
                      cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400");
-                     displayValue = "£0"; // Show £0 instead of "No Tax" or "-" if tax is actually zero
+                     displayValue = "£0"; 
                   }
                 }
                 
-                // Display '-' for zero values in monetary columns, except for tax paid if it's explicitly "£0"
-                if (isMonetaryHeader(header) && (displayValue === "£0" || displayValue === 0) && header !== 'Income Tax Paid') {
-                    // displayValue = "-"; // Re-evaluate if needed, £0 is fine.
-                }
-
-
                 return (
                   <TableCell key={header} className={cellClasses}>
                     {displayValue === undefined || displayValue === null || (typeof displayValue === 'string' && displayValue.trim() === '') ? '-' : String(displayValue)}
@@ -135,4 +124,3 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
 };
 
 export default PensionDataTable;
-
