@@ -1,74 +1,63 @@
 
 "use client";
 import type { FC } from 'react';
-import React from 'react'; // Import React for React.Fragment
+import React from 'react';
 import type { PensionDataRow } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatCurrency, parseCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { DEFAULT_HEADERS } from '@/lib/pensionData'; // Import the new headers
 
 interface PensionDataTableProps {
   data: PensionDataRow[];
-  headers: string[];
+  headers: string[]; // This will now be DEFAULT_HEADERS from pensionData
 }
 
 const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
+    // Adjusted to match new headers
     return lowerHeader.includes('pension') ||
            lowerHeader.includes('income') ||
-           lowerHeader.includes('savings') ||
-           lowerHeader.includes('charge') ||
-           lowerHeader.includes('growth') ||
-           lowerHeader.includes('balance') ||
-           lowerHeader.includes('drawdown') ||
-           lowerHeader.includes('tax paid');
+           lowerHeader.includes('savings') || // 'Withdraw from Savings'
+           lowerHeader.includes('charge') || // 'DC AMC Charge'
+           lowerHeader.includes('growth') || // 'DC Pension Growth'
+           lowerHeader.includes('balance') || // 'DC Pension Balance'
+           lowerHeader.includes('drawdown') || // 'DC UFPLS Drawdown'
+           lowerHeader.includes('tax paid') || // 'Income Tax Paid'
+           lowerHeader.includes('value'); // 'Initial DC Pension Value'
   };
   
   const isNumericHeader = (header: string): boolean => {
-    return header === "AGE";
+    return header === "Age";
   }
 
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
+    // Define multi-line formatting for new headers
     const specificHeaders: Record<string, string[]> = {
-      'DC PENSION GROWTH @ % SHOWN BELOW': [
-        'DC PENSION',
-        'GROWTH',
-        '@ %',
-        'SHOWN BELOW',
-      ],
-      'DC PENSION AMC CHARGE @ % SHOWN BELOW': [
-        'DC PENSION',
-        'AMC CHARGE',
-        '@ %',
-        'SHOWN BELOW',
-      ],
-      'TAXABLE INCOME = DRAWDOWN + FAS + STATE': [
-        'TAXABLE INCOME',
-        '= DRAWDOWN',
-        '+ FAS + STATE',
-      ],
-      'MY INCOME PER YEAR': ['MY INCOME', 'PER YEAR'],
-      'MY INCOME PER MONTH': ['MY INCOME', 'PER MONTH'],
-      "KATE'S INCOME PER YEAR": ["KATE'S INCOME", 'PER YEAR'],
-      "KATE'S INCOME PER MONTH": ["KATE'S INCOME", 'PER MONTH'],
-      'JOINT INCOME PER YEAR': ['JOINT INCOME', 'PER YEAR'],
-      'JOINT INCOME PER MONTH': ['JOINT INCOME', 'PER MONTH'],
-      'INITIAL DC PENSION': ['INITIAL DC', 'PENSION'],
-      'DC PENSION PLUS GROWTH': ['DC PENSION', 'PLUS GROWTH'],
-      'DC PENSION MINUS CHARGES': ['DC PENSION', 'MINUS CHARGES'],
-      'DC PENSION UFPLS DRAWDOWN': ['DC PENSION', 'UFPLS DRAWDOWN'],
-      'DC PENSION BALANCE': ['DC PENSION', 'BALANCE'],
-      'DB PENSION (FAS)': ['DB PENSION', '(FAS)'],
-      'STATE PENSION': ['STATE', 'PENSION'],
-      'WITHDRAW FROM SAVINGS': ['WITHDRAW FROM', 'SAVINGS'],
+      'Initial DC Pension': ['Initial DC', 'Pension'],
+      'DC Pension Growth': ['DC Pension', 'Growth'],
+      'DC Pension + Growth': ['DC Pension', '+ Growth'],
+      'DC AMC Charge': ['DC AMC', 'Charge'],
+      'DC Minus AMC': ['DC Minus', 'AMC'],
+      'DC UFPLS Drawdown': ['DC UFPLS', 'Drawdown'],
+      'DC Pension Balance': ['DC Pension', 'Balance'],
+      'DB Pension': ['DB Pension'],
+      'State Pension': ['State Pension'],
+      'Withdraw from Savings': ['Withdraw', 'from Savings'],
       'TOTAL INCOME': ['TOTAL', 'INCOME'],
-      'INCOME TAX PAID': ['INCOME TAX', 'PAID'],
+      'Income Subject to Tax': ['Income Subject', 'to Tax'],
+      'Income Tax Paid': ['Income Tax', 'Paid'],
+      'Net Income Per Year': ['Net Income', 'Per Year'],
+      'Net Income Per Month': ['Net Income', 'Per Month'],
     };
 
-    if (specificHeaders[header.toUpperCase()]) { // Match case-insensitively, but use original header for key
-      const lines = specificHeaders[header.toUpperCase()];
+    const upperHeader = header.toUpperCase(); // Normalize for matching
+    const foundHeaderKey = Object.keys(specificHeaders).find(key => key.toUpperCase() === upperHeader);
+
+    if (foundHeaderKey && specificHeaders[foundHeaderKey]) {
+      const lines = specificHeaders[foundHeaderKey];
       return lines.map((line, index) => (
         <React.Fragment key={index}>
           {line}
@@ -88,7 +77,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
               <TableHead 
                 key={header} 
                 className="px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top"
-                style={{ whiteSpace: 'normal' }} // Allow text to wrap
+                style={{ whiteSpace: 'normal' }}
               >
                 {formatHeaderForDisplay(header)}
               </TableHead>
@@ -108,17 +97,26 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
                   cellClasses = cn(cellClasses, "font-mono");
                 } else if (isNumericHeader(header)) {
                    cellClasses = cn(cellClasses, "font-mono");
+                } else if (header === 'Year') {
+                   cellClasses = cn(cellClasses, "font-mono");
                 }
 
 
-                if (header === 'INCOME TAX PAID') {
-                  const taxPaid = parseCurrency(row['INCOME TAX PAID']);
-                  if (taxPaid !== undefined && taxPaid > 0) {
+                if (header === 'Income Tax Paid') {
+                  const taxPaidNum = typeof cellValue === 'number' ? cellValue : parseCurrency(String(cellValue));
+                  if (taxPaidNum !== undefined && taxPaidNum > 0) {
                     cellClasses = cn(cellClasses, "bg-destructive/20 text-destructive-foreground font-semibold");
-                  } else if (String(row['INCOME TAX PAID']).toLowerCase() === 'no tax') {
+                  } else if (taxPaidNum === 0) {
                      cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400");
+                     displayValue = "£0"; // Show £0 instead of "No Tax" or "-" if tax is actually zero
                   }
                 }
+                
+                // Display '-' for zero values in monetary columns, except for tax paid if it's explicitly "£0"
+                if (isMonetaryHeader(header) && (displayValue === "£0" || displayValue === 0) && header !== 'Income Tax Paid') {
+                    // displayValue = "-"; // Re-evaluate if needed, £0 is fine.
+                }
+
 
                 return (
                   <TableCell key={header} className={cellClasses}>

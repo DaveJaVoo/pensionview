@@ -2,8 +2,6 @@
 "use client";
 import type { FC } from 'react';
 import { useState, useTransition } from 'react';
-// Use PensionCalculationParameters for strong typing if it represents the expected AI input structure
-// For now, let's define a specific type for what this card expects for financialParams
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,16 +10,20 @@ import { drawdownOptimization, type DrawdownOptimizationOutput, type DrawdownOpt
 import LoadingSpinner from './shared/LoadingSpinner';
 import { Settings2Icon, AlertTriangleIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import type { PensionCalculationParameters } from '@/lib/types'; // For stronger typing of incoming parameters
 
 interface DrawdownOptimizationCardProps {
   csvDataString: string;
-  financialParams: { // This should ideally match the structure expected by drawdownOptimization flow's input minus csvDataString
-    initialDcPensionValue: number;
-    investmentPercentageGrowth: number;
-    inflationRate: number;
-    withdrawalRate: number; // This might be withdrawalRatePost66 from main form
-    annualChargeAMC: number;
-  };
+  // Use a subset of PensionCalculationParameters relevant to this AI flow
+  financialParams: Pick<PensionCalculationParameters, 
+    'initialDcPensionValue' | 
+    'investmentPercentageGrowth' | 
+    'inflationRate' | 
+    'dcWithdrawalRate' | // Renamed from withdrawalRate
+    'annualChargeAMC' |
+    'statePensionAge' | // Added statePensionAge
+    'currentAge' // Added currentAge
+  >;
 }
 
 const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataString, financialParams }) => {
@@ -40,8 +42,11 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           initialDcPensionValue: financialParams.initialDcPensionValue,
           investmentPercentageGrowth: financialParams.investmentPercentageGrowth,
           inflationRate: financialParams.inflationRate,
-          withdrawalRate: financialParams.withdrawalRate,
+          dcWithdrawalRate: financialParams.dcWithdrawalRate, // Use dcWithdrawalRate
           annualChargeAMC: financialParams.annualChargeAMC,
+          statePensionAge: financialParams.statePensionAge, // Pass statePensionAge
+          currentAge: financialParams.currentAge, // Pass currentAge
+          projectionEndAge: 90, // Assuming projection always goes to 90 as per new logic
         };
         const result = await drawdownOptimization(input);
         setSuggestion(result);
@@ -58,7 +63,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
     });
   };
 
-  if (!csvDataString) { // Don't render if no data to process
+  if (!csvDataString) {
     return (
         <Card className="shadow-xl rounded-xl overflow-hidden">
             <CardHeader className="bg-gradient-to-r from-accent to-primary text-primary-foreground p-6">
@@ -85,7 +90,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero balance at plan end.
+          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90).
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
@@ -144,4 +149,3 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
 };
 
 export default DrawdownOptimizationCard;
-

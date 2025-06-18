@@ -1,10 +1,10 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { cn } from '@/lib/utils'; // Added missing import
+import { cn } from '@/lib/utils';
 
 import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
@@ -18,67 +18,50 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, BarChartIcon, TableIcon } from 'lucide-react';
-
-import { calculatePensionProjection, DEFAULT_HEADERS } from '@/lib/pensionData';
-import type { PensionCalculationParameters, CalculatedPensionData, PensionDataRow } from '@/lib/types';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InfoIcon } from 'lucide-react';
 
+import { calculatePensionProjection, DEFAULT_HEADERS } from '@/lib/pensionData';
+import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
 const formSchema = z.object({
-  currentAge: z.coerce.number().min(18).max(90),
-  projectionEndAge: z.coerce.number().min(50).max(120),
+  currentAge: z.coerce.number().min(18).max(89), // Max 89 to allow at least 1 year projection to 90
+  projectionStartYear: z.coerce.number().min(new Date().getFullYear() - 10).max(new Date().getFullYear() + 10),
+  initialSavingsAmount: z.coerce.number().min(0),
+  initialDbPensionAmount: z.coerce.number().min(0),
+  dbPensionStartAge: z.coerce.number().min(50).max(80),
+  statePensionAge: z.coerce.number().min(60).max(80),
+  initialStatePensionAmount: z.coerce.number().min(0),
   initialDcPensionValue: z.coerce.number().min(0),
-  investmentPercentageGrowth: z.coerce.number().min(-10).max(50),
+  investmentPercentageGrowth: z.coerce.number().min(-20).max(50),
+  inflationRate: z.coerce.number().min(-10).max(20),
+  dcWithdrawalRate: z.coerce.number().min(0).max(100),
   annualChargeAMC: z.coerce.number().min(0).max(10),
-  withdrawalRatePost66: z.coerce.number().min(0).max(100),
-  inflationRate: z.coerce.number().min(-5).max(20),
-  ufplsAge63: z.coerce.number().optional(),
-  ufplsAge64: z.coerce.number().optional(),
-  ufplsAge65: z.coerce.number().optional(),
-  ufplsAge66: z.coerce.number().optional(),
-  initialDbPensionAmount: z.coerce.number().optional(),
-  dbPensionStartAge: z.coerce.number().optional(),
-  initialStatePensionAmount: z.coerce.number().optional(),
-  statePensionStartAge: z.coerce.number().optional(),
-  myInitialAnnualIncome: z.coerce.number().min(0),
-  katesInitialAnnualIncome: z.coerce.number().min(0),
-  averageTaxRate: z.coerce.number().min(0).max(100),
-}).refine(data => data.projectionEndAge > data.currentAge, {
-  message: "Projection End Age must be greater than Current Age.",
-  path: ["projectionEndAge"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const defaultFormValues: FormValues = {
   currentAge: 55,
-  projectionEndAge: 100,
-  initialDcPensionValue: 188000,
-  investmentPercentageGrowth: 2,
-  annualChargeAMC: 0.5,
-  withdrawalRatePost66: 4,
-  inflationRate: 2.5,
-  ufplsAge63: 0,
-  ufplsAge64: 0,
-  ufplsAge65: 0,
-  ufplsAge66: 0,
+  projectionStartYear: new Date().getFullYear(),
+  initialSavingsAmount: 50000,
   initialDbPensionAmount: 9000,
   dbPensionStartAge: 65,
-  initialStatePensionAmount: 10000,
-  statePensionStartAge: 67,
-  myInitialAnnualIncome: 30000,
-  katesInitialAnnualIncome: 30000,
-  averageTaxRate: 20,
+  statePensionAge: 67,
+  initialStatePensionAmount: 11500, // Approx full new state pension 2023/24
+  initialDcPensionValue: 188000,
+  investmentPercentageGrowth: 4,
+  inflationRate: 2.5,
+  dcWithdrawalRate: 4,
+  annualChargeAMC: 0.5,
 };
 
 interface FormFieldProps {
   name: keyof FormValues;
   label: string;
-  control: any; // Control type from react-hook-form
+  control: any;
   type?: string;
   placeholder?: string;
   description?: string;
@@ -112,7 +95,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
           <Input
             id={name}
             type={type}
-            step={type === "number" ? "any" : undefined}
+            step={type === "number" ? (name.includes("Rate") || name.includes("Charge") ? "0.1" : "1") : undefined}
             placeholder={placeholder || `Enter ${label.toLowerCase()}`}
             {...field}
             onChange={e => field.onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
@@ -125,35 +108,31 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
   </div>
 );
 
-
 export default function PensionPilotPage() {
   const [calculatedData, setCalculatedData] = useState<CalculatedPensionData | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [isLoading, setIsLoading] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { control, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: defaultFormValues,
   });
+
+  const investmentGrowth = watch("investmentPercentageGrowth");
+  const inflation = watch("inflationRate");
+  const realGrowth = useMemo(() => {
+    const growth = typeof investmentGrowth === 'number' ? investmentGrowth : 0;
+    const infl = typeof inflation === 'number' ? inflation : 0;
+    return (growth - infl).toFixed(2);
+  }, [investmentGrowth, inflation]);
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     setIsLoading(true);
     setCalculationError(null);
     setCalculatedData(null);
     try {
-      // Ensure optional fields that are empty strings become undefined for the calculator
-      const parameters: PensionCalculationParameters = {
-        ...data,
-        ufplsAge63: data.ufplsAge63 === undefined || isNaN(data.ufplsAge63) ? undefined : data.ufplsAge63,
-        ufplsAge64: data.ufplsAge64 === undefined || isNaN(data.ufplsAge64) ? undefined : data.ufplsAge64,
-        ufplsAge65: data.ufplsAge65 === undefined || isNaN(data.ufplsAge65) ? undefined : data.ufplsAge65,
-        ufplsAge66: data.ufplsAge66 === undefined || isNaN(data.ufplsAge66) ? undefined : data.ufplsAge66,
-        initialDbPensionAmount: data.initialDbPensionAmount === undefined || isNaN(data.initialDbPensionAmount) ? undefined : data.initialDbPensionAmount,
-        dbPensionStartAge: data.dbPensionStartAge === undefined || isNaN(data.dbPensionStartAge) ? undefined : data.dbPensionStartAge,
-        initialStatePensionAmount: data.initialStatePensionAmount === undefined || isNaN(data.initialStatePensionAmount) ? undefined : data.initialStatePensionAmount,
-        statePensionStartAge: data.statePensionStartAge === undefined || isNaN(data.statePensionStartAge) ? undefined : data.statePensionStartAge,
-      };
+      const parameters: PensionCalculationParameters = { ...data };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
     } catch (error) {
@@ -165,38 +144,29 @@ export default function PensionPilotPage() {
     }
   };
   
-  const formFieldsRow1: FormFieldProps[] = [
-    { name: "currentAge", label: "Current Age", control: control, unit: "Years" },
-    { name: "projectionEndAge", label: "Projection End Age", control: control, unit: "Years" },
-    { name: "initialDcPensionValue", label: "Initial DC Pension", control: control, unit: "£", description: "Your current total Defined Contribution pension pot value." },
-  ];
-  const formFieldsRow2: FormFieldProps[] = [
-    { name: "investmentPercentageGrowth", label: "Investment Growth", control: control, unit: "% pa", description: "Expected annual growth rate of your pension investments." },
-    { name: "annualChargeAMC", label: "Annual Charge (AMC)", control: control, unit: "% pa", description: "Annual Management Charge on your pension pot." },
-    { name: "inflationRate", label: "Inflation Rate", control: control, unit: "% pa", description: "Expected average annual inflation rate." },
-  ];
-    const formFieldsRow3: FormFieldProps[] = [
-    { name: "myInitialAnnualIncome", label: "My Initial Annual Income", control: control, unit: "£", description: "Your current gross annual income. This will be inflated annually." },
-    { name: "katesInitialAnnualIncome", label: "Kate's Initial Annual Income", control: control, unit: "£", description: "Kate's current gross annual income. This will be inflated annually." },
-    { name: "averageTaxRate", label: "Avg. Tax Rate on Income", control: control, unit: "%", description: "A simplified average tax rate applied to total taxable income (pension + earnings)." },
+  const coreParamsFields: FormFieldProps[] = [
+    { name: "currentAge", label: "Current Age", control: control, unit: "Years", description: "Your current age." },
+    { name: "projectionStartYear", label: "Projection Start Year", control: control, unit: "Year", description: "The year the projection should begin from." },
+    { name: "initialSavingsAmount", label: "Initial Savings Amount", control: control, unit: "£", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
   ];
 
-  const ufplsFields: FormFieldProps[] = [
-    { name: "ufplsAge63", label: "UFPLS Drawdown at Age 63", control: control, unit: "£", description: "Specific UFPLS amount for age 63. Leave blank if not applicable or to use standard withdrawal rules if over 66." },
-    { name: "ufplsAge64", label: "UFPLS Drawdown at Age 64", control: control, unit: "£", description: "Specific UFPLS amount for age 64." },
-    { name: "ufplsAge65", label: "UFPLS Drawdown at Age 65", control: control, unit: "£", description: "Specific UFPLS amount for age 65." },
-    { name: "ufplsAge66", label: "UFPLS Drawdown at Age 66", control: control, unit: "£", description: "Specific UFPLS amount for age 66. After this, the 'Post-66 Withdrawal Rate' applies if no specific amount is set for a year." },
-    { name: "withdrawalRatePost66", label: "Post-66 Withdrawal Rate", control: control, unit: "%", description: "Annual withdrawal rate from DC pension from age 67 onwards, if no specific UFPLS amount is set for those years." },
+  const dcPensionFields: FormFieldProps[] = [
+    { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, unit: "£", description: "Your current total Defined Contribution pension pot value." },
+    { name: "investmentPercentageGrowth", label: "Investment Growth Rate", control: control, unit: "% pa", description: "Expected annual growth rate of your DC pension investments." },
+    { name: "annualChargeAMC", label: "Annual Mgmt. Charge (AMC)", control: control, unit: "% pa", description: "Annual Management Charge on your DC pension pot." },
+    { name: "dcWithdrawalRate", label: "DC UFPLS Withdrawal Rate", control: control, unit: "% pa", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age." },
   ];
-  const dbPensionFields: FormFieldProps[] = [
-    { name: "initialDbPensionAmount", label: "Initial DB Pension (FAS)", control: control, unit: "£ pa", description: "Initial annual amount of Defined Benefit / Final Salary pension." },
+  
+  const dbStatePensionFields: FormFieldProps[] = [
+    { name: "initialDbPensionAmount", label: "Initial DB Pension Amount", control: control, unit: "£ pa", description: "Initial annual amount of Defined Benefit pension if applicable." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, unit: "Years", description: "Age at which DB Pension payments begin." },
-  ];
-  const statePensionFields: FormFieldProps[] = [
-    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, unit: "£ pa", description: "Initial annual amount of State Pension." },
-    { name: "statePensionStartAge", label: "State Pension Start Age", control: control, unit: "Years", description: "Age at which State Pension payments begin." },
+    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, unit: "£ pa", description: "Expected initial annual amount of State Pension." },
+    { name: "statePensionAge", label: "State Pension Age", control: control, unit: "Years", description: "Age at which State Pension payments begin." },
   ];
 
+  const economicAssumptionsFields: FormFieldProps[] = [
+     { name: "inflationRate", label: "Inflation Rate", control: control, unit: "% pa", description: "Expected average annual inflation rate." },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -210,42 +180,41 @@ export default function PensionPilotPage() {
               <CardTitle className="text-3xl font-headline">Pension Projection Calculator</CardTitle>
             </div>
             <CardDescription>
-              Enter your pension and financial details below to project your retirement income. 
+              Enter your financial details to project your retirement income up to age 90. 
               All percentage inputs should be entered as numbers (e.g., 5 for 5%).
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
+              <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Core Parameters</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {formFieldsRow1.map(field => <FormInput key={field.name} {...field} />)}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {formFieldsRow2.map(field => <FormInput key={field.name} {...field} />)}
-              </div>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {formFieldsRow3.map(field => <FormInput key={field.name} {...field} />)}
-              </div>
-
-              <Separator />
-              <h3 className="text-xl font-headline font-semibold text-primary">UFPLS Drawdown Inputs</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ufplsFields.map(field => <FormInput key={field.name} {...field} />)}
+                {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
               
               <Separator />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-xl font-headline font-semibold text-primary mb-2">DB Pension (FAS)</h3>
-                    <div className="space-y-4">
-                      {dbPensionFields.map(field => <FormInput key={field.name} {...field} />)}
+              <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Defined Contribution (DC) Pension</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
+              </div>
+
+              <Separator />
+              <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Defined Benefit (DB) & State Pension</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {dbStatePensionFields.map(field => <FormInput key={field.name} {...field} />)}
+              </div>
+              
+              <Separator />
+              <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Economic Assumptions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                {economicAssumptionsFields.map(field => <FormInput key={field.name} {...field} />)}
+                 <div>
+                    <Label className="text-sm font-medium">Real Growth Rate</Label>
+                    <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
+                        <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-sm font-semibold">{realGrowth}% pa</span>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-headline font-semibold text-primary mb-2">State Pension</h3>
-                     <div className="space-y-4">
-                      {statePensionFields.map(field => <FormInput key={field.name} {...field} />)}
-                    </div>
-                  </div>
+                    <p className="text-xs text-muted-foreground mt-1">Investment Growth Rate minus Inflation Rate.</p>
+                 </div>
               </div>
               
               {calculationError && (
@@ -253,6 +222,13 @@ export default function PensionPilotPage() {
                   <AlertTriangleIcon className="h-5 w-5" />
                   <AlertTitle>Calculation Error</AlertTitle>
                   <AlertDescription>{calculationError}</AlertDescription>
+                </Alert>
+              )}
+               {Object.keys(errors).length > 0 && !calculationError && (
+                <Alert variant="destructive">
+                  <AlertTriangleIcon className="h-5 w-5" />
+                  <AlertTitle>Input Validation Error</AlertTitle>
+                  <AlertDescription>Please check the highlighted fields for errors and ensure all required inputs are validly entered.</AlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -285,7 +261,7 @@ export default function PensionPilotPage() {
           <>
             <section aria-labelledby="data-visualization-heading" className="mt-12">
               <h2 id="data-visualization-heading" className="text-2xl font-headline font-semibold mb-6 text-center text-primary">
-                Your Pension Projection Results
+                Your Pension Projection Results (up to Age 90)
               </h2>
               <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
               {viewMode === 'table' ? (
@@ -309,7 +285,7 @@ export default function PensionPilotPage() {
                     initialDcPensionValue: calculatedData.parameters.initialDcPensionValue,
                     investmentPercentageGrowth: calculatedData.parameters.investmentPercentageGrowth,
                     inflationRate: calculatedData.parameters.inflationRate,
-                    withdrawalRate: calculatedData.parameters.withdrawalRatePost66, // Assuming this maps to withdrawalRate for the AI
+                    withdrawalRate: calculatedData.parameters.dcWithdrawalRate, 
                     annualChargeAMC: calculatedData.parameters.annualChargeAMC,
                   }} 
                 />
@@ -326,4 +302,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-

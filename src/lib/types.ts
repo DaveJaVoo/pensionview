@@ -1,50 +1,52 @@
 
 export interface PensionDataRow {
   [key: string]: string | number | undefined;
-  AGE: number;
-  YEAR: string;
-  'INITIAL DC PENSION': number;
-  'DC PENSION GROWTH @ % SHOWN BELOW': number;
-  'DC PENSION PLUS GROWTH': number;
-  'DC PENSION AMC CHARGE @ % SHOWN BELOW': number;
-  'DC PENSION MINUS CHARGES': number;
-  'DC PENSION UFPLS DRAWDOWN': number;
-  'DC PENSION BALANCE': number;
-  'DB PENSION (FAS)'?: number;
-  'STATE PENSION'?: number;
-  'MY INCOME PER YEAR': number;
-  "KATE'S INCOME PER YEAR": number;
-  'JOINT INCOME PER YEAR': number;
-  'TOTAL INCOME': number; // Sum of all income sources for the year
-  'TAXABLE INCOME = DRAWDOWN + FAS + STATE': number; // Taxable part of pension income
-  'INCOME TAX PAID': string | number; // Can be "NO TAX" or a number
-  'WITHDRAW FROM SAVINGS'?: number; // This column was in the original list, but no calc logic provided yet
+  Age: number;
+  Year: string;
+  'Initial DC Pension': number;
+  'DC Pension Growth': number;
+  'DC Pension + Growth': number;
+  'DC AMC Charge': number;
+  'DC Minus AMC': number;
+  'DC UFPLS Drawdown': number;
+  'DC Pension Balance': number;
+  'DB Pension'?: number;
+  'State Pension'?: number;
+  'Withdraw from Savings': number;
+  'TOTAL INCOME': number;
+  'Income Subject to Tax': number;
+  'Income Tax Paid': number;
+  'Net Income Per Year': number;
+  'Net Income Per Month': number;
+  // Internal tracking for total savings
+  'Savings Balance': number;
 }
 
 export interface PensionCalculationParameters {
   currentAge: number;
-  projectionEndAge: number;
+  projectionStartYear: number;
+  initialSavingsAmount: number;
+  initialDbPensionAmount: number;
+  dbPensionStartAge: number; // Age when DB pension starts
+  statePensionAge: number;
+  initialStatePensionAmount: number;
   initialDcPensionValue: number;
   investmentPercentageGrowth: number;
-  annualChargeAMC: number;
-  withdrawalRatePost66: number;
   inflationRate: number;
-  ufplsAge63?: number;
-  ufplsAge64?: number;
-  ufplsAge65?: number;
-  ufplsAge66?: number;
-  initialDbPensionAmount?: number;
-  dbPensionStartAge?: number;
-  initialStatePensionAmount?: number;
-  statePensionStartAge?: number;
-  myInitialAnnualIncome: number;
-  katesInitialAnnualIncome: number;
-  averageTaxRate: number; // For simplified tax calculation
+  dcWithdrawalRate: number; // For DC UFPLS post-State Pension Age
+  annualChargeAMC: number;
+  // Optional annual savings withdrawal inputs by age - for future enhancement
+  // For now, savings withdrawal will be 0 unless explicitly coded otherwise
 }
 
 export interface CalculatedPensionData {
   rows: PensionDataRow[];
   headers: string[];
-  parameters: PensionCalculationParameters; // The input parameters used for this calculation
+  parameters: PensionCalculationParameters;
   csvString: string;
 }
+
+// Constants for tax calculation (can be made inputs later)
+export const PERSONAL_ALLOWANCE = 12400;
+export const INCOME_TAX_RATE = 0.20;
+export const UFPLS_TAX_FREE_PORTION = 0.25;

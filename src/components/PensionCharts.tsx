@@ -1,7 +1,7 @@
 
 "use client";
 import type { FC } from 'react';
-import type { PensionDataRow } from '@/lib/types';
+import type { PensionDataRow } from '@/lib/types'; // Using the new PensionDataRow
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency, parseCurrency } from '@/lib/utils';
@@ -13,10 +13,12 @@ interface PensionChartsProps {
 const chartColors = {
   dcPensionBalance: "hsl(var(--chart-1))",
   totalIncome: "hsl(var(--chart-2))",
-  myIncome: "hsl(var(--chart-3))",
-  katesIncome: "hsl(var(--chart-4))",
-  jointIncome: "hsl(var(--chart-5))",
+  // myIncome: "hsl(var(--chart-3))", // My Income and Kate's Income are no longer direct columns
+  // katesIncome: "hsl(var(--chart-4))",
+  netIncomePerYear: "hsl(var(--chart-5))", // Using Net Income Per Year
   taxPaid: "hsl(var(--destructive))",
+  dbPension: "hsl(var(--chart-3))",
+  statePension: "hsl(var(--chart-4))",
 };
 
 const CustomTooltip: FC<any> = ({ active, payload, label }) => {
@@ -36,34 +38,37 @@ const CustomTooltip: FC<any> = ({ active, payload, label }) => {
 };
 
 const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
+  // Map data according to the new PensionDataRow structure
   const chartData = data.map(row => ({
-    year: row.YEAR,
-    dcPensionBalance: row['DC PENSION BALANCE'],
+    year: row.Year, // Assuming 'Year' is the string representation of the year
+    age: row.Age,   // For XAxis if preferring age
+    dcPensionBalance: row['DC Pension Balance'],
     totalIncome: row['TOTAL INCOME'],
-    myIncome: row['MY INCOME PER YEAR'],
-    katesIncome: row["KATE'S INCOME PER YEAR"],
-    jointIncome: row['JOINT INCOME PER YEAR'],
-    taxPaid: row['INCOME TAX PAID'] === 'NO TAX' ? 0 : parseCurrency(row['INCOME TAX PAID']) || 0,
+    netIncomePerYear: row['Net Income Per Year'],
+    dbPension: row['DB Pension'] || 0,
+    statePension: row['State Pension'] || 0,
+    taxPaid: typeof row['Income Tax Paid'] === 'number' ? row['Income Tax Paid'] : 0,
   }));
 
   const yAxisTickFormatter = (value: number) => formatCurrency(value, false);
+  const xAxisDataKey = "age"; // Or "year" string
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
       <Card className="shadow-lg rounded-xl">
         <CardHeader>
           <CardTitle className="font-headline text-xl">DC Pension Balance Over Time</CardTitle>
-          <CardDescription>Tracks the defined contribution pension balance across years.</CardDescription>
+          <CardDescription>Tracks the defined contribution pension balance.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="year" stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
-              <Line type="monotone" dataKey="dcPensionBalance" name="DC Pension Balance" stroke={chartColors.dcPensionBalance} strokeWidth={2} dot={{ r: 4, fill: chartColors.dcPensionBalance }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="dcPensionBalance" name="DC Pension Balance" stroke={chartColors.dcPensionBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -71,20 +76,19 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
 
       <Card className="shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-xl">Income Streams Over Time</CardTitle>
-          <CardDescription>Compares My, Kate's, and Joint income per year.</CardDescription>
+          <CardTitle className="font-headline text-xl">Net Income & Total Income Over Time</CardTitle>
+          <CardDescription>Compares total gross income vs. net income after tax.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="year" stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
-              <Line type="monotone" dataKey="myIncome" name="My Income" stroke={chartColors.myIncome} strokeWidth={2} dot={{ r: 4, fill: chartColors.myIncome }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="katesIncome" name="Kate's Income" stroke={chartColors.katesIncome} strokeWidth={2} dot={{ r: 4, fill: chartColors.katesIncome }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="jointIncome" name="Joint Income" stroke={chartColors.jointIncome} strokeWidth={2} dot={{ r: 4, fill: chartColors.jointIncome }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="totalIncome" name="Total Gross Income" stroke={chartColors.totalIncome} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="netIncomePerYear" name="Net Income (After Tax)" stroke={chartColors.netIncomePerYear} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -92,18 +96,19 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
       
       <Card className="shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-xl">Total Income Over Time</CardTitle>
-           <CardDescription>Tracks the total income across years.</CardDescription>
+          <CardTitle className="font-headline text-xl">DB & State Pension Income</CardTitle>
+           <CardDescription>Tracks Defined Benefit and State Pension income streams.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="year" stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
-              <Line type="monotone" dataKey="totalIncome" name="Total Income" stroke={chartColors.totalIncome} strokeWidth={2} dot={{ r: 4, fill: chartColors.totalIncome }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="dbPension" name="DB Pension" stroke={chartColors.dbPension} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="statePension" name="State Pension" stroke={chartColors.statePension} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -118,7 +123,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData.filter(d => d.taxPaid > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="year" stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
@@ -132,4 +137,3 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
 };
 
 export default PensionCharts;
-
