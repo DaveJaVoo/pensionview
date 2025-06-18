@@ -35,8 +35,7 @@ export interface PensionCalculationParameters {
   inflationRate: number;
   dcWithdrawalRate: number; // For DC UFPLS post-State Pension Age
   annualChargeAMC: number;
-  // Optional annual savings withdrawal inputs by age - for future enhancement
-  // For now, savings withdrawal will be 0 unless explicitly coded otherwise
+  targetAnnualGrossIncome: number; // New input
 }
 
 export interface CalculatedPensionData {
@@ -46,7 +45,7 @@ export interface CalculatedPensionData {
   csvString: string;
 }
 
-// Constants for tax calculation (can be made inputs later)
+// Constants for tax calculation
 export const PERSONAL_ALLOWANCE = 12400;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;

@@ -6,15 +6,14 @@ export const DEFAULT_HEADERS = [
   'Age', 'Year',
   'Initial DC Pension', 'DC Pension Growth', 'DC Pension + Growth',
   'DC AMC Charge', 'DC Minus AMC', 'DC UFPLS Drawdown', 'DC Pension Balance',
-  'DB Pension', 'State Pension', 'Withdraw from Savings',
+  'DB Pension', 'State Pension', 'Withdraw from Savings', 'Savings Balance', // Added Savings Balance for clarity in CSV/AI
   'TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid',
   'Net Income Per Year', 'Net Income Per Month',
-  // 'Savings Balance' // Might not display this one, but used for calcs
 ];
 
 export function calculatePensionProjection(params: PensionCalculationParameters): CalculatedPensionData {
   const {
-    currentAge, projectionStartYear, initialSavingsAmount,
+    currentAge, projectionStartYear, initialSavingsAmount, targetAnnualGrossIncome,
     initialDbPensionAmount, dbPensionStartAge,
     statePensionAge, initialStatePensionAmount,
     initialDcPensionValue, investmentPercentageGrowth,
@@ -46,13 +45,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'DC Pension Balance': 0,
       'DB Pension': 0,
       'State Pension': 0,
-      'Withdraw from Savings': 0, // Default to 0, can be made dynamic later
+      'Withdraw from Savings': 0,
+      'Savings Balance': currentSavingsBalance, // Initial per-year savings balance
       'TOTAL INCOME': 0,
       'Income Subject to Tax': 0,
       'Income Tax Paid': 0,
       'Net Income Per Year': 0,
       'Net Income Per Month': 0,
-      'Savings Balance': currentSavingsBalance,
     };
 
     // Column C: Initial DC Pension
@@ -70,26 +69,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // Column G: DC Pension Minus AMC Charge
     row['DC Minus AMC'] = row['DC Pension + Growth'] - row['DC AMC Charge'];
 
-    // Column H: DC UFPLS Drawdown
-    if (age >= statePensionAge) {
-      // Use previous year's balance for drawdown calculation if not the first year of drawdown
-      const basisForDrawdown = previousRow && previousRow['Age'] === age -1 && age > statePensionAge ? 
-                               (previousRow['DC Pension Balance'] || 0) : 
-                               row['DC Minus AMC'];
-      row['DC UFPLS Drawdown'] = basisForDrawdown * dcWithdrawDecimal;
-    } else {
-      row['DC UFPLS Drawdown'] = 0;
-    }
-    // Ensure drawdown doesn't exceed available balance
-    row['DC UFPLS Drawdown'] = Math.max(0, Math.min(row['DC UFPLS Drawdown'], row['DC Minus AMC']));
-
-
-    // Column I: DC Pension Balance
-    row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC UFPLS Drawdown'];
-    row['DC Pension Balance'] = Math.max(0, row['DC Pension Balance']);
-
-
-    // Column J: DB Pension
+    // DB and State Pension for the current year
     if (age === dbPensionStartAge) {
       row['DB Pension'] = initialDbPensionAmount;
     } else if (age > dbPensionStartAge && previousRow && previousRow['DB Pension']) {
@@ -99,8 +79,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     }
     row['DB Pension'] = Math.max(0, row['DB Pension'] || 0);
 
-
-    // Column K: State Pension
     if (age === statePensionAge) {
       row['State Pension'] = initialStatePensionAmount;
     } else if (age > statePensionAge && previousRow && previousRow['State Pension']) {
@@ -109,17 +87,46 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       row['State Pension'] = 0;
     }
     row['State Pension'] = Math.max(0, row['State Pension'] || 0);
+    
+    // Calculate income from fixed pensions
+    const incomeFromFixedPensions = (row['DB Pension'] || 0) + (row['State Pension'] || 0);
+    
+    // Calculate shortfall against target gross income
+    const shortfall = Math.max(0, targetAnnualGrossIncome - incomeFromFixedPensions);
 
     // Column L: Withdraw from Savings
-    // For now, keeping it simple: 0. This can be expanded.
-    // If we were to implement "use savings to meet a need":
-    // const incomeTarget = X; // Some desired income
-    // const pensionIncome = row['DC UFPLS Drawdown'] + (row['DB Pension'] || 0) + (row['State Pension'] || 0);
-    // const shortfall = Math.max(0, incomeTarget - pensionIncome);
-    // row['Withdraw from Savings'] = Math.min(shortfall, currentSavingsBalance);
-    // currentSavingsBalance -= row['Withdraw from Savings'];
-    // row['Savings Balance'] = currentSavingsBalance;
-    row['Withdraw from Savings'] = 0; // Placeholder
+    const actualWithdrawalFromSavings = Math.min(shortfall, currentSavingsBalance);
+    row['Withdraw from Savings'] = actualWithdrawalFromSavings;
+    currentSavingsBalance -= actualWithdrawalFromSavings;
+    row['Savings Balance'] = currentSavingsBalance; // Update row's savings balance after withdrawal
+
+    // Remaining shortfall after savings withdrawal
+    const remainingShortfall = Math.max(0, shortfall - actualWithdrawalFromSavings);
+
+    // Column H: DC UFPLS Drawdown
+    let dcDrawdownToMeetNeed = 0;
+    if (remainingShortfall > 0) {
+      dcDrawdownToMeetNeed = remainingShortfall;
+    }
+
+    let dcDrawdownByRate = 0;
+    if (age >= statePensionAge) {
+      // Basis for drawdown rate: use previous year's balance if available and post-SPA, otherwise current year's pre-drawdown balance.
+      const basisForRateDrawdown = previousRow && previousRow['Age'] === age -1 && age > statePensionAge ? 
+                               (previousRow['DC Pension Balance'] || 0) : 
+                               row['DC Minus AMC'];
+      dcDrawdownByRate = basisForRateDrawdown * dcWithdrawDecimal;
+    }
+    
+    // DC UFPLS Drawdown is the greater of amount needed for shortfall or amount by withdrawal rate (if applicable)
+    row['DC UFPLS Drawdown'] = Math.max(dcDrawdownToMeetNeed, dcDrawdownByRate);
+    // Ensure drawdown doesn't exceed available DC balance
+    row['DC UFPLS Drawdown'] = Math.max(0, Math.min(row['DC UFPLS Drawdown'], row['DC Minus AMC']));
+
+
+    // Column I: DC Pension Balance
+    row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC UFPLS Drawdown'];
+    row['DC Pension Balance'] = Math.max(0, row['DC Pension Balance']);
 
     // Column M: TOTAL INCOME
     row['TOTAL INCOME'] = (row['DC UFPLS Drawdown'] || 0) + (row['DB Pension'] || 0) + (row['State Pension'] || 0) + row['Withdraw from Savings'];
@@ -127,9 +134,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // Tax Calculations
     const taxableDCDrawdown = (row['DC UFPLS Drawdown'] || 0) * (1 - UFPLS_TAX_FREE_PORTION);
     const taxableBaseIncome = taxableDCDrawdown + (row['DB Pension'] || 0) + (row['State Pension'] || 0);
-    // Assuming 'Withdraw from Savings' is not income-taxable capital
+    // Note: 'Withdraw from Savings' is assumed to be from post-tax capital and not income-taxable here.
 
-    // Column N: Income Subject to Tax (Assessable Income after Personal Allowance)
+    // Column N: Income Subject to Tax
     row['Income Subject to Tax'] = Math.max(0, taxableBaseIncome - PERSONAL_ALLOWANCE);
     
     // Column O: Income Tax Paid
@@ -141,9 +148,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // Column Q: Net Income Per Month
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
 
-    // Ensure all numeric fields are numbers, default to 0 if NaN or undefined after calculation
     DEFAULT_HEADERS.forEach(header => {
-        if (header === 'Year') return; // Skip 'Year' as it's a string
+        if (header === 'Year') return; 
         if (typeof row[header] === 'number' && isNaN(row[header] as number)) {
             row[header] = 0;
         } else if (row[header] === undefined) {
@@ -161,7 +167,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       let val = r[header];
       if (typeof val === 'number') {
         if (isNaN(val)) return "";
-        // Format numbers to 2 decimal places for CSV, but allow general display formatting
         return String(parseFloat(val.toFixed(2))); 
       }
       if (val === undefined || val === null) return "";

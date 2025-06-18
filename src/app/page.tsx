@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,17 +19,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { InfoIcon } from 'lucide-react';
 
-import { calculatePensionProjection, DEFAULT_HEADERS } from '@/lib/pensionData';
+
+import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
 const formSchema = z.object({
-  currentAge: z.coerce.number().min(18).max(89), // Max 89 to allow at least 1 year projection to 90
+  currentAge: z.coerce.number().min(18).max(89),
   projectionStartYear: z.coerce.number().min(new Date().getFullYear() - 10).max(new Date().getFullYear() + 10),
   initialSavingsAmount: z.coerce.number().min(0),
+  targetAnnualGrossIncome: z.coerce.number().min(0).describe("Your desired total gross income per year in retirement."),
   initialDbPensionAmount: z.coerce.number().min(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80),
   statePensionAge: z.coerce.number().min(60).max(80),
@@ -47,10 +48,11 @@ const defaultFormValues: FormValues = {
   currentAge: 55,
   projectionStartYear: new Date().getFullYear(),
   initialSavingsAmount: 50000,
+  targetAnnualGrossIncome: 30000, 
   initialDbPensionAmount: 9000,
   dbPensionStartAge: 65,
   statePensionAge: 67,
-  initialStatePensionAmount: 11500, // Approx full new state pension 2023/24
+  initialStatePensionAmount: 11500,
   initialDcPensionValue: 188000,
   investmentPercentageGrowth: 4,
   inflationRate: 2.5,
@@ -95,7 +97,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
           <Input
             id={name}
             type={type}
-            step={type === "number" ? (name.includes("Rate") || name.includes("Charge") ? "0.1" : "1") : undefined}
+            step={type === "number" ? (name.includes("Rate") || name.includes("Charge") || name === "investmentPercentageGrowth" || name === "inflationRate" || name === "annualChargeAMC" ? "0.1" : "1") : undefined}
             placeholder={placeholder || `Enter ${label.toLowerCase()}`}
             {...field}
             onChange={e => field.onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
@@ -130,7 +132,7 @@ export default function PensionPilotPage() {
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     setIsLoading(true);
     setCalculationError(null);
-    setCalculatedData(null);
+    setCalculatedData(null); 
     try {
       const parameters: PensionCalculationParameters = { ...data };
       const result = calculatePensionProjection(parameters);
@@ -148,13 +150,14 @@ export default function PensionPilotPage() {
     { name: "currentAge", label: "Current Age", control: control, unit: "Years", description: "Your current age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, unit: "Year", description: "The year the projection should begin from." },
     { name: "initialSavingsAmount", label: "Initial Savings Amount", control: control, unit: "£", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
+    { name: "targetAnnualGrossIncome", label: "Target Annual Gross Income", control: control, unit: "£ pa", description: "Your desired total gross income per year during retirement." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
     { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, unit: "£", description: "Your current total Defined Contribution pension pot value." },
     { name: "investmentPercentageGrowth", label: "Investment Growth Rate", control: control, unit: "% pa", description: "Expected annual growth rate of your DC pension investments." },
     { name: "annualChargeAMC", label: "Annual Mgmt. Charge (AMC)", control: control, unit: "% pa", description: "Annual Management Charge on your DC pension pot." },
-    { name: "dcWithdrawalRate", label: "DC UFPLS Withdrawal Rate", control: control, unit: "% pa", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age." },
+    { name: "dcWithdrawalRate", label: "DC UFPLS Withdrawal Rate", control: control, unit: "% pa", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering." },
   ];
   
   const dbStatePensionFields: FormFieldProps[] = [
@@ -187,7 +190,7 @@ export default function PensionPilotPage() {
           <form onSubmit={handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Core Parameters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
               
@@ -282,11 +285,7 @@ export default function PensionPilotPage() {
                 <DrawdownOptimizationCard 
                   csvDataString={calculatedData.csvString} 
                   financialParams={{
-                    initialDcPensionValue: calculatedData.parameters.initialDcPensionValue,
-                    investmentPercentageGrowth: calculatedData.parameters.investmentPercentageGrowth,
-                    inflationRate: calculatedData.parameters.inflationRate,
-                    withdrawalRate: calculatedData.parameters.dcWithdrawalRate, 
-                    annualChargeAMC: calculatedData.parameters.annualChargeAMC,
+                    ...calculatedData.parameters // Pass all parameters
                   }} 
                 />
               </section>

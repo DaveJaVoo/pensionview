@@ -10,20 +10,11 @@ import { drawdownOptimization, type DrawdownOptimizationOutput, type DrawdownOpt
 import LoadingSpinner from './shared/LoadingSpinner';
 import { Settings2Icon, AlertTriangleIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { PensionCalculationParameters } from '@/lib/types'; // For stronger typing of incoming parameters
+import type { PensionCalculationParameters } from '@/lib/types';
 
 interface DrawdownOptimizationCardProps {
   csvDataString: string;
-  // Use a subset of PensionCalculationParameters relevant to this AI flow
-  financialParams: Pick<PensionCalculationParameters, 
-    'initialDcPensionValue' | 
-    'investmentPercentageGrowth' | 
-    'inflationRate' | 
-    'dcWithdrawalRate' | // Renamed from withdrawalRate
-    'annualChargeAMC' |
-    'statePensionAge' | // Added statePensionAge
-    'currentAge' // Added currentAge
-  >;
+  financialParams: PensionCalculationParameters; // Pass all parameters
 }
 
 const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataString, financialParams }) => {
@@ -42,11 +33,12 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           initialDcPensionValue: financialParams.initialDcPensionValue,
           investmentPercentageGrowth: financialParams.investmentPercentageGrowth,
           inflationRate: financialParams.inflationRate,
-          dcWithdrawalRate: financialParams.dcWithdrawalRate, // Use dcWithdrawalRate
+          dcWithdrawalRate: financialParams.dcWithdrawalRate,
           annualChargeAMC: financialParams.annualChargeAMC,
-          statePensionAge: financialParams.statePensionAge, // Pass statePensionAge
-          currentAge: financialParams.currentAge, // Pass currentAge
-          projectionEndAge: 90, // Assuming projection always goes to 90 as per new logic
+          statePensionAge: financialParams.statePensionAge,
+          currentAge: financialParams.currentAge,
+          projectionEndAge: 90, 
+          targetAnnualGrossIncome: financialParams.targetAnnualGrossIncome,
         };
         const result = await drawdownOptimization(input);
         setSuggestion(result);
@@ -90,7 +82,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90).
+          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your income target and savings usage.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
