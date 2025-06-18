@@ -48,14 +48,14 @@ const defaultFormValues: FormValues = {
   currentAge: 55,
   projectionStartYear: new Date().getFullYear(),
   initialSavingsAmount: 50000,
-  targetAnnualNetIncome: 20000, // User wants this net
+  targetAnnualNetIncome: 20000,
   initialDbPensionAmount: 0,
   dbPensionStartAge: 65,
   statePensionAge: 67,
   initialStatePensionAmount: 11973,
   initialDcPensionValue: 188000,
   investmentPercentageGrowth: 4,
-  inflationRate: 2.5,
+  inflationRate: 4, // Default inflation rate set to 4%
   dcWithdrawalRate: 4,
   annualChargeAMC: 0.5,
 };
@@ -177,7 +177,15 @@ export default function PensionPilotPage() {
   ];
 
   const economicAssumptionsFields: FormFieldProps[] = [
-     { name: "inflationRate", label: "Inflation Rate", control: control, unit: "% pa", description: "Expected average annual inflation rate. For current UK rates, refer to the ONS.", infoLink: "https://www.ons.gov.uk/economy/inflationandpriceindices", infoLinkText: "Check ONS for latest rates" },
+     { 
+       name: "inflationRate", 
+       label: "Inflation Rate", 
+       control: control, 
+       unit: "% pa", 
+       description: "Expected average annual inflation rate. For current UK rates, refer to the ONS. If unsure, please check the link below for the latest official figures.", 
+       infoLink: "https://www.ons.gov.uk/economy/inflationandpriceindices", 
+       infoLinkText: "Check ONS for latest rates" 
+     },
   ];
 
   return (
