@@ -10,11 +10,11 @@ import { drawdownOptimization, type DrawdownOptimizationOutput, type DrawdownOpt
 import LoadingSpinner from './shared/LoadingSpinner';
 import { Settings2Icon, AlertTriangleIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { PensionCalculationParameters } from '@/lib/types';
+import type { PensionCalculationParameters } from '@/lib/types'; // Using the base type
 
 interface DrawdownOptimizationCardProps {
   csvDataString: string;
-  financialParams: PensionCalculationParameters; 
+  financialParams: PensionCalculationParameters & { taxFreeLumpSumTaken?: number }; // Extended with optional PCLS taken
 }
 
 const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataString, financialParams }) => {
@@ -31,6 +31,8 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
         const input: DrawdownOptimizationInput = {
           pensionDataCsv: csvDataString,
           initialDcPensionValue: financialParams.initialDcPensionValue,
+          takeTaxFreeLumpSum: financialParams.takeTaxFreeLumpSum,
+          taxFreeLumpSumTaken: financialParams.taxFreeLumpSumTaken,
           investmentPercentageGrowth: financialParams.investmentPercentageGrowth,
           inflationRate: financialParams.inflationRate,
           dcWithdrawalRate: financialParams.dcWithdrawalRate,
@@ -38,7 +40,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           statePensionAge: financialParams.statePensionAge,
           currentAge: financialParams.currentAge,
           projectionEndAge: 90, 
-          targetAnnualNetIncome: financialParams.targetAnnualNetIncome, // Changed from targetAnnualGrossIncome
+          targetAnnualNetIncome: financialParams.targetAnnualNetIncome,
         };
         const result = await drawdownOptimization(input);
         setSuggestion(result);
@@ -82,7 +84,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income and savings usage.
+          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income, savings usage, and tax-free lump sum choice.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">

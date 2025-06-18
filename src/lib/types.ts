@@ -25,7 +25,7 @@ export interface PensionCalculationParameters {
   currentAge: number;
   projectionStartYear: number;
   initialSavingsAmount: number;
-  targetAnnualNetIncome: number; // Changed from targetAnnualGrossIncome
+  targetAnnualNetIncome: number;
   initialDbPensionAmount: number;
   dbPensionStartAge: number;
   statePensionAge: number;
@@ -35,16 +35,18 @@ export interface PensionCalculationParameters {
   inflationRate: number;
   dcWithdrawalRate: number;
   annualChargeAMC: number;
+  takeTaxFreeLumpSum: boolean; // New parameter
 }
 
 export interface CalculatedPensionData {
   rows: PensionDataRow[];
   headers: string[];
-  parameters: PensionCalculationParameters;
+  parameters: PensionCalculationParameters & { taxFreeLumpSumTaken?: number }; // Store if taken
   csvString: string;
 }
 
 // Constants for tax calculation
 export const PERSONAL_ALLOWANCE = 12400;
 export const INCOME_TAX_RATE = 0.20;
-export const UFPLS_TAX_FREE_PORTION = 0.25;
+export const UFPLS_TAX_FREE_PORTION = 0.25; // General rule for UFPLS if no PCLS taken
+

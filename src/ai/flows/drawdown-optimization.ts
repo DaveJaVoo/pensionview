@@ -18,7 +18,9 @@ const DrawdownOptimizationInputSchema = z.object({
   pensionDataCsv: z
     .string()
     .describe('A CSV string containing the user\u2019s pension data, including all calculated columns.'),
-  initialDcPensionValue: z.number().describe('The initial value of the DC pension.'),
+  initialDcPensionValue: z.number().describe('The initial value of the DC pension (before any PCLS taken).'),
+  takeTaxFreeLumpSum: z.boolean().optional().describe('Whether a 25% tax-free lump sum was taken upfront from the DC pension.'),
+  taxFreeLumpSumTaken: z.number().optional().describe('The amount of tax-free lump sum taken, if applicable.'),
   investmentPercentageGrowth: z
     .number()
     .describe('The investment percentage growth rate.'),
@@ -28,7 +30,7 @@ const DrawdownOptimizationInputSchema = z.object({
   statePensionAge: z.number().describe('The age at which state pension begins, influencing drawdown needs.'),
   currentAge: z.number().optional().describe('User current age from the projection.'),
   projectionEndAge: z.number().optional().describe('The end age of the projection (e.g. 90).'),
-  targetAnnualNetIncome: z.number().optional().describe('The user\'s target annual income AFTER TAX.'), // Changed from Gross
+  targetAnnualNetIncome: z.number().optional().describe('The user\'s target annual income AFTER TAX.'), 
 });
 
 export type DrawdownOptimizationInput = z.infer<typeof DrawdownOptimizationInputSchema>;
@@ -60,7 +62,12 @@ const prompt = ai.definePrompt({
   {{pensionDataCsv}}
 
   Consider these financial parameters used in the projection:
-  - Initial DC Pension Value: {{initialDcPensionValue}}
+  - Initial DC Pension Value (Total Pot before any PCLS): {{initialDcPensionValue}}
+  {{#if takeTaxFreeLumpSum}}
+  - A 25% tax-free lump sum of {{taxFreeLumpSumTaken}} was taken upfront. The DC pension projection starts with the remaining 75%. Subsequent UFPLS withdrawals are fully taxable.
+  {{else}}
+  - No upfront tax-free lump sum was taken. Each UFPLS withdrawal will have a 25% tax-free element.
+  {{/if}}
   - Investment Percentage Growth: {{investmentPercentageGrowth}}%
   - Inflation Rate: {{inflationRate}}%
   - DC UFPLS Withdrawal Rate (current general rate post-SPA if no shortfall or if higher): {{dcWithdrawalRate}}%
@@ -74,11 +81,11 @@ const prompt = ai.definePrompt({
   - The primary goal is to make the 'DC Pension Balance' reach near zero by the 'Projection End Age' (e.g., 90).
   - Identify periods where 'DC UFPLS Drawdown' might be too low (leading to a large remaining balance late in life) or too high (depleting funds too early, unless that's the goal by age 90).
   - Suggest alternative 'DC UFPLS Drawdown' amounts or strategies for specific age ranges.
-  - Explain your reasoning clearly, linking to the zero-balance target, NET income needs (Target Annual Net Income), and the use-savings-first strategy.
+  - Explain your reasoning clearly, linking to the zero-balance target, NET income needs (Target Annual Net Income), the use-savings-first strategy, and the tax-free lump sum decision.
   - Emphasize adjustments to 'DC UFPLS Drawdown' that help manage the DC pot effectively throughout retirement.
   - The "DC Pension Balance" column shows the year-end balance. "DC UFPLS Drawdown" is the amount taken during that year.
   - The "Withdraw from Savings" column shows how much cash savings were used to meet the income target. The "Savings Balance" column shows remaining cash savings.
-  - The AI should suggest changes to the "DC UFPLS Drawdown" values in the CSV to achieve the zero DC balance target, considering the existing net income strategy.
+  - The AI should suggest changes to the "DC UFPLS Drawdown" values in the CSV to achieve the zero DC balance target, considering the existing net income strategy and the PCLS choice.
 `,
 });
 

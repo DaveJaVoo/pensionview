@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
@@ -19,13 +19,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from "@/components/ui/switch";
 
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
-// Use this for Zod schema defaults to ensure consistency during SSR and initial client render
 const SCHEMA_FALLBACK_YEAR = new Date().getFullYear();
 
 const formSchema = z.object({
@@ -38,6 +38,7 @@ const formSchema = z.object({
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
   initialDcPensionValue: z.coerce.number().min(0).default(188000),
+  takeTaxFreeLumpSum: z.boolean().default(false), // New field
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   inflationRate: z.coerce.number().min(-10).max(20).default(4),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
@@ -111,15 +112,16 @@ export default function PensionPilotPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
   const [isFormInitialized, setIsFormInitialized] = useState(false);
+  const [calculatedLumpSumDisplay, setCalculatedLumpSumDisplay] = useState<number>(0);
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    // `defaultValues` will be sourced from Zod schema's `.default()` methods initially
   });
 
+  const initialDcPensionValueWatched = watch("initialDcPensionValue");
+  const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
+
   useEffect(() => {
-    // This effect runs once on the client after mount.
-    // It sets the form to its true client-side defaults, especially for projectionStartYear.
     const clientCurrentYear = new Date().getFullYear();
     reset({
       currentAge: 55,
@@ -131,6 +133,7 @@ export default function PensionPilotPage() {
       statePensionAge: 67,
       initialStatePensionAmount: 11973,
       initialDcPensionValue: 188000,
+      takeTaxFreeLumpSum: false, // Default for new field
       investmentPercentageGrowth: 4,
       inflationRate: 4,
       dcWithdrawalRate: 4,
@@ -138,6 +141,16 @@ export default function PensionPilotPage() {
     });
     setIsFormInitialized(true);
   }, [reset]);
+
+  useEffect(() => {
+    if (!isFormInitialized) return;
+    if (takeTaxFreeLumpSumWatched) {
+      const pcls = (initialDcPensionValueWatched || 0) * 0.25;
+      setCalculatedLumpSumDisplay(pcls);
+    } else {
+      setCalculatedLumpSumDisplay(0);
+    }
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -242,6 +255,47 @@ export default function PensionPilotPage() {
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Defined Contribution (DC) Pension</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
+                 <div className="space-y-1 md:col-span-2 lg:col-span-1"> {/* Lump Sum Switch */}
+                    <div className="flex items-center justify-between">
+                         <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
+                            Take 25% Tax-Free Lump Sum?
+                         </Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                                    <HelpCircleIcon className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-60 text-sm" side="top" align="end">
+                                If enabled, 25% of your 'Initial DC Pension Value' is taken tax-free at the start of the projection.
+                                The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
+                                If disabled, each UFPLS withdrawal will have a 25% tax-free element.
+                            </PopoverContent>
+                         </Popover>
+                    </div>
+                    <Controller
+                        name="takeTaxFreeLumpSum"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="flex items-center space-x-2 pt-2"> {/* Added pt-2 for spacing similar to Input */}
+                                <Switch
+                                    id="takeTaxFreeLumpSum"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    aria-labelledby="takeTaxFreeLumpSumLabel"
+                                />
+                                <span id="takeTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
+                                    {field.value ? "Yes, take upfront lump sum" : "No, take tax-free with each withdrawal"}
+                                </span>
+                            </div>
+                        )}
+                    />
+                    {takeTaxFreeLumpSumWatched && isFormInitialized && (
+                        <p className="text-xs text-muted-foreground pt-1">
+                            Calculated Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
+                        </p>
+                    )}
+                </div>
               </div>
 
               <Separator />
@@ -324,6 +378,16 @@ export default function PensionPilotPage() {
               <h2 id="data-visualization-heading" className="text-2xl font-headline font-semibold mb-6 text-center text-primary">
                 Your Pension Projection Results (up to Age 90)
               </h2>
+               {calculatedData.parameters.takeTaxFreeLumpSum && calculatedData.parameters.taxFreeLumpSumTaken !== undefined && (
+                <Alert variant="default" className="mb-4 bg-primary/10 border-primary/30">
+                  <InfoIcon className="h-5 w-5 text-primary" />
+                  <AlertTitle className="font-semibold text-primary">Tax-Free Lump Sum Taken</AlertTitle>
+                  <AlertDescription className="text-primary/80">
+                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.taxFreeLumpSumTaken)}</span> was taken from the DC pension.
+                    The DC pension projection starts with the remaining balance. Subsequent UFPLS withdrawals are fully taxable.
+                  </AlertDescription>
+                </Alert>
+              )}
               <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
               {viewMode === 'table' ? (
                 <PensionDataTable data={calculatedData.rows} headers={calculatedData.headers} />
@@ -342,9 +406,7 @@ export default function PensionPilotPage() {
                 <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimization</h2>
                 <DrawdownOptimizationCard
                   csvDataString={calculatedData.csvString}
-                  financialParams={{
-                    ...calculatedData.parameters
-                  }}
+                  financialParams={calculatedData.parameters} // Pass all parameters including new ones
                 />
               </section>
             </div>
