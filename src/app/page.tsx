@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from "@/components/ui/switch";
 
@@ -155,7 +155,7 @@ export default function PensionPilotPage() {
     const currentStatePensionAgeVal = getValues("statePensionAge");
 
     if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
-      const newSpa = Math.min(currentAgeVal, 80); // Cap at max SPA
+      const newSpa = Math.min(currentAgeVal, 80); 
       if (newSpa !== currentStatePensionAgeVal) {
         setValue("statePensionAge", newSpa, { shouldValidate: true });
       }
@@ -167,14 +167,18 @@ export default function PensionPilotPage() {
   const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
 
   useEffect(() => {
-    if (!isFormInitialized) return;
-    if (takeTaxFreeLumpSumWatched) {
-      const pcls = (initialDcPensionValueWatched || 0) * 0.25;
+    if (!isFormInitialized && !getValues("initialDcPensionValue")) return; // Ensure form is initialized or values exist
+    
+    const pclsValue = getValues("initialDcPensionValue");
+    const takePcls = getValues("takeTaxFreeLumpSum");
+
+    if (takePcls) {
+      const pcls = (pclsValue || 0) * 0.25;
       setCalculatedLumpSumDisplay(pcls);
     } else {
       setCalculatedLumpSumDisplay(0);
     }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched]);
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, getValues]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -204,6 +208,26 @@ export default function PensionPilotPage() {
       setCalculationError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResetForm = () => {
+    const clientCurrentYear = new Date().getFullYear();
+    const defaultValues = formSchema.parse({});
+    reset({
+      ...defaultValues,
+      projectionStartYear: clientCurrentYear,
+    });
+    setCalculatedData(null);
+    setCalculationError(null);
+    
+    // After reset, re-evaluate the lump sum display based on new (default) form values
+    const newInitialDcPensionValue = getValues("initialDcPensionValue");
+    const newTakeTaxFreeLumpSum = getValues("takeTaxFreeLumpSum");
+    if (newTakeTaxFreeLumpSum) {
+      setCalculatedLumpSumDisplay((newInitialDcPensionValue || 0) * 0.25);
+    } else {
+      setCalculatedLumpSumDisplay(0);
     }
   };
 
@@ -279,7 +303,7 @@ export default function PensionPilotPage() {
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Defined Contribution (DC) Pension</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
-                 <div className="space-y-1 md:col-span-2 lg:col-span-1"> {/* Lump Sum Switch */}
+                 <div className="space-y-1 md:col-span-2 lg:col-span-1"> 
                     <div className="flex items-center justify-between">
                          <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
                             Take 25% Tax-Free Lump Sum?
@@ -371,7 +395,7 @@ export default function PensionPilotPage() {
                 </Alert>
               )}
             </CardContent>
-            <CardFooter className="border-t pt-6">
+            <CardFooter className="border-t pt-6 flex flex-col md:flex-row gap-4 md:gap-2 justify-start">
               <Button type="submit" disabled={isLoading} className="w-full md:w-auto text-lg py-3 px-6">
                 {isLoading ? (
                   <>
@@ -382,6 +406,9 @@ export default function PensionPilotPage() {
                     <CalculatorIcon className="mr-2 h-5 w-5" /> Calculate Projection
                   </>
                 )}
+              </Button>
+              <Button type="button" variant="outline" onClick={handleResetForm} className="w-full md:w-auto text-lg py-3 px-6">
+                <RotateCcwIcon className="mr-2 h-5 w-5" /> Reset Form
               </Button>
             </CardFooter>
           </form>
@@ -445,5 +472,4 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
     
