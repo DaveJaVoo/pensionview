@@ -30,7 +30,7 @@ const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89),
   projectionStartYear: z.coerce.number().min(new Date().getFullYear() - 10).max(new Date().getFullYear() + 10),
   initialSavingsAmount: z.coerce.number().min(0),
-  targetAnnualGrossIncome: z.coerce.number().min(0).describe("Your desired total gross income per year in retirement."),
+  targetAnnualGrossIncome: z.coerce.number().min(0).describe("Your desired total income per year AFTER tax. The system will aim for a gross income that results in this net amount."),
   initialDbPensionAmount: z.coerce.number().min(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80),
   statePensionAge: z.coerce.number().min(60).max(80),
@@ -48,11 +48,11 @@ const defaultFormValues: FormValues = {
   currentAge: 55,
   projectionStartYear: new Date().getFullYear(),
   initialSavingsAmount: 50000,
-  targetAnnualGrossIncome: 30000, 
-  initialDbPensionAmount: 9000,
+  targetAnnualGrossIncome: 25000, // User wants this to be net, but calculation currently treats as gross
+  initialDbPensionAmount: 0,
   dbPensionStartAge: 65,
   statePensionAge: 67,
-  initialStatePensionAmount: 11500,
+  initialStatePensionAmount: 11973, // Updated default State Pension
   initialDcPensionValue: 188000,
   investmentPercentageGrowth: 4,
   inflationRate: 2.5,
@@ -68,9 +68,11 @@ interface FormFieldProps {
   placeholder?: string;
   description?: string;
   unit?: string;
+  infoLink?: string;
+  infoLinkText?: string;
 }
 
-const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "number", placeholder, description, unit }) => (
+const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "number", placeholder, description, unit, infoLink, infoLinkText }) => (
   <div className="space-y-1">
     <div className="flex items-center justify-between">
       <Label htmlFor={name} className="text-sm font-medium">
@@ -79,12 +81,19 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
       {description && (
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
               <InfoIcon className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-60 text-sm" side="top" align="end">
             {description}
+            {infoLink && infoLinkText && (
+              <p className="mt-2">
+                <a href={infoLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  {infoLinkText}
+                </a>
+              </p>
+            )}
           </PopoverContent>
         </Popover>
       )}
@@ -150,7 +159,7 @@ export default function PensionPilotPage() {
     { name: "currentAge", label: "Current Age", control: control, unit: "Years", description: "Your current age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, unit: "Year", description: "The year the projection should begin from." },
     { name: "initialSavingsAmount", label: "Initial Savings Amount", control: control, unit: "£", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
-    { name: "targetAnnualGrossIncome", label: "Target Annual Gross Income", control: control, unit: "£ pa", description: "Your desired total gross income per year during retirement." },
+    { name: "targetAnnualGrossIncome", label: "Target Annual Income (After Tax)", control: control, unit: "£ pa", description: "Your desired total income per year AFTER tax. Note: The current calculation aims for this as a gross income; achieving a precise net target is a more complex feature." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
@@ -161,14 +170,14 @@ export default function PensionPilotPage() {
   ];
   
   const dbStatePensionFields: FormFieldProps[] = [
-    { name: "initialDbPensionAmount", label: "Initial DB Pension Amount", control: control, unit: "£ pa", description: "Initial annual amount of Defined Benefit pension if applicable." },
+    { name: "initialDbPensionAmount", label: "Initial DB Pension Amount", control: control, unit: "£ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, unit: "Years", description: "Age at which DB Pension payments begin." },
-    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, unit: "£ pa", description: "Expected initial annual amount of State Pension." },
+    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, unit: "£ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
     { name: "statePensionAge", label: "State Pension Age", control: control, unit: "Years", description: "Age at which State Pension payments begin." },
   ];
 
   const economicAssumptionsFields: FormFieldProps[] = [
-     { name: "inflationRate", label: "Inflation Rate", control: control, unit: "% pa", description: "Expected average annual inflation rate." },
+     { name: "inflationRate", label: "Inflation Rate", control: control, unit: "% pa", description: "Expected average annual inflation rate. For current UK rates, refer to the ONS.", infoLink: "https://www.ons.gov.uk/economy/inflationandpriceindices", infoLinkText: "Check ONS for latest rates" },
   ];
 
   return (
@@ -201,7 +210,20 @@ export default function PensionPilotPage() {
               </div>
 
               <Separator />
-              <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Defined Benefit (DB) & State Pension</h3>
+              <div className="flex items-center gap-2 border-b pb-2">
+                <h3 className="text-xl font-headline font-semibold text-primary">Defined Benefit (DB) &amp; State Pension</h3>
+                <span className="text-sm text-muted-foreground">(Leave blank if not applicable)</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                      <InfoIcon className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-60 text-sm" side="top" align="start">
+                    A Defined Benefit (DB) pension, often referred to as a final salary pension, is a type of workplace pension where the employer guarantees a specific income for the employee during retirement.
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {dbStatePensionFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
@@ -285,7 +307,7 @@ export default function PensionPilotPage() {
                 <DrawdownOptimizationCard 
                   csvDataString={calculatedData.csvString} 
                   financialParams={{
-                    ...calculatedData.parameters // Pass all parameters
+                    ...calculatedData.parameters 
                   }} 
                 />
               </section>
