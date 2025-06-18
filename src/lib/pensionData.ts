@@ -5,7 +5,7 @@ import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION as GENERAL_
 export const DEFAULT_HEADERS = [
   'Age', 'Year',
   'Initial DC Pension', 'DC Pension Growth', 'DC Pension + Growth',
-  'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance', // Changed from 'DC UFPLS Drawdown'
+  'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance',
   'DB Pension', 'State Pension', 'Withdraw from Savings', 'Savings Balance',
   'TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid',
   'Net Income Per Year', 'Net Income Per Month',
@@ -135,7 +135,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'DC Pension + Growth': 0,
       'DC AMC Charge': 0,
       'DC Minus AMC': 0,
-      'DC Pension Drawdown': 0, // Reflects header change
+      'DC Pension Drawdown': 0,
       'DC Pension Balance': 0,
       'DB Pension': 0,
       'State Pension': 0,
@@ -154,47 +154,84 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     row['DC AMC Charge'] = row['DC Pension + Growth'] * amcDecimal;
     row['DC Minus AMC'] = row['DC Pension + Growth'] - row['DC AMC Charge'];
 
-    if (age === dbPensionStartAge) {
-      row['DB Pension'] = initialDbPensionAmount;
-    } else if (age > dbPensionStartAge && previousRow && previousRow['DB Pension']) {
-      row['DB Pension'] = previousRow['DB Pension'] * (1 + inflationDecimal);
+    // DB Pension Calculation
+    if (initialDbPensionAmount > 0) {
+        if (age < dbPensionStartAge) {
+            row['DB Pension'] = 0;
+        } else { // age >= dbPensionStartAge
+            if (!previousRow) { // This is the first row of the projection (age === currentAge)
+                if (currentAge === dbPensionStartAge) {
+                    row['DB Pension'] = initialDbPensionAmount;
+                } else { // currentAge > dbPensionStartAge
+                    const yearsOfInflation = currentAge - dbPensionStartAge;
+                    row['DB Pension'] = initialDbPensionAmount * Math.pow(1 + inflationDecimal, yearsOfInflation);
+                }
+            } else { // This is a subsequent row (previousRow exists)
+                if (previousRow['DB Pension'] !== undefined && previousRow['DB Pension'] > 0) {
+                     row['DB Pension'] = previousRow['DB Pension'] * (1 + inflationDecimal);
+                } else if (age === dbPensionStartAge) { // DB pension starts in this current projection year
+                    row['DB Pension'] = initialDbPensionAmount;
+                } else {
+                    row['DB Pension'] = 0; 
+                }
+            }
+        }
     } else {
-      row['DB Pension'] = 0;
+        row['DB Pension'] = 0;
     }
     row['DB Pension'] = Math.max(0, row['DB Pension'] || 0);
 
-    if (age === statePensionAge) {
-      row['State Pension'] = initialStatePensionAmount;
-    } else if (age > statePensionAge && previousRow && previousRow['State Pension']) {
-      row['State Pension'] = previousRow['State Pension'] * (1 + inflationDecimal);
+    // State Pension Calculation
+    if (initialStatePensionAmount > 0) {
+        if (age < statePensionAge) {
+            row['State Pension'] = 0;
+        } else { // age >= statePensionAge
+            if (!previousRow) { // This is the first row of the projection (age === currentAge)
+                if (currentAge === statePensionAge) {
+                    row['State Pension'] = initialStatePensionAmount;
+                } else { // currentAge > statePensionAge
+                    const yearsOfInflation = currentAge - statePensionAge;
+                    row['State Pension'] = initialStatePensionAmount * Math.pow(1 + inflationDecimal, yearsOfInflation);
+                }
+            } else { // This is a subsequent row (previousRow exists)
+                if (previousRow['State Pension'] !== undefined && previousRow['State Pension'] > 0) {
+                     row['State Pension'] = previousRow['State Pension'] * (1 + inflationDecimal);
+                } else if (age === statePensionAge) { // State pension starts in this current projection year
+                    row['State Pension'] = initialStatePensionAmount;
+                } else {
+                    row['State Pension'] = 0;
+                }
+            }
+        }
     } else {
-      row['State Pension'] = 0;
+        row['State Pension'] = 0;
     }
     row['State Pension'] = Math.max(0, row['State Pension'] || 0);
 
+
     const { dcDrawdown, savingsWithdrawal, calculatedNet, taxPaid, incomeSubjectToTax, totalGrossIncome } = 
       calculateDrawdownsForNetTarget(
-        targetAnnualNetIncome,
+        targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset), // Inflate target income
         row['DB Pension'] || 0,
         row['State Pension'] || 0,
         row['DC Minus AMC'], 
         currentOverallSavingsBalance,
-        currentUfplsTaxFreePortion // Pass the determined tax-free portion
+        currentUfplsTaxFreePortion
       );
     
     let finalDcDrawdown = dcDrawdown;
     let dcDrawdownByRate = 0;
 
-    if (age >= statePensionAge) {
+    if (age >= statePensionAge) { // Use State Pension Age as the trigger for fixed % drawdown
       const basisForRateDrawdown = previousRow ? (previousRow['DC Pension Balance'] || 0) : row['DC Minus AMC'];
       dcDrawdownByRate = basisForRateDrawdown * dcWithdrawDecimal;
     }
     
-    if (dcDrawdownByRate > finalDcDrawdown && age >= statePensionAge) {
+    if (dcDrawdownByRate > finalDcDrawdown && age >= statePensionAge) { // And age is at or after SPA
          finalDcDrawdown = dcDrawdownByRate;
-         const taxableDCDrawdownRate = finalDcDrawdown * (1 - currentUfplsTaxFreePortion); // Use correct portion
+         const taxableDCDrawdownRate = finalDcDrawdown * (1 - currentUfplsTaxFreePortion);
          const taxableBaseIncomeRate = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + taxableDCDrawdownRate;
-         row['Income Subject to Tax'] = Math.max(0, taxableBaseIncomeRate - PERSONAL_ALLOWANCE);
+         row['Income Subject to Tax'] = Math.max(0, taxableBaseIncomeRate - PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset)); // Inflate PA
          row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
          row['TOTAL INCOME'] = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + finalDcDrawdown + savingsWithdrawal; 
          row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
@@ -206,13 +243,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         row['Net Income Per Year'] = calculatedNet;
     }
     
-    row['DC Pension Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC'])); // Header change reflected
+    row['DC Pension Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC']));
     row['Withdraw from Savings'] = savingsWithdrawal; 
 
     currentOverallSavingsBalance -= row['Withdraw from Savings'];
+    currentOverallSavingsBalance = Math.max(0, currentOverallSavingsBalance); // Ensure savings don't go negative
     row['Savings Balance'] = currentOverallSavingsBalance;
 
-    row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC Pension Drawdown']; // Header change reflected
+    row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC Pension Drawdown'];
     row['DC Pension Balance'] = Math.max(0, row['DC Pension Balance']);
     
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
@@ -249,3 +287,4 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers: DEFAULT_HEADERS, parameters: outputParameters, csvString };
 }
+
