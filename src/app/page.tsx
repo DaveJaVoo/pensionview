@@ -130,31 +130,38 @@ export default function PensionPilotPage() {
   const [isFormInitialized, setIsFormInitialized] = useState(false);
   const [calculatedLumpSumDisplay, setCalculatedLumpSumDisplay] = useState<number>(0);
 
-  const { control, handleSubmit, watch, formState: { errors }, reset, getValues } = useForm<FormValues>({
+  const { control, handleSubmit, watch, formState: { errors }, reset, getValues, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: formSchema.parse({}), 
   });
   
   useEffect(() => {
     const clientCurrentYear = new Date().getFullYear();
+    const initialFormValues = formSchema.parse({});
     reset({
-      currentAge: 55,
+      ...initialFormValues,
       projectionStartYear: clientCurrentYear,
-      initialSavingsAmount: 50000,
-      targetAnnualNetIncome: 20000,
-      initialDbPensionAmount: 0,
-      dbPensionStartAge: 65,
-      statePensionAge: 67,
-      initialStatePensionAmount: 11973,
-      initialDcPensionValue: 188000,
-      takeTaxFreeLumpSum: false,
-      investmentPercentageGrowth: 4,
-      inflationRate: 4,
-      dcWithdrawalRate: 4,
-      annualChargeAMC: 0.5,
     });
     setIsFormInitialized(true);
   }, [reset]);
+
+
+  const currentAgeWatched = watch("currentAge");
+
+  useEffect(() => {
+    if (!isFormInitialized) return;
+
+    const currentAgeVal = getValues("currentAge");
+    const currentStatePensionAgeVal = getValues("statePensionAge");
+
+    if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
+      const newSpa = Math.min(currentAgeVal, 80); // Cap at max SPA
+      if (newSpa !== currentStatePensionAgeVal) {
+        setValue("statePensionAge", newSpa, { shouldValidate: true });
+      }
+    }
+  }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
+
 
   const initialDcPensionValueWatched = watch("initialDcPensionValue");
   const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
