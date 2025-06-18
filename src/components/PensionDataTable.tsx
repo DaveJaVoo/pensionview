@@ -17,16 +17,15 @@ interface PensionDataTableProps {
 const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
-    // Adjusted to match new headers
     return lowerHeader.includes('pension') ||
            lowerHeader.includes('income') ||
-           lowerHeader.includes('savings') || // 'Withdraw from Savings'
-           lowerHeader.includes('charge') || // 'DC AMC Charge'
-           lowerHeader.includes('growth') || // 'DC Pension Growth'
-           lowerHeader.includes('balance') || // 'DC Pension Balance'
-           lowerHeader.includes('drawdown') || // 'DC UFPLS Drawdown'
-           lowerHeader.includes('tax paid') || // 'Income Tax Paid'
-           lowerHeader.includes('value') || // 'Initial DC Pension Value'
+           lowerHeader.includes('savings') || 
+           lowerHeader.includes('charge') || 
+           lowerHeader.includes('growth') || 
+           lowerHeader.includes('balance') || 
+           lowerHeader.includes('drawdown') || 
+           lowerHeader.includes('tax paid') || 
+           lowerHeader.includes('value') || 
            lowerHeader.includes('dc minus amc');
   };
   
@@ -35,14 +34,13 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   }
 
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
-    // Define multi-line formatting for new headers
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
       'DC Pension Growth': ['DC Pension', 'Growth'],
       'DC Pension + Growth': ['DC Pension', '+ Growth'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Minus AMC': ['DC Minus', 'AMC'],
-      'DC UFPLS Drawdown': ['DC UFPLS', 'Drawdown'],
+      'DC Pension Drawdown': ['DC Pension', 'Drawdown'], // Updated from 'DC UFPLS Drawdown'
       'DC Pension Balance': ['DC Pension', 'Balance'],
       'DB Pension': ['DB Pension'],
       'State Pension': ['State Pension'],
@@ -54,7 +52,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
       'Net Income Per Month': ['Net Income', 'Per Month'],
     };
 
-    const upperHeader = header.toUpperCase(); // Normalize for matching
+    const upperHeader = header.toUpperCase();
     const foundHeaderKey = Object.keys(specificHeaders).find(key => key.toUpperCase() === upperHeader);
 
     if (foundHeaderKey && specificHeaders[foundHeaderKey]) {
@@ -67,6 +65,10 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
       ));
     }
     return header;
+  };
+
+  const isGreenStyledHeader = (header: string): boolean => {
+    return header === 'DC Pension Drawdown' || header === 'State Pension' || header === 'Withdraw from Savings';
   };
 
   return (
@@ -96,15 +98,19 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
                 if (isMonetaryHeader(header) || (typeof cellValue === 'string' && cellValue.includes('£'))) {
                   displayValue = formatCurrency(cellValue);
                 }
-                // Removed font-mono application from numeric and year headers to use default body font.
+
+                const numericValueForStyling = typeof cellValue === 'number' ? cellValue : parseCurrency(String(cellValue));
 
                 if (header === 'Income Tax Paid') {
-                  const taxPaidNum = typeof cellValue === 'number' ? cellValue : parseCurrency(String(cellValue));
-                  if (taxPaidNum !== undefined && taxPaidNum > 0) {
+                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
                     cellClasses = cn(cellClasses, "bg-destructive/20 text-destructive-foreground font-semibold");
-                  } else if (taxPaidNum === 0) {
-                     cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400");
+                  } else if (numericValueForStyling === 0) {
+                     cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400"); // Existing style for no tax
                      displayValue = "£0"; 
+                  }
+                } else if (isGreenStyledHeader(header)) {
+                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                    cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium");
                   }
                 }
                 

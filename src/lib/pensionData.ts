@@ -5,7 +5,7 @@ import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION as GENERAL_
 export const DEFAULT_HEADERS = [
   'Age', 'Year',
   'Initial DC Pension', 'DC Pension Growth', 'DC Pension + Growth',
-  'DC AMC Charge', 'DC Minus AMC', 'DC UFPLS Drawdown', 'DC Pension Balance',
+  'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance', // Changed from 'DC UFPLS Drawdown'
   'DB Pension', 'State Pension', 'Withdraw from Savings', 'Savings Balance',
   'TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid',
   'Net Income Per Year', 'Net Income Per Month',
@@ -135,7 +135,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'DC Pension + Growth': 0,
       'DC AMC Charge': 0,
       'DC Minus AMC': 0,
-      'DC UFPLS Drawdown': 0,
+      'DC Pension Drawdown': 0, // Reflects header change
       'DC Pension Balance': 0,
       'DB Pension': 0,
       'State Pension': 0,
@@ -206,13 +206,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         row['Net Income Per Year'] = calculatedNet;
     }
     
-    row['DC UFPLS Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC']));
+    row['DC Pension Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC'])); // Header change reflected
     row['Withdraw from Savings'] = savingsWithdrawal; 
 
     currentOverallSavingsBalance -= row['Withdraw from Savings'];
     row['Savings Balance'] = currentOverallSavingsBalance;
 
-    row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC UFPLS Drawdown'];
+    row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC Pension Drawdown']; // Header change reflected
     row['DC Pension Balance'] = Math.max(0, row['DC Pension Balance']);
     
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
