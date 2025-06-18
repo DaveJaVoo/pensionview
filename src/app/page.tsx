@@ -30,7 +30,7 @@ const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89),
   projectionStartYear: z.coerce.number().min(new Date().getFullYear() - 10).max(new Date().getFullYear() + 10),
   initialSavingsAmount: z.coerce.number().min(0),
-  targetAnnualGrossIncome: z.coerce.number().min(0).describe("Your desired total income per year AFTER tax. The system will aim for a gross income that results in this net amount."),
+  targetAnnualNetIncome: z.coerce.number().min(0).describe("Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount."),
   initialDbPensionAmount: z.coerce.number().min(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80),
   statePensionAge: z.coerce.number().min(60).max(80),
@@ -48,11 +48,11 @@ const defaultFormValues: FormValues = {
   currentAge: 55,
   projectionStartYear: new Date().getFullYear(),
   initialSavingsAmount: 50000,
-  targetAnnualGrossIncome: 25000, // User wants this to be net, but calculation currently treats as gross
+  targetAnnualNetIncome: 20000, // User wants this net
   initialDbPensionAmount: 0,
   dbPensionStartAge: 65,
   statePensionAge: 67,
-  initialStatePensionAmount: 11973, // Updated default State Pension
+  initialStatePensionAmount: 11973,
   initialDcPensionValue: 188000,
   investmentPercentageGrowth: 4,
   inflationRate: 2.5,
@@ -159,14 +159,14 @@ export default function PensionPilotPage() {
     { name: "currentAge", label: "Current Age", control: control, unit: "Years", description: "Your current age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, unit: "Year", description: "The year the projection should begin from." },
     { name: "initialSavingsAmount", label: "Initial Savings Amount", control: control, unit: "£", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
-    { name: "targetAnnualGrossIncome", label: "Target Annual Income (After Tax)", control: control, unit: "£ pa", description: "Your desired total income per year AFTER tax. Note: The current calculation aims for this as a gross income; achieving a precise net target is a more complex feature." },
+    { name: "targetAnnualNetIncome", label: "Target Annual Income (After Tax)", control: control, unit: "£ pa", description: "Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
     { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, unit: "£", description: "Your current total Defined Contribution pension pot value." },
     { name: "investmentPercentageGrowth", label: "Investment Growth Rate", control: control, unit: "% pa", description: "Expected annual growth rate of your DC pension investments." },
     { name: "annualChargeAMC", label: "Annual Mgmt. Charge (AMC)", control: control, unit: "% pa", description: "Annual Management Charge on your DC pension pot." },
-    { name: "dcWithdrawalRate", label: "DC UFPLS Withdrawal Rate", control: control, unit: "% pa", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering." },
+    { name: "dcWithdrawalRate", label: "DC UFPLS Withdrawal Rate", control: control, unit: "% pa", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering, or if this withdrawal is higher than what's needed for the target net income." },
   ];
   
   const dbStatePensionFields: FormFieldProps[] = [
@@ -212,7 +212,7 @@ export default function PensionPilotPage() {
               <Separator />
               <div className="flex items-center gap-2 border-b pb-2">
                 <h3 className="text-xl font-headline font-semibold text-primary">Defined Benefit (DB) &amp; State Pension</h3>
-                <span className="text-sm text-muted-foreground">(Leave blank if not applicable)</span>
+                <span className="text-sm text-muted-foreground">(Leave values at 0 if not applicable)</span>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>

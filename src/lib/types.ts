@@ -13,29 +13,28 @@ export interface PensionDataRow {
   'DB Pension'?: number;
   'State Pension'?: number;
   'Withdraw from Savings': number;
+  'Savings Balance': number;
   'TOTAL INCOME': number;
   'Income Subject to Tax': number;
   'Income Tax Paid': number;
   'Net Income Per Year': number;
   'Net Income Per Month': number;
-  // Internal tracking for total savings
-  'Savings Balance': number;
 }
 
 export interface PensionCalculationParameters {
   currentAge: number;
   projectionStartYear: number;
   initialSavingsAmount: number;
+  targetAnnualNetIncome: number; // Changed from targetAnnualGrossIncome
   initialDbPensionAmount: number;
-  dbPensionStartAge: number; // Age when DB pension starts
+  dbPensionStartAge: number;
   statePensionAge: number;
   initialStatePensionAmount: number;
   initialDcPensionValue: number;
   investmentPercentageGrowth: number;
   inflationRate: number;
-  dcWithdrawalRate: number; // For DC UFPLS post-State Pension Age
+  dcWithdrawalRate: number;
   annualChargeAMC: number;
-  targetAnnualGrossIncome: number; // New input
 }
 
 export interface CalculatedPensionData {

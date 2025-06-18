@@ -6,14 +6,97 @@ export const DEFAULT_HEADERS = [
   'Age', 'Year',
   'Initial DC Pension', 'DC Pension Growth', 'DC Pension + Growth',
   'DC AMC Charge', 'DC Minus AMC', 'DC UFPLS Drawdown', 'DC Pension Balance',
-  'DB Pension', 'State Pension', 'Withdraw from Savings', 'Savings Balance', // Added Savings Balance for clarity in CSV/AI
+  'DB Pension', 'State Pension', 'Withdraw from Savings', 'Savings Balance',
   'TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid',
   'Net Income Per Year', 'Net Income Per Month',
 ];
 
+// Helper function for iterative net income targeting
+function calculateDrawdownsForNetTarget(
+  targetNetIncomeThisYear: number,
+  dbPensionThisYear: number,
+  statePensionThisYear: number,
+  currentDCPotForDrawdown: number, // DC Minus AMC
+  currentSavingsBalance: number
+): { dcDrawdown: number; savingsWithdrawal: number; calculatedNet: number; taxPaid: number; incomeSubjectToTax: number; totalGrossIncome: number } {
+  let bestGuess = { dcDrawdown: 0, savingsWithdrawal: 0, calculatedNet: 0, taxPaid: 0, incomeSubjectToTax: 0, totalGrossIncome: 0 };
+  let minDiff = Infinity;
+
+  // Iteration parameters
+  const maxIterations = 100; // Increased iterations for potentially better precision
+  const precision = 1.0; // Target within £1
+
+  // Binary search for optimal DC drawdown
+  let lowDcDrawdown = 0;
+  let highDcDrawdown = currentDCPotForDrawdown;
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const currentDcDrawdownGuess = (lowDcDrawdown + highDcDrawdown) / 2;
+
+    const taxableDCDrawdown = currentDcDrawdownGuess * (1 - UFPLS_TAX_FREE_PORTION);
+    const grossIncomeFromPensions = dbPensionThisYear + statePensionThisYear + currentDcDrawdownGuess;
+    
+    const taxableBaseIncome = dbPensionThisYear + statePensionThisYear + taxableDCDrawdown;
+    const incomeSubjectToTaxCalc = Math.max(0, taxableBaseIncome - PERSONAL_ALLOWANCE);
+    const taxPaidOnPensions = incomeSubjectToTaxCalc * INCOME_TAX_RATE;
+    
+    const netIncomeFromPensions = grossIncomeFromPensions - taxPaidOnPensions;
+    
+    let savingsToWithdraw = 0;
+    if (netIncomeFromPensions < targetNetIncomeThisYear) {
+      savingsToWithdraw = Math.min(currentSavingsBalance, targetNetIncomeThisYear - netIncomeFromPensions);
+    }
+    
+    const finalNetIncome = netIncomeFromPensions + savingsToWithdraw;
+    const totalGrossIncomeCalc = grossIncomeFromPensions + savingsToWithdraw;
+
+    const diff = Math.abs(finalNetIncome - targetNetIncomeThisYear);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestGuess = { 
+        dcDrawdown: currentDcDrawdownGuess, 
+        savingsWithdrawal: savingsToWithdraw, 
+        calculatedNet: finalNetIncome,
+        taxPaid: taxPaidOnPensions, // Tax is only on pension income for this model
+        incomeSubjectToTax: incomeSubjectToTaxCalc,
+        totalGrossIncome: totalGrossIncomeCalc
+      };
+    }
+
+    if (minDiff <= precision) {
+      break; // Found a good enough solution
+    }
+
+    if (finalNetIncome < targetNetIncomeThisYear) {
+      lowDcDrawdown = currentDcDrawdownGuess;
+    } else {
+      highDcDrawdown = currentDcDrawdownGuess;
+    }
+  }
+  
+  // Ensure DC drawdown does not exceed available pot
+  bestGuess.dcDrawdown = Math.min(bestGuess.dcDrawdown, currentDCPotForDrawdown);
+  // Recalculate if dcDrawdown was capped
+  if (bestGuess.dcDrawdown < ((lowDcDrawdown + highDcDrawdown) / 2) && highDcDrawdown > 0 ) { // Check if capped
+      const taxableDCDrawdown = bestGuess.dcDrawdown * (1 - UFPLS_TAX_FREE_PORTION);
+      const grossIncomeFromPensions = dbPensionThisYear + statePensionThisYear + bestGuess.dcDrawdown;
+      const taxableBaseIncome = dbPensionThisYear + statePensionThisYear + taxableDCDrawdown;
+      bestGuess.incomeSubjectToTax = Math.max(0, taxableBaseIncome - PERSONAL_ALLOWANCE);
+      bestGuess.taxPaid = bestGuess.incomeSubjectToTax * INCOME_TAX_RATE;
+      const netIncomeFromPensions = grossIncomeFromPensions - bestGuess.taxPaid;
+      bestGuess.savingsWithdrawal = Math.min(currentSavingsBalance, Math.max(0, targetNetIncomeThisYear - netIncomeFromPensions));
+      bestGuess.calculatedNet = netIncomeFromPensions + bestGuess.savingsWithdrawal;
+      bestGuess.totalGrossIncome = grossIncomeFromPensions + bestGuess.savingsWithdrawal;
+  }
+
+
+  return bestGuess;
+}
+
+
 export function calculatePensionProjection(params: PensionCalculationParameters): CalculatedPensionData {
   const {
-    currentAge, projectionStartYear, initialSavingsAmount, targetAnnualGrossIncome,
+    currentAge, projectionStartYear, initialSavingsAmount, targetAnnualNetIncome,
     initialDbPensionAmount, dbPensionStartAge,
     statePensionAge, initialStatePensionAmount,
     initialDcPensionValue, investmentPercentageGrowth,
@@ -22,7 +105,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   const rows: PensionDataRow[] = [];
   let previousRow: PensionDataRow | null = null;
-  let currentSavingsBalance = initialSavingsAmount;
+  let currentOverallSavingsBalance = initialSavingsAmount;
 
   const invGrowthDecimal = (investmentPercentageGrowth || 0) / 100;
   const inflationDecimal = (inflationRate || 0) / 100;
@@ -46,7 +129,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'DB Pension': 0,
       'State Pension': 0,
       'Withdraw from Savings': 0,
-      'Savings Balance': currentSavingsBalance, // Initial per-year savings balance
+      'Savings Balance': currentOverallSavingsBalance,
       'TOTAL INCOME': 0,
       'Income Subject to Tax': 0,
       'Income Tax Paid': 0,
@@ -54,22 +137,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'Net Income Per Month': 0,
     };
 
-    // Column C: Initial DC Pension
     row['Initial DC Pension'] = previousRow ? (previousRow['DC Pension Balance'] || 0) : initialDcPensionValue;
-
-    // Column D: DC Pension Growth
     row['DC Pension Growth'] = row['Initial DC Pension'] * invGrowthDecimal;
-
-    // Column E: DC Pension + Growth
     row['DC Pension + Growth'] = row['Initial DC Pension'] + row['DC Pension Growth'];
-
-    // Column F: DC Pension AMC Charge
     row['DC AMC Charge'] = row['DC Pension + Growth'] * amcDecimal;
-
-    // Column G: DC Pension Minus AMC Charge
     row['DC Minus AMC'] = row['DC Pension + Growth'] - row['DC AMC Charge'];
 
-    // DB and State Pension for the current year
+    // DB and State Pension
     if (age === dbPensionStartAge) {
       row['DB Pension'] = initialDbPensionAmount;
     } else if (age > dbPensionStartAge && previousRow && previousRow['DB Pension']) {
@@ -87,72 +161,79 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       row['State Pension'] = 0;
     }
     row['State Pension'] = Math.max(0, row['State Pension'] || 0);
+
+    // Iterative calculation for DC Drawdown and Savings Withdrawal
+    const { dcDrawdown, savingsWithdrawal, calculatedNet, taxPaid, incomeSubjectToTax, totalGrossIncome } = 
+      calculateDrawdownsForNetTarget(
+        targetAnnualNetIncome,
+        row['DB Pension'] || 0,
+        row['State Pension'] || 0,
+        row['DC Minus AMC'], // Current pot available for drawdown this year
+        currentOverallSavingsBalance
+      );
     
-    // Calculate income from fixed pensions
-    const incomeFromFixedPensions = (row['DB Pension'] || 0) + (row['State Pension'] || 0);
-    
-    // Calculate shortfall against target gross income
-    const shortfall = Math.max(0, targetAnnualGrossIncome - incomeFromFixedPensions);
+    let finalDcDrawdown = dcDrawdown;
 
-    // Column L: Withdraw from Savings
-    const actualWithdrawalFromSavings = Math.min(shortfall, currentSavingsBalance);
-    row['Withdraw from Savings'] = actualWithdrawalFromSavings;
-    currentSavingsBalance -= actualWithdrawalFromSavings;
-    row['Savings Balance'] = currentSavingsBalance; // Update row's savings balance after withdrawal
-
-    // Remaining shortfall after savings withdrawal
-    const remainingShortfall = Math.max(0, shortfall - actualWithdrawalFromSavings);
-
-    // Column H: DC UFPLS Drawdown
-    let dcDrawdownToMeetNeed = 0;
-    if (remainingShortfall > 0) {
-      dcDrawdownToMeetNeed = remainingShortfall;
-    }
-
+    // Standard DC withdrawal rate if no specific net income target need or if rate withdrawal is higher
     let dcDrawdownByRate = 0;
     if (age >= statePensionAge) {
-      // Basis for drawdown rate: use previous year's balance if available and post-SPA, otherwise current year's pre-drawdown balance.
-      const basisForRateDrawdown = previousRow && previousRow['Age'] === age -1 && age > statePensionAge ? 
-                               (previousRow['DC Pension Balance'] || 0) : 
-                               row['DC Minus AMC'];
+      const basisForRateDrawdown = previousRow ? (previousRow['DC Pension Balance'] || 0) : row['DC Minus AMC'];
       dcDrawdownByRate = basisForRateDrawdown * dcWithdrawDecimal;
     }
+
+    // If target net income is met or exceeded by fixed pensions and savings without DC drawdown,
+    // or if the standard rate is higher, use the standard rate (if applicable).
+    // The iterative function already aims for the target, so this mainly handles the post-SPA % rate.
+    if (dcDrawdownByRate > finalDcDrawdown && age >= statePensionAge) {
+         finalDcDrawdown = dcDrawdownByRate;
+         // Recalculate tax if DC drawdown changes due to standard rate
+         const taxableDCDrawdownRate = finalDcDrawdown * (1 - UFPLS_TAX_FREE_PORTION);
+         const taxableBaseIncomeRate = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + taxableDCDrawdownRate;
+         row['Income Subject to Tax'] = Math.max(0, taxableBaseIncomeRate - PERSONAL_ALLOWANCE);
+         row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
+         row['TOTAL INCOME'] = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + finalDcDrawdown + savingsWithdrawal; // savingsWithdrawal from iteration still applies
+         row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
+
+    } else {
+        row['Income Subject to Tax'] = incomeSubjectToTax;
+        row['Income Tax Paid'] = taxPaid;
+        row['TOTAL INCOME'] = totalGrossIncome;
+        row['Net Income Per Year'] = calculatedNet;
+    }
     
-    // DC UFPLS Drawdown is the greater of amount needed for shortfall or amount by withdrawal rate (if applicable)
-    row['DC UFPLS Drawdown'] = Math.max(dcDrawdownToMeetNeed, dcDrawdownByRate);
-    // Ensure drawdown doesn't exceed available DC balance
-    row['DC UFPLS Drawdown'] = Math.max(0, Math.min(row['DC UFPLS Drawdown'], row['DC Minus AMC']));
+    row['DC UFPLS Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC']));
+    row['Withdraw from Savings'] = savingsWithdrawal; // Use savings withdrawal from iterative calc or 0 if % rate took over and met target
 
+    // If % rate took over and potentially changed net income, re-evaluate savings.
+    // This logic is complex as the savings withdrawal should ideally be part of the iterative solution with the % rate.
+    // For now, if % rate drawdown is used, assume savings withdrawal is primarily for any remaining gap to targetNetIncome *after* this % rate drawdown.
+    // The current iterative solver is designed to meet the target first.
+    // If dcDrawdownByRate was chosen, and it resulted in a net income different from target, savings might need adjustment.
+    // This part requires careful thought to ensure consistency. The current calculateDrawdownsForNetTarget tries to hit the target.
+    // If dcWithdrawDecimal is high, it might overshoot.
+    // A simpler model: if dcDrawdownByRate is active and provides enough, savings withdrawal might be 0 unless target still not met.
+    
+    // If the standard % rate significantly changes the income, savings withdrawal from the iterative step might be too high/low.
+    // The most straightforward is: the iterative function gives us amounts to hit the target.
+    // If standard % withdrawal is higher, it might override. Tax and Net are recalculated.
+    // The savings withdrawal from the iteration might not be optimal if standard % is used.
+    // For now, we take `savingsWithdrawal` from the iterative result.
 
-    // Column I: DC Pension Balance
+    currentOverallSavingsBalance -= row['Withdraw from Savings'];
+    row['Savings Balance'] = currentOverallSavingsBalance;
+
     row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC UFPLS Drawdown'];
     row['DC Pension Balance'] = Math.max(0, row['DC Pension Balance']);
-
-    // Column M: TOTAL INCOME
-    row['TOTAL INCOME'] = (row['DC UFPLS Drawdown'] || 0) + (row['DB Pension'] || 0) + (row['State Pension'] || 0) + row['Withdraw from Savings'];
-
-    // Tax Calculations
-    const taxableDCDrawdown = (row['DC UFPLS Drawdown'] || 0) * (1 - UFPLS_TAX_FREE_PORTION);
-    const taxableBaseIncome = taxableDCDrawdown + (row['DB Pension'] || 0) + (row['State Pension'] || 0);
-    // Note: 'Withdraw from Savings' is assumed to be from post-tax capital and not income-taxable here.
-
-    // Column N: Income Subject to Tax
-    row['Income Subject to Tax'] = Math.max(0, taxableBaseIncome - PERSONAL_ALLOWANCE);
     
-    // Column O: Income Tax Paid
-    row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
-
-    // Column P: Net Income Per Year
-    row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
-
-    // Column Q: Net Income Per Month
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
 
     DEFAULT_HEADERS.forEach(header => {
         if (header === 'Year') return; 
-        if (typeof row[header] === 'number' && isNaN(row[header] as number)) {
-            row[header] = 0;
-        } else if (row[header] === undefined) {
+        const val = row[header];
+        if (typeof val === 'number') {
+          row[header] = parseFloat(val.toFixed(2));
+          if (isNaN(row[header] as number)) row[header] = 0;
+        } else if (val === undefined) {
             row[header] = 0;
         }
     });

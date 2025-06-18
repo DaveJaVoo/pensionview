@@ -14,7 +14,7 @@ import type { PensionCalculationParameters } from '@/lib/types';
 
 interface DrawdownOptimizationCardProps {
   csvDataString: string;
-  financialParams: PensionCalculationParameters; // Pass all parameters
+  financialParams: PensionCalculationParameters; 
 }
 
 const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataString, financialParams }) => {
@@ -38,7 +38,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           statePensionAge: financialParams.statePensionAge,
           currentAge: financialParams.currentAge,
           projectionEndAge: 90, 
-          targetAnnualGrossIncome: financialParams.targetAnnualGrossIncome,
+          targetAnnualNetIncome: financialParams.targetAnnualNetIncome, // Changed from targetAnnualGrossIncome
         };
         const result = await drawdownOptimization(input);
         setSuggestion(result);
@@ -82,7 +82,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your income target and savings usage.
+          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income and savings usage.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
