@@ -26,7 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
-const SCHEMA_FALLBACK_YEAR = new Date().getFullYear();
+const SCHEMA_FALLBACK_YEAR = 2024; // Static year to prevent hydration mismatch
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
@@ -129,6 +129,11 @@ export default function PensionPilotPage() {
   const [calculationError, setCalculationError] = useState<string | null>(null);
   const [isFormInitialized, setIsFormInitialized] = useState(false);
   const [calculatedLumpSumDisplay, setCalculatedLumpSumDisplay] = useState<number>(0);
+  const [footerYear, setFooterYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setFooterYear(new Date().getFullYear());
+  }, []);
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -167,7 +172,7 @@ export default function PensionPilotPage() {
   const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
 
   useEffect(() => {
-    if (!isFormInitialized && !getValues("initialDcPensionValue")) return; // Ensure form is initialized or values exist
+    if (!isFormInitialized && !getValues("initialDcPensionValue")) return; 
     
     const pclsValue = getValues("initialDcPensionValue");
     const takePcls = getValues("takeTaxFreeLumpSum");
@@ -221,7 +226,6 @@ export default function PensionPilotPage() {
     setCalculatedData(null);
     setCalculationError(null);
     
-    // After reset, re-evaluate the lump sum display based on new (default) form values
     const newInitialDcPensionValue = getValues("initialDcPensionValue");
     const newTakeTaxFreeLumpSum = getValues("takeTaxFreeLumpSum");
     if (newTakeTaxFreeLumpSum) {
@@ -466,7 +470,8 @@ export default function PensionPilotPage() {
       </main>
 
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border mt-auto">
-        <p>&copy; {new Date().getFullYear()} PensionView+. All rights reserved.</p>
+        {footerYear && <p>&copy; {footerYear} PensionView+. All rights reserved.</p>}
+        {!footerYear && <p>&copy; PensionView+. All rights reserved.</p>} {/* Fallback or initial render */}
         <p>Pension planning, simplified.</p>
       </footer>
     </div>
