@@ -26,9 +26,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
+const currentYear = new Date().getFullYear();
+
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89),
-  projectionStartYear: z.coerce.number().min(new Date().getFullYear() - 10).max(new Date().getFullYear() + 10),
+  projectionStartYear: z.coerce.number().min(currentYear - 10).max(currentYear + 10),
   initialSavingsAmount: z.coerce.number().min(0),
   targetAnnualNetIncome: z.coerce.number().min(0).describe("Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount."),
   initialDbPensionAmount: z.coerce.number().min(0),
@@ -46,7 +48,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 const defaultFormValues: FormValues = {
   currentAge: 55,
-  projectionStartYear: new Date().getFullYear(),
+  projectionStartYear: currentYear,
   initialSavingsAmount: 50000,
   targetAnnualNetIncome: 20000,
   initialDbPensionAmount: 0,
@@ -55,7 +57,7 @@ const defaultFormValues: FormValues = {
   initialStatePensionAmount: 11973,
   initialDcPensionValue: 188000,
   investmentPercentageGrowth: 4,
-  inflationRate: 4, // Default inflation rate set to 4%
+  inflationRate: 4, 
   dcWithdrawalRate: 4,
   annualChargeAMC: 0.5,
 };
