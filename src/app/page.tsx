@@ -161,7 +161,7 @@ export default function PensionPilotPage() {
     { name: "currentAge", label: "Current Age", control: control, unit: "Years", description: "Your current age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, unit: "Year", description: "The year the projection should begin from." },
     { name: "initialSavingsAmount", label: "Initial Savings Amount", control: control, unit: "£", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
-    { name: "targetAnnualNetIncome", label: "Target Annual Income (After Tax)", control: control, unit: "£ pa", description: "Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount." },
+    { name: "targetAnnualNetIncome", label: "Target Annual Income (After Tax)", control: control, unit: "£ pa", description: "Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount. The calculation aims to get as close as possible; precision can vary." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
@@ -186,7 +186,7 @@ export default function PensionPilotPage() {
        unit: "% pa", 
        description: "Expected average annual inflation rate. For current UK rates, refer to the ONS. If unsure, please check the link below for the latest official figures.", 
        infoLink: "https://www.ons.gov.uk/economy/inflationandpriceindices", 
-       infoLinkText: "Check ONS for latest rates" 
+       infoLinkText: "Check ONS for latest rates (opens new tab)" 
      },
   ];
 
@@ -204,6 +204,7 @@ export default function PensionPilotPage() {
             <CardDescription>
               Enter your financial details to project your retirement income up to age 90. 
               All percentage inputs should be entered as numbers (e.g., 5 for 5%).
+              No data is stored on our servers. All information is for your eyes only.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -333,3 +334,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
