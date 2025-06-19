@@ -5,13 +5,22 @@ export interface PensionDataRow {
   Year: string;
 
   'Initial DC Pension': number;
-  'DC Pension Contribution': number; // New column
+  'DC Pension Contribution': number;
   'DC Pension Growth': number;
   'DC Pension + Growth': number;
   'DC AMC Charge': number;
   'DC Minus AMC': number;
   'DC Pension Drawdown': number;
   'DC Pension Balance': number;
+
+  'Initial SIPP': number;
+  'SIPP Contribution': number;
+  'SIPP Growth': number;
+  'SIPP + Growth': number;
+  'SIPP AMC Charge': number;
+  'SIPP Minus AMC': number;
+  'SIPP Drawdown': number;
+  'SIPP Balance': number;
 
   'DB Pension'?: number;
   'State Pension'?: number;
@@ -53,14 +62,23 @@ export interface PensionCalculationParameters {
   initialStatePensionAmount: number;
 
   initialDcPensionValue: number;
-  annualDcPensionContribution: number; // New
-  dcContributionStartAge: number; // New
-  dcContributionEndAge: number; // New
+  annualDcPensionContribution: number;
+  dcContributionStartAge: number;
+  dcContributionEndAge: number;
   investmentPercentageGrowth: number;
   inflationRate: number;
   dcWithdrawalRate: number;
   annualChargeAMC: number;
   takeTaxFreeLumpSum: boolean;
+
+  initialSippValue: number;
+  annualSippContribution: number;
+  sippContributionStartAge: number;
+  sippContributionEndAge: number;
+  sippInvestmentPercentageGrowth: number;
+  sippAnnualChargeAMC: number;
+  sippWithdrawalRate: number;
+  takeSippTaxFreeLumpSum: boolean;
 
   initialCashSavings: number;
   initialIsaAmount: number;
@@ -72,7 +90,10 @@ export interface PensionCalculationParameters {
 export interface CalculatedPensionData {
   rows: PensionDataRow[];
   headers: string[];
-  parameters: PensionCalculationParameters & { taxFreeLumpSumTaken?: number };
+  parameters: PensionCalculationParameters & { 
+    taxFreeLumpSumTaken?: number;
+    sippTaxFreeLumpSumTaken?: number;
+  };
   csvString: string;
 }
 

@@ -6,6 +6,8 @@ export const DEFAULT_HEADERS = [
   'Age', 'Year',
   'Initial DC Pension', 'DC Pension Contribution', 'DC Pension Growth', 'DC Pension + Growth',
   'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance',
+  'Initial SIPP', 'SIPP Contribution', 'SIPP Growth', 'SIPP + Growth',
+  'SIPP AMC Charge', 'SIPP Minus AMC', 'SIPP Drawdown', 'SIPP Balance',
   'DB Pension', 'State Pension', 
   'Cash Savings Initial', 'Withdraw from Cash', 'Cash Savings Balance',
   'ISA Initial', 'ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance',
@@ -20,12 +22,16 @@ function calculateDrawdownsForNetTarget(
   dbPensionThisYear: number,
   statePensionThisYear: number,
   currentDCPotForDrawdown: number,
+  dcUfplsTaxFreePortion: number,
+  currentSippPotForDrawdown: number,
+  sippUfplsTaxFreePortion: number,
   currentCashBalance: number,
   currentIsaValueBeforeWithdrawal: number,
   currentGiaValueBeforeWithdrawal: number,
-  ufplsTaxFreePortionToUse: number
+  currentPersonalAllowance: number
 ): { 
-  dcDrawdown: number; 
+  dcDrawdown: number;
+  sippDrawdown: number;
   cashWithdrawal: number; 
   isaWithdrawal: number; 
   giaWithdrawal: number; 
@@ -36,6 +42,7 @@ function calculateDrawdownsForNetTarget(
 } {
   let bestGuess = { 
     dcDrawdown: 0, 
+    sippDrawdown: 0,
     cashWithdrawal: 0, 
     isaWithdrawal: 0, 
     giaWithdrawal: 0, 
@@ -49,17 +56,25 @@ function calculateDrawdownsForNetTarget(
   const maxIterations = 100;
   const precision = 1.0;
 
-  let lowDcDrawdown = 0;
-  let highDcDrawdown = currentDCPotForDrawdown;
+  let lowTotalPensionDrawdown = 0;
+  let highTotalPensionDrawdown = currentDCPotForDrawdown + currentSippPotForDrawdown;
 
   for (let iter = 0; iter < maxIterations; iter++) {
-    const currentDcDrawdownGuess = (lowDcDrawdown + highDcDrawdown) / 2;
+    const currentTotalPensionDrawdownGuess = (lowTotalPensionDrawdown + highTotalPensionDrawdown) / 2;
 
-    const taxableDCDrawdown = currentDcDrawdownGuess * (1 - ufplsTaxFreePortionToUse);
-    const grossPensionIncome = dbPensionThisYear + statePensionThisYear + currentDcDrawdownGuess;
+    let tempDcDrawdown = Math.min(currentTotalPensionDrawdownGuess, currentDCPotForDrawdown);
+    let tempSippDrawdown = Math.min(currentTotalPensionDrawdownGuess - tempDcDrawdown, currentSippPotForDrawdown);
     
-    const taxableBaseIncome = dbPensionThisYear + statePensionThisYear + taxableDCDrawdown;
-    const incomeSubjectToTaxCalc = Math.max(0, taxableBaseIncome - PERSONAL_ALLOWANCE);
+    tempDcDrawdown = Math.max(0, tempDcDrawdown);
+    tempSippDrawdown = Math.max(0, tempSippDrawdown);
+
+
+    const taxableDCDrawdown = tempDcDrawdown * (1 - dcUfplsTaxFreePortion);
+    const taxableSippDrawdown = tempSippDrawdown * (1 - sippUfplsTaxFreePortion);
+    const grossPensionIncome = dbPensionThisYear + statePensionThisYear + tempDcDrawdown + tempSippDrawdown;
+    
+    const taxableBaseIncome = dbPensionThisYear + statePensionThisYear + taxableDCDrawdown + taxableSippDrawdown;
+    const incomeSubjectToTaxCalc = Math.max(0, taxableBaseIncome - currentPersonalAllowance);
     const taxPaidOnPensions = incomeSubjectToTaxCalc * INCOME_TAX_RATE;
     
     const netIncomeFromPensions = grossPensionIncome - taxPaidOnPensions;
@@ -89,7 +104,8 @@ function calculateDrawdownsForNetTarget(
     if (diff < minDiff) {
       minDiff = diff;
       bestGuess = { 
-        dcDrawdown: currentDcDrawdownGuess, 
+        dcDrawdown: tempDcDrawdown, 
+        sippDrawdown: tempSippDrawdown,
         cashWithdrawal: tempCashWithdrawal, 
         isaWithdrawal: tempIsaWithdrawal,
         giaWithdrawal: tempGiaWithdrawal,
@@ -105,18 +121,21 @@ function calculateDrawdownsForNetTarget(
     }
 
     if (finalNetIncome < targetNetIncomeThisYear) {
-      lowDcDrawdown = currentDcDrawdownGuess;
+      lowTotalPensionDrawdown = currentTotalPensionDrawdownGuess;
     } else {
-      highDcDrawdown = currentDcDrawdownGuess;
+      highTotalPensionDrawdown = currentTotalPensionDrawdownGuess;
     }
   }
   
   bestGuess.dcDrawdown = Math.max(0, Math.min(bestGuess.dcDrawdown, currentDCPotForDrawdown));
+  bestGuess.sippDrawdown = Math.max(0, Math.min(bestGuess.sippDrawdown, currentSippPotForDrawdown));
   
-  const finalTaxableDCDrawdown = bestGuess.dcDrawdown * (1 - ufplsTaxFreePortionToUse);
-  const finalGrossPensionIncome = dbPensionThisYear + statePensionThisYear + bestGuess.dcDrawdown;
-  const finalTaxableBaseIncome = dbPensionThisYear + statePensionThisYear + finalTaxableDCDrawdown;
-  bestGuess.incomeSubjectToTax = Math.max(0, finalTaxableBaseIncome - PERSONAL_ALLOWANCE);
+  const finalTaxableDCDrawdown = bestGuess.dcDrawdown * (1 - dcUfplsTaxFreePortion);
+  const finalTaxableSippDrawdown = bestGuess.sippDrawdown * (1 - sippUfplsTaxFreePortion);
+
+  const finalGrossPensionIncome = dbPensionThisYear + statePensionThisYear + bestGuess.dcDrawdown + bestGuess.sippDrawdown;
+  const finalTaxableBaseIncome = dbPensionThisYear + statePensionThisYear + finalTaxableDCDrawdown + finalTaxableSippDrawdown;
+  bestGuess.incomeSubjectToTax = Math.max(0, finalTaxableBaseIncome - currentPersonalAllowance);
   bestGuess.taxPaid = bestGuess.incomeSubjectToTax * INCOME_TAX_RATE;
   const finalNetIncomeFromPensions = finalGrossPensionIncome - bestGuess.taxPaid;
 
@@ -150,11 +169,16 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     currentAge, projectionStartYear, targetAnnualNetIncome,
     initialDbPensionAmount, dbPensionStartAge,
     statePensionAge, initialStatePensionAmount,
+    
     initialDcPensionValue: totalInitialDcPensionValue,
-    annualDcPensionContribution, dcContributionStartAge, dcContributionEndAge, // New params
-    investmentPercentageGrowth,
-    inflationRate, dcWithdrawalRate, annualChargeAMC,
-    takeTaxFreeLumpSum,
+    annualDcPensionContribution, dcContributionStartAge, dcContributionEndAge,
+    investmentPercentageGrowth, dcWithdrawalRate, annualChargeAMC, takeTaxFreeLumpSum,
+
+    initialSippValue: totalInitialSippValue,
+    annualSippContribution, sippContributionStartAge, sippContributionEndAge,
+    sippInvestmentPercentageGrowth, sippWithdrawalRate, sippAnnualChargeAMC, takeSippTaxFreeLumpSum,
+    
+    inflationRate,
     initialCashSavings, initialIsaAmount, isaGrowthRate, initialGiaAmount, giaGrowthRate
   } = params;
 
@@ -166,23 +190,40 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   let currentGiaBalance = initialGiaAmount;
 
   const invGrowthDecimal = (investmentPercentageGrowth || 0) / 100;
+  const sippInvGrowthDecimal = (sippInvestmentPercentageGrowth || 0) / 100;
   const inflationDecimal = (inflationRate || 0) / 100;
   const amcDecimal = (annualChargeAMC || 0) / 100;
+  const sippAmcDecimal = (sippAnnualChargeAMC || 0) / 100;
   const dcWithdrawDecimal = (dcWithdrawalRate || 0) / 100;
+  const sippWithdrawDecimal = (sippWithdrawalRate || 0) / 100;
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
   const giaGrowthDecimal = (giaGrowthRate || 0) / 100;
 
   let actualInitialDcPensionForProjection = totalInitialDcPensionValue;
   let taxFreeLumpSumTakenAmount = 0;
-  let currentUfplsTaxFreePortion = GENERAL_UFPLS_TAX_FREE_PORTION;
+  let dcUfplsTaxFreePortion = GENERAL_UFPLS_TAX_FREE_PORTION;
 
   if (takeTaxFreeLumpSum) {
     taxFreeLumpSumTakenAmount = totalInitialDcPensionValue * 0.25;
     actualInitialDcPensionForProjection = totalInitialDcPensionValue * 0.75;
-    currentUfplsTaxFreePortion = 0;
+    dcUfplsTaxFreePortion = 0;
   }
 
-  const outputParameters = { ...params, taxFreeLumpSumTaken: taxFreeLumpSumTakenAmount };
+  let actualInitialSippForProjection = totalInitialSippValue;
+  let sippTaxFreeLumpSumTakenAmount = 0;
+  let sippUfplsTaxFreePortion = GENERAL_UFPLS_TAX_FREE_PORTION;
+
+  if (takeSippTaxFreeLumpSum) {
+    sippTaxFreeLumpSumTakenAmount = totalInitialSippValue * 0.25;
+    actualInitialSippForProjection = totalInitialSippValue * 0.75;
+    sippUfplsTaxFreePortion = 0;
+  }
+
+  const outputParameters = { 
+    ...params, 
+    taxFreeLumpSumTaken: taxFreeLumpSumTakenAmount,
+    sippTaxFreeLumpSumTaken: sippTaxFreeLumpSumTakenAmount,
+  };
 
   for (let age = currentAge; age <= 90; age++) {
     const yearOffset = age - currentAge;
@@ -200,6 +241,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'DC Minus AMC': 0,
       'DC Pension Drawdown': 0,
       'DC Pension Balance': 0,
+      'Initial SIPP': 0,
+      'SIPP Contribution': 0,
+      'SIPP Growth': 0,
+      'SIPP + Growth': 0,
+      'SIPP AMC Charge': 0,
+      'SIPP Minus AMC': 0,
+      'SIPP Drawdown': 0,
+      'SIPP Balance': 0,
       'DB Pension': 0,
       'State Pension': 0,
       'Cash Savings Initial': previousRow ? (previousRow['Cash Savings Balance'] || 0) : initialCashSavings,
@@ -231,17 +280,31 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     }
     row['DC Pension Contribution'] = dcContributionThisYear;
 
-    // DC Pension calculations
     let dcPotBeforeGrowth = previousRow ? (previousRow['DC Pension Balance'] || 0) : actualInitialDcPensionForProjection;
-    dcPotBeforeGrowth += dcContributionThisYear; // Add contribution before growth
+    dcPotBeforeGrowth += dcContributionThisYear; 
 
-    row['Initial DC Pension'] = previousRow ? (previousRow['DC Pension Balance'] || 0) : actualInitialDcPensionForProjection; // Initial for column display purposes is pre-contribution
-    
+    row['Initial DC Pension'] = previousRow ? (previousRow['DC Pension Balance'] || 0) : actualInitialDcPensionForProjection;
     row['DC Pension Growth'] = dcPotBeforeGrowth * invGrowthDecimal;
     row['DC Pension + Growth'] = dcPotBeforeGrowth + row['DC Pension Growth'];
     row['DC AMC Charge'] = row['DC Pension + Growth'] * amcDecimal;
     row['DC Minus AMC'] = row['DC Pension + Growth'] - row['DC AMC Charge'];
     
+    // SIPP contributions
+    let sippContributionThisYear = 0;
+    if (age >= sippContributionStartAge && age < sippContributionEndAge && annualSippContribution > 0) {
+      sippContributionThisYear = annualSippContribution;
+    }
+    row['SIPP Contribution'] = sippContributionThisYear;
+
+    let sippPotBeforeGrowth = previousRow ? (previousRow['SIPP Balance'] || 0) : actualInitialSippForProjection;
+    sippPotBeforeGrowth += sippContributionThisYear;
+
+    row['Initial SIPP'] = previousRow ? (previousRow['SIPP Balance'] || 0) : actualInitialSippForProjection;
+    row['SIPP Growth'] = sippPotBeforeGrowth * sippInvGrowthDecimal;
+    row['SIPP + Growth'] = sippPotBeforeGrowth + row['SIPP Growth'];
+    row['SIPP AMC Charge'] = row['SIPP + Growth'] * sippAmcDecimal;
+    row['SIPP Minus AMC'] = row['SIPP + Growth'] - row['SIPP AMC Charge'];
+
 
     row['ISA Growth'] = row['ISA Initial'] * isaGrowthDecimal;
     row['ISA Value Before Withdrawal'] = row['ISA Initial'] + row['ISA Growth'];
@@ -280,52 +343,80 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
     
-    const { dcDrawdown, cashWithdrawal, isaWithdrawal, giaWithdrawal, calculatedNet, taxPaid, incomeSubjectToTax, totalGrossIncome } = 
+    let { dcDrawdown, sippDrawdown, cashWithdrawal, isaWithdrawal, giaWithdrawal, calculatedNet, taxPaid, incomeSubjectToTax, totalGrossIncome } = 
       calculateDrawdownsForNetTarget(
         inflatedTargetNetIncome,
         row['DB Pension'] || 0,
         row['State Pension'] || 0,
         row['DC Minus AMC'], 
+        dcUfplsTaxFreePortion,
+        row['SIPP Minus AMC'],
+        sippUfplsTaxFreePortion,
         row['Cash Savings Initial'],
         row['ISA Value Before Withdrawal'],
         row['GIA Value Before Withdrawal'],
-        currentUfplsTaxFreePortion
+        currentPersonalAllowance
       );
     
     let finalDcDrawdown = dcDrawdown;
+    let finalSippDrawdown = sippDrawdown;
     let finalCashWithdrawal = cashWithdrawal;
     let finalIsaWithdrawal = isaWithdrawal;
     let finalGiaWithdrawal = giaWithdrawal;
 
-    row['Income Subject to Tax'] = Math.max(0, ((row['DB Pension'] || 0) + (row['State Pension'] || 0) + (finalDcDrawdown * (1-currentUfplsTaxFreePortion))) - currentPersonalAllowance);
+    // Standard percentage withdrawal post-SPA if higher or if target met by other means
+    if (age >= statePensionAge) {
+      const dcBasisForRate = (age === currentAge && dcContributionThisYear > 0) ? row['DC Minus AMC'] : 
+                              (previousRow ? (previousRow['DC Pension Balance'] || 0) : row['DC Minus AMC']);
+      const dcDrawdownByRate = Math.min(dcBasisForRate, row['DC Minus AMC']) * dcWithdrawDecimal;
+
+      if (dcDrawdownByRate > finalDcDrawdown) {
+        finalDcDrawdown = dcDrawdownByRate;
+        // If DC drawdown increases, re-evaluate savings withdrawals as they might not be needed or less is needed.
+        // This requires recalculating net income with the new finalDcDrawdown and then adjusting savings.
+        // For simplicity here, if DC by rate is higher, we assume it's taken, and other sources (savings, SIPP specific target part) are implicitly reduced
+        // if they were part of the initial `calculateDrawdownsForNetTarget`.
+        // This part can be complex if we want perfect optimization; for now, prioritize the rate if it's higher.
+      }
+
+      const sippBasisForRate = (age === currentAge && sippContributionThisYear > 0) ? row['SIPP Minus AMC'] :
+                               (previousRow ? (previousRow['SIPP Balance'] || 0) : row['SIPP Minus AMC']);
+      const sippDrawdownByRate = Math.min(sippBasisForRate, row['SIPP Minus AMC']) * sippWithdrawDecimal;
+      if (sippDrawdownByRate > finalSippDrawdown) {
+        finalSippDrawdown = sippDrawdownByRate;
+      }
+    }
+    
+    // Recalculate tax and net income with potentially adjusted finalDcDrawdown and finalSippDrawdown
+    const taxableDCDrawdownFinal = finalDcDrawdown * (1 - dcUfplsTaxFreePortion);
+    const taxableSippDrawdownFinal = finalSippDrawdown * (1 - sippUfplsTaxFreePortion);
+    const taxableBaseIncomeFinal = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + taxableDCDrawdownFinal + taxableSippDrawdownFinal;
+    row['Income Subject to Tax'] = Math.max(0, taxableBaseIncomeFinal - currentPersonalAllowance);
     row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
-    row['TOTAL INCOME'] = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + finalDcDrawdown + finalCashWithdrawal + finalIsaWithdrawal + finalGiaWithdrawal; 
-    row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
-
-    let dcDrawdownByRate = 0;
-    if (age >= statePensionAge) { // Standard DC withdrawal only kicks in post SPA
-      // Use DC Minus AMC for the current year if it's the first year and there are contributions,
-      // otherwise, use previous year's balance as basis.
-      const basisForRateDrawdown = (age === currentAge && dcContributionThisYear > 0) ? row['DC Minus AMC'] : 
-                                  (previousRow ? (previousRow['DC Pension Balance'] || 0) : row['DC Minus AMC']);
-      dcDrawdownByRate = basisForRateDrawdown * dcWithdrawDecimal;
-    }
     
-    if (dcDrawdownByRate > finalDcDrawdown && age >= statePensionAge) {
-         finalDcDrawdown = dcDrawdownByRate;
-         finalCashWithdrawal = 0;
-         finalIsaWithdrawal = 0;
-         finalGiaWithdrawal = 0;
+    // Recalculate savings withdrawal if pension drawdowns changed due to standard rates
+    // This logic ensures savings are only used if necessary after the potentially higher pension drawdowns.
+    let netFromPensionsFinal = ((row['DB Pension'] || 0) + (row['State Pension'] || 0) + finalDcDrawdown + finalSippDrawdown) - row['Income Tax Paid'];
+    let shortfallAfterPensionsFinal = inflatedTargetNetIncome - netFromPensionsFinal;
 
-         const taxableDCDrawdownRate = finalDcDrawdown * (1 - currentUfplsTaxFreePortion);
-         const taxableBaseIncomeRate = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + taxableDCDrawdownRate;
-         row['Income Subject to Tax'] = Math.max(0, taxableBaseIncomeRate - currentPersonalAllowance);
-         row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
-         row['TOTAL INCOME'] = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + finalDcDrawdown; 
-         row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
+    finalCashWithdrawal = 0;
+    finalIsaWithdrawal = 0;
+    finalGiaWithdrawal = 0;
+
+    if (shortfallAfterPensionsFinal > 0) {
+        finalCashWithdrawal = Math.min(shortfallAfterPensionsFinal, row['Cash Savings Initial']);
+        shortfallAfterPensionsFinal -= finalCashWithdrawal;
     }
-    
+    if (shortfallAfterPensionsFinal > 0) {
+        finalIsaWithdrawal = Math.min(shortfallAfterPensionsFinal, row['ISA Value Before Withdrawal']);
+        shortfallAfterPensionsFinal -= finalIsaWithdrawal;
+    }
+    if (shortfallAfterPensionsFinal > 0) {
+        finalGiaWithdrawal = Math.min(shortfallAfterPensionsFinal, row['GIA Value Before Withdrawal']);
+    }
+
     row['DC Pension Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC']));
+    row['SIPP Drawdown'] = Math.max(0, Math.min(finalSippDrawdown, row['SIPP Minus AMC']));
     
     row['Withdraw from Cash'] = Math.min(finalCashWithdrawal, row['Cash Savings Initial']);
     row['Cash Savings Balance'] = row['Cash Savings Initial'] - row['Withdraw from Cash'];
@@ -341,7 +432,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     row['DC Pension Balance'] = row['DC Minus AMC'] - row['DC Pension Drawdown'];
     row['DC Pension Balance'] = Math.max(0, row['DC Pension Balance']);
+    row['SIPP Balance'] = row['SIPP Minus AMC'] - row['SIPP Drawdown'];
+    row['SIPP Balance'] = Math.max(0, row['SIPP Balance']);
     
+    row['TOTAL INCOME'] = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + row['DC Pension Drawdown'] + row['SIPP Drawdown'] + row['Total Savings Withdrawn']; 
+    row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
 
     DEFAULT_HEADERS.forEach(header => {

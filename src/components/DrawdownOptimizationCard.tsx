@@ -14,7 +14,10 @@ import type { PensionCalculationParameters } from '@/lib/types';
 
 interface DrawdownOptimizationCardProps {
   csvDataString: string;
-  financialParams: PensionCalculationParameters & { taxFreeLumpSumTaken?: number }; 
+  financialParams: PensionCalculationParameters & { 
+    taxFreeLumpSumTaken?: number;
+    sippTaxFreeLumpSumTaken?: number;
+  }; 
 }
 
 const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataString, financialParams }) => {
@@ -37,11 +40,22 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           takeTaxFreeLumpSum: financialParams.takeTaxFreeLumpSum,
           taxFreeLumpSumTaken: financialParams.taxFreeLumpSumTaken,
           investmentPercentageGrowth: financialParams.investmentPercentageGrowth,
+          dcWithdrawalRate: financialParams.dcWithdrawalRate,
+          annualChargeAMC: financialParams.annualChargeAMC,
+
+          initialSippValue: financialParams.initialSippValue,
+          annualSippContribution: financialParams.annualSippContribution,
+          sippContributionStartAge: financialParams.sippContributionStartAge,
+          sippContributionEndAge: financialParams.sippContributionEndAge,
+          takeSippTaxFreeLumpSum: financialParams.takeSippTaxFreeLumpSum,
+          sippTaxFreeLumpSumTaken: financialParams.sippTaxFreeLumpSumTaken,
+          sippInvestmentPercentageGrowth: financialParams.sippInvestmentPercentageGrowth,
+          sippAnnualChargeAMC: financialParams.sippAnnualChargeAMC,
+          sippWithdrawalRate: financialParams.sippWithdrawalRate,
+          
           isaGrowthRate: financialParams.isaGrowthRate,
           giaGrowthRate: financialParams.giaGrowthRate,
           inflationRate: financialParams.inflationRate,
-          dcWithdrawalRate: financialParams.dcWithdrawalRate,
-          annualChargeAMC: financialParams.annualChargeAMC,
           statePensionAge: financialParams.statePensionAge,
           currentAge: financialParams.currentAge,
           projectionEndAge: 90, 
@@ -71,7 +85,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
                     <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
                 </div>
                  <CardDescription className="text-primary-foreground/80 pt-1">
-                    Calculate a pension projection first to enable AI drawdown optimization.
+                    Calculate a pension projection first to enable AI drawdown optimization for DC and SIPP pots.
                 </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
@@ -86,10 +100,10 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
       <CardHeader className="bg-gradient-to-r from-accent to-primary text-primary-foreground p-6">
          <div className="flex items-center gap-3">
           <Settings2Icon className="w-8 h-8" />
-          <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
+          <CardTitle className="font-headline text-2xl">AI Drawdown Optimization (DC & SIPP)</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income, different savings pots (Cash, ISA, GIA) usage, DC pension contributions, and tax-free lump sum choice.
+          Receive AI-driven suggestions to adjust UFPLS drawdown from both your DC Pension and SIPP to aim for a zero balance in each pot at plan end (age 90). Considers your target net income, savings (Cash, ISA, GIA), contributions, and tax-free lump sum choices for both pension types.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
@@ -115,12 +129,12 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
               readOnly
               value={suggestion.suggestedDrawdownAdjustments}
               className="min-h-[150px] text-sm bg-muted/30 border-border rounded-md focus:ring-primary focus:border-primary"
-              aria-label="Suggested drawdown adjustments"
+              aria-label="Suggested drawdown adjustments for DC Pension and SIPP"
             />
           </div>
         )}
          {!suggestion && !isPending && !error && (
-           <p className="text-muted-foreground text-center py-4">Click the button below to get AI-powered drawdown optimization suggestions based on your projection.</p>
+           <p className="text-muted-foreground text-center py-4">Click the button below to get AI-powered drawdown optimization suggestions for your DC and SIPP pensions based on your projection.</p>
         )}
       </CardContent>
       <CardFooter className="p-6 border-t border-border bg-background/50">
@@ -128,7 +142,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           onClick={handleOptimizeDrawdown}
           disabled={isPending || !csvDataString}
           className="w-full text-base py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-2"
-          aria-label="Optimize drawdown strategy"
+          aria-label="Optimize drawdown strategy for DC and SIPP pensions"
         >
           {isPending ? (
             <>
@@ -138,7 +152,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           ) : (
             <>
               <Settings2Icon className="mr-2 h-5 w-5" />
-              Optimize Drawdown
+              Optimize Drawdown (DC & SIPP)
             </>
           )}
         </Button>

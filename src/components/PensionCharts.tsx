@@ -12,12 +12,13 @@ interface PensionChartsProps {
 
 const chartColors = {
   dcPensionBalance: "hsl(var(--chart-1))",
-  totalIncome: "hsl(var(--chart-2))",
-  netIncomePerYear: "hsl(var(--chart-5))", 
+  sippBalance: "hsl(var(--chart-2))", // New for SIPP
+  totalIncome: "hsl(var(--chart-3))",
+  netIncomePerYear: "hsl(var(--chart-4))", 
+  dbPension: "hsl(var(--chart-5))",
+  statePension: "hsl(var(--accent))", // Using accent from theme
   taxPaid: "hsl(var(--destructive))",
-  dbPension: "hsl(var(--chart-3))",
-  statePension: "hsl(var(--chart-4))",
-  totalSavingsBalance: "hsl(var(--chart-1))", // Reusing a color for total savings
+  totalSavingsBalance: "hsl(var(--primary))", // Using primary from theme
 };
 
 const CustomTooltip: FC<any> = ({ active, payload, label }) => {
@@ -41,12 +42,13 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
     year: row.Year, 
     age: row.Age,   
     dcPensionBalance: row['DC Pension Balance'],
+    sippBalance: row['SIPP Balance'], // New for SIPP
     totalIncome: row['TOTAL INCOME'],
     netIncomePerYear: row['Net Income Per Year'],
     dbPension: row['DB Pension'] || 0,
     statePension: row['State Pension'] || 0,
     taxPaid: typeof row['Income Tax Paid'] === 'number' ? row['Income Tax Paid'] : 0,
-    totalSavingsBalance: row['Total Savings Balance'] || 0, // New data point
+    totalSavingsBalance: row['Total Savings Balance'] || 0,
   }));
 
   const yAxisTickFormatter = (value: number) => formatCurrency(value, false);
@@ -56,8 +58,8 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
       <Card className="shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-xl">DC Pension Balance Over Time</CardTitle>
-          <CardDescription>Tracks the defined contribution pension balance.</CardDescription>
+          <CardTitle className="font-headline text-xl">DC Pension & SIPP Balances Over Time</CardTitle>
+          <CardDescription>Tracks defined contribution pension and SIPP balances.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -68,6 +70,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
               <Line type="monotone" dataKey="dcPensionBalance" name="DC Pension Balance" stroke={chartColors.dcPensionBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="sippBalance" name="SIPP Balance" stroke={chartColors.sippBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -132,7 +135,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg rounded-xl md:col-span-2"> {/* Make tax chart full width if an odd number of charts now */}
+      <Card className="shadow-lg rounded-xl md:col-span-2"> 
         <CardHeader>
           <CardTitle className="font-headline text-xl">Income Tax Paid Over Time</CardTitle>
           <CardDescription>Shows the amount of income tax paid each year.</CardDescription>
