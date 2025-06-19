@@ -5,11 +5,12 @@ export interface PensionDataRow {
   Year: string;
 
   'Initial DC Pension': number;
+  'DC Pension Contribution': number; // New column
   'DC Pension Growth': number;
   'DC Pension + Growth': number;
   'DC AMC Charge': number;
   'DC Minus AMC': number;
-  'DC Pension Drawdown': number; // Changed from DC UFPLS Drawdown
+  'DC Pension Drawdown': number;
   'DC Pension Balance': number;
 
   'DB Pension'?: number;
@@ -31,8 +32,8 @@ export interface PensionDataRow {
   'Withdraw from GIA': number;
   'GIA Balance': number;
   
-  'Total Savings Withdrawn': number; // Sum of withdrawals from Cash, ISA, GIA
-  'Total Savings Balance': number; // Sum of balances of Cash, ISA, GIA
+  'Total Savings Withdrawn': number;
+  'Total Savings Balance': number;
 
   'TOTAL INCOME': number;
   'Income Subject to Tax': number;
@@ -44,7 +45,6 @@ export interface PensionDataRow {
 export interface PensionCalculationParameters {
   currentAge: number;
   projectionStartYear: number;
-  // initialSavingsAmount: number; // Removed
   targetAnnualNetIncome: number;
 
   initialDbPensionAmount: number;
@@ -53,7 +53,10 @@ export interface PensionCalculationParameters {
   initialStatePensionAmount: number;
 
   initialDcPensionValue: number;
-  investmentPercentageGrowth: number; // For DC Pension
+  annualDcPensionContribution: number; // New
+  dcContributionStartAge: number; // New
+  dcContributionEndAge: number; // New
+  investmentPercentageGrowth: number;
   inflationRate: number;
   dcWithdrawalRate: number;
   annualChargeAMC: number;
@@ -73,7 +76,6 @@ export interface CalculatedPensionData {
   csvString: string;
 }
 
-// Constants for tax calculation
 export const PERSONAL_ALLOWANCE = 12400;
 export const INCOME_TAX_RATE = 0.20;
-export const UFPLS_TAX_FREE_PORTION = 0.25; // General rule for UFPLS if no PCLS taken
+export const UFPLS_TAX_FREE_PORTION = 0.25;

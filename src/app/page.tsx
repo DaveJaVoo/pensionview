@@ -14,11 +14,11 @@ import DrawdownOptimizationCard from '@/components/DrawdownOptimizationCard';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown, Landmark } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from "@/components/ui/switch";
 
@@ -42,12 +42,19 @@ const formSchema = z.object({
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
+  
   initialDcPensionValue: z.coerce.number().min(0).default(188000),
+  annualDcPensionContribution: z.coerce.number().min(0).default(0),
+  dcContributionStartAge: z.coerce.number().min(18).max(89).default(55),
+  dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
-  investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4), // For DC Pension
+  investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   inflationRate: z.coerce.number().min(-10).max(20).default(4),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
+}).refine(data => data.dcContributionEndAge > data.dcContributionStartAge, {
+  message: "DC Contribution End Age must be after Start Age.",
+  path: ["dcContributionEndAge"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -72,8 +79,8 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
   
   return (
     <div className="space-y-1">
-      <div className="flex items-start gap-1"> {/* Changed to items-start for multiline labels */}
-        {Icon && <Icon className="w-4 h-4 mr-1 mt-1 text-primary/80" />}
+      <div className="flex items-start gap-1">
+        {Icon && <Icon className="w-4 h-4 mr-1 mt-1 text-primary/80 shrink-0" />}
         <Label htmlFor={name} className="text-sm font-medium">
           {label}
         </Label>
@@ -84,7 +91,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                 <InfoIcon className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 text-sm" side="top" align="center">
+            <PopoverContent className="w-64 text-sm" side="top" align="start">
               {description}
               {infoLink && infoLinkText && (
                 <p className="mt-2">
@@ -102,7 +109,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
         control={control}
         render={({ field, fieldState: { error } }) => (
           <>
-            <div className="w-full max-w-[160px]"> {/* Increased max-width slightly for amounts */}
+            <div className="w-full max-w-[160px]">
               <div className="relative">
                 <Input
                   id={name}
@@ -147,18 +154,30 @@ export default function PensionPilotPage() {
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: formSchema.parse({}), 
+    defaultValues: formSchema.parse({
+       currentAge: 55, // Set default for dcContributionStartAge explicitly if needed
+       dcContributionStartAge: 55, // Ensure this default matches currentAge
+       statePensionAge: 67, // Set default for dcContributionEndAge explicitly if needed
+       dcContributionEndAge: 67, // Ensure this default matches statePensionAge
+    }), 
   });
   
   useEffect(() => {
-    const clientCurrentYear = new Date().getFullYear();
-    const initialFormValues = formSchema.parse({});
-    reset({
-      ...initialFormValues,
-      projectionStartYear: clientCurrentYear,
-    });
-    setIsFormInitialized(true);
-  }, [reset]);
+    if (!isFormInitialized) {
+      const clientCurrentYear = new Date().getFullYear();
+      const initialFormValues = formSchema.parse({
+        currentAge: 55,
+        dcContributionStartAge: 55, // Ensure this matches currentAge on init
+        statePensionAge: 67,
+        dcContributionEndAge: 67, // Ensure this matches statePensionAge on init
+      });
+      reset({
+        ...initialFormValues,
+        projectionStartYear: clientCurrentYear,
+      });
+      setIsFormInitialized(true);
+    }
+  }, [reset, isFormInitialized]);
 
 
   const currentAgeWatched = watch("currentAge");
@@ -168,14 +187,36 @@ export default function PensionPilotPage() {
 
     const currentAgeVal = getValues("currentAge");
     const currentStatePensionAgeVal = getValues("statePensionAge");
+    const currentDcContributionStartAge = getValues("dcContributionStartAge");
+    const currentDcContributionEndAge = getValues("dcContributionEndAge");
+
+
+    if (currentAgeVal !== currentDcContributionStartAge) {
+      setValue("dcContributionStartAge", currentAgeVal, { shouldValidate: true });
+    }
+    if (currentStatePensionAgeVal !== currentDcContributionEndAge) {
+        setValue("dcContributionEndAge", currentStatePensionAgeVal, { shouldValidate: true });
+    }
+
 
     if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
       const newSpa = Math.min(currentAgeVal, 80); 
       if (newSpa !== currentStatePensionAgeVal) {
         setValue("statePensionAge", newSpa, { shouldValidate: true });
+        setValue("dcContributionEndAge", newSpa, {shouldValidate: true});
       }
     }
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
+
+  const statePensionAgeWatched = watch("statePensionAge");
+  useEffect(() => {
+    if (!isFormInitialized) return;
+    const spaVal = getValues("statePensionAge");
+    const currentEndAge = getValues("dcContributionEndAge");
+    if (spaVal !== currentEndAge) {
+        setValue("dcContributionEndAge", spaVal, {shouldValidate: true});
+    }
+  }, [statePensionAgeWatched, isFormInitialized, setValue, getValues]);
 
 
   const initialDcPensionValueWatched = watch("initialDcPensionValue");
@@ -196,7 +237,7 @@ export default function PensionPilotPage() {
   }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, getValues]);
 
 
-  const investmentGrowth = watch("investmentPercentageGrowth"); // DC Pension Growth
+  const investmentGrowth = watch("investmentPercentageGrowth");
   const inflation = watch("inflationRate");
 
   const realGrowthDC = useMemo(() => {
@@ -228,7 +269,12 @@ export default function PensionPilotPage() {
 
   const handleResetForm = () => {
     const clientCurrentYear = new Date().getFullYear();
-    const defaultValues = formSchema.parse({});
+    const defaultValues = formSchema.parse({
+        currentAge: 55,
+        dcContributionStartAge: 55,
+        statePensionAge: 67,
+        dcContributionEndAge: 67,
+    });
     reset({
       ...defaultValues,
       projectionStartYear: clientCurrentYear,
@@ -246,7 +292,7 @@ export default function PensionPilotPage() {
   };
 
   const coreParamsFields: FormFieldProps[] = [
-    { name: "currentAge", label: "Current Age", control: control, description: "Your current age." },
+    { name: "currentAge", label: "Current Age", control: control, description: "Your current age. DC Pension Contributions will default to start from this age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from." },
     { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system attempts to meet this using simplified UK basic rate income tax calculations (20% on income above Personal Allowance). It does not account for National Insurance, different UK tax bands (e.g., higher/additional rates, Scottish rates), dividend tax, or capital gains tax." },
   ];
@@ -260,7 +306,10 @@ export default function PensionPilotPage() {
   ];
 
   const dcPensionFields: FormFieldProps[] = [
-    { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution pension pot value." },
+    { name: "initialDcPensionValue", label: "Current DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution pension pot value." },
+    { name: "annualDcPensionContribution", label: "Annual Gross Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your DC pension. Enter the amount including assumed basic rate tax relief (e.g., if you pay in £80, enter £100). Tax relief beyond basic rate is not modeled." , icon: Landmark},
+    { name: "dcContributionStartAge", label: "Contribution Start Age", control: control, description: "Age when your annual DC contributions begin. Defaults to your Current Age." },
+    { name: "dcContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual DC contributions stop (contributions are made up to, but not including, this age). Defaults to your State Pension Age." },
     { name: "investmentPercentageGrowth", label: "DC Inv. Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your DC pension investments." },
     { name: "annualChargeAMC", label: "Annual Management Charge", control: control, suffix: "%", description: "Annual Management Charge on your DC pension pot. Please refer to your Fund Fact Sheet supplied by your Pension Provider" },
     { name: "dcWithdrawalRate", label: "DC Withdrawal Rate", control: control, suffix: "%", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering, or if this withdrawal is higher than what's needed for the target net income." },
@@ -270,7 +319,7 @@ export default function PensionPilotPage() {
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
     { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
-    { name: "statePensionAge", label: "Qualify at Age", control: control, description: "Age at which State Pension payments begin." },
+    { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC Pension Contributions will default to end at this age." },
   ];
 
   const economicAssumptionsFields: FormFieldProps[] = [
@@ -317,33 +366,33 @@ export default function PensionPilotPage() {
           <form onSubmit={handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Core Parameters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                 {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
               
               <Separator />
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Savings & Investments</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6"> {/* Adjusted grid for savings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
                 {savingsFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
 
               <Separator />
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Defined Contribution (DC) Pension</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
                 {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
-                 <div className="space-y-1 md:col-span-2 lg:col-span-1"> 
+                 <div className="space-y-1"> 
                     <div className="flex items-center gap-1">
                          <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
                             Take 25% Tax-Free Lump Sum?
                          </Label>
                          <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
                                     <HelpCircleIcon className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-60 text-sm" side="top" align="center">
-                                If enabled, 25% of your 'Initial DC Pension Value' is taken tax-free at the start of the projection.
+                            <PopoverContent className="w-60 text-sm" side="top" align="start">
+                                If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at the start of the projection.
                                 The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
                                 If disabled, each UFPLS withdrawal will have a 25% tax-free element.
                             </PopoverContent>
@@ -361,7 +410,7 @@ export default function PensionPilotPage() {
                                     aria-labelledby="takeTaxFreeLumpSumLabel"
                                 />
                                 <span id="takeTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                    {field.value ? "Yes, take upfront lump sum" : "No, take tax-free with each withdrawal"}
+                                    {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
                                 </span>
                             </div>
                         )}
@@ -380,7 +429,7 @@ export default function PensionPilotPage() {
                 <span className="text-sm text-muted-foreground">(Leave values at 0 if not applicable)</span>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
                       <InfoIcon className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
@@ -389,13 +438,13 @@ export default function PensionPilotPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                 {dbStatePensionFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
 
               <Separator />
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Economic Assumptions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6 items-end">
                 {economicAssumptionsFields.map(field => <FormInput key={field.name} {...field} />)}
                  <div className="w-full max-w-[160px]">
                     <Label className="text-sm font-medium">
@@ -419,7 +468,10 @@ export default function PensionPilotPage() {
                 <Alert variant="destructive">
                   <AlertTriangleIcon className="h-5 w-5" />
                   <AlertTitle>Input Validation Error</AlertTitle>
-                  <AlertDescription>Please check the highlighted fields for errors and ensure all required inputs are validly entered.</AlertDescription>
+                  <AlertDescription>
+                    Please check the highlighted fields for errors and ensure all required inputs are validly entered.
+                    Common issues: {Object.values(errors).map(err => err.message).join("; ")}
+                  </AlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -475,7 +527,7 @@ export default function PensionPilotPage() {
               )}
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 items-start mt-12"> {/* Changed to lg:grid-cols-1 if only one card */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 items-start mt-12">
               <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-1">
                 <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimization</h2>
                 <DrawdownOptimizationCard
@@ -489,8 +541,7 @@ export default function PensionPilotPage() {
       </main>
 
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border mt-auto">
-        {footerYear && <p>&copy; {footerYear} PensionView+. All rights reserved.</p>}
-        {!footerYear && <p>&copy; PensionView+. All rights reserved.</p>}
+        {footerYear !== null ? <p>&copy; {footerYear} PensionView+. All rights reserved.</p> : <p>&copy; PensionView+. All rights reserved.</p>}
         <p>Pension planning, simplified.</p>
       </footer>
     </div>

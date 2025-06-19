@@ -31,9 +31,12 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
         const input: DrawdownOptimizationInput = {
           pensionDataCsv: csvDataString,
           initialDcPensionValue: financialParams.initialDcPensionValue,
+          annualDcPensionContribution: financialParams.annualDcPensionContribution,
+          dcContributionStartAge: financialParams.dcContributionStartAge,
+          dcContributionEndAge: financialParams.dcContributionEndAge,
           takeTaxFreeLumpSum: financialParams.takeTaxFreeLumpSum,
           taxFreeLumpSumTaken: financialParams.taxFreeLumpSumTaken,
-          investmentPercentageGrowth: financialParams.investmentPercentageGrowth, // DC Pension growth
+          investmentPercentageGrowth: financialParams.investmentPercentageGrowth,
           isaGrowthRate: financialParams.isaGrowthRate,
           giaGrowthRate: financialParams.giaGrowthRate,
           inflationRate: financialParams.inflationRate,
@@ -86,7 +89,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income, different savings pots (Cash, ISA, GIA) usage, and tax-free lump sum choice.
+          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income, different savings pots (Cash, ISA, GIA) usage, DC pension contributions, and tax-free lump sum choice.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">

@@ -15,8 +15,11 @@ import {z} from 'genkit';
 const DrawdownOptimizationInputSchema = z.object({
   pensionDataCsv: z
     .string()
-    .describe('A CSV string containing the user’s pension data, including all calculated columns such as Cash, ISA, and GIA savings details.'),
-  initialDcPensionValue: z.number().describe('The initial value of the DC pension (before any PCLS taken).'),
+    .describe('A CSV string containing the user’s pension data, including all calculated columns such as Cash, ISA, and GIA savings details, and DC Pension Contributions.'),
+  initialDcPensionValue: z.number().describe('The initial value of the DC pension (before any PCLS taken and before any future contributions).'),
+  annualDcPensionContribution: z.number().optional().describe('The gross annual DC pension contribution amount until contribution end age.'),
+  dcContributionStartAge: z.number().optional().describe('The age at which annual DC pension contributions start.'),
+  dcContributionEndAge: z.number().optional().describe('The age at which annual DC pension contributions end.'),
   takeTaxFreeLumpSum: z.boolean().optional().describe('Whether a 25% tax-free lump sum was taken upfront from the DC pension.'),
   taxFreeLumpSumTaken: z.number().optional().describe('The amount of tax-free lump sum taken, if applicable.'),
   investmentPercentageGrowth: z.number().describe('The DC pension investment percentage growth rate.'),
@@ -37,7 +40,7 @@ const DrawdownOptimizationOutputSchema = z.object({
   suggestedDrawdownAdjustments: z
     .string()
     .describe(
-      'A detailed narrative description of the suggested adjustments to the "DC Pension Drawdown" amounts (column "DC Pension Drawdown" in the CSV) to aim for a zero DC pension balance near the end of the plan (e.g., age 90). Consider all financial factors provided, including the target annual NET income and how savings (Cash, ISA, GIA - in that order) are used first. Highlight specific years or age ranges where adjustments would be most impactful. Explain the reasoning, considering the goal of depleting the DC pot by the projection end age while attempting to meet net income needs and accounting for the growth/depletion of other savings pots.'
+      'A detailed narrative description of the suggested adjustments to the "DC Pension Drawdown" amounts (column "DC Pension Drawdown" in the CSV) to aim for a zero DC pension balance near the end of the plan (e.g., age 90). Consider all financial factors provided, including the target annual NET income and how savings (Cash, ISA, GIA - in that order) are used first. Highlight specific years or age ranges where adjustments would be most impactful. Explain the reasoning, considering the goal of depleting the DC pot by the projection end age while attempting to meet net income needs and accounting for the growth/depletion of other savings pots and any ongoing DC pension contributions.'
     ),
 });
 
@@ -60,13 +63,16 @@ const prompt = ai.definePrompt({
   - GIA savings ('GIA Balance' column) grow at {{giaGrowthRate}}% annually (tax on GIA growth is not modeled in the projection).
   If savings cover the target, DC drawdown might still occur based on a standard percentage rate post-State Pension Age if that withdrawal is higher.
 
-  Analyze the provided pension data CSV. Pay close attention to 'DC Pension Balance', 'DC Pension Drawdown', 'Cash Savings Balance', 'ISA Balance', 'GIA Balance', 'Withdraw from Cash', 'Withdraw from ISA', 'Withdraw from GIA' columns:
+  Analyze the provided pension data CSV. Pay close attention to 'DC Pension Balance', 'DC Pension Drawdown', 'DC Pension Contribution', 'Cash Savings Balance', 'ISA Balance', 'GIA Balance', 'Withdraw from Cash', 'Withdraw from ISA', 'Withdraw from GIA' columns:
   {{pensionDataCsv}}
 
   Consider these financial parameters used in the projection:
-  - Initial DC Pension Value (Total Pot before any PCLS): {{initialDcPensionValue}}
+  - Initial DC Pension Value (Total Pot before any PCLS and future contributions): {{initialDcPensionValue}}
+  {{#if annualDcPensionContribution}}
+  - Annual Gross DC Pension Contribution: {{annualDcPensionContribution}} from age {{dcContributionStartAge}} until age {{dcContributionEndAge}}.
+  {{/if}}
   {{#if takeTaxFreeLumpSum}}
-  - A 25% tax-free lump sum of {{taxFreeLumpSumTaken}} was taken upfront. The DC pension projection starts with the remaining 75%. Subsequent UFPLS/DC Pension Drawdown withdrawals are fully taxable.
+  - A 25% tax-free lump sum of {{taxFreeLumpSumTaken}} was taken upfront. The DC pension projection starts with the remaining 75% of the initial value. Subsequent UFPLS/DC Pension Drawdown withdrawals are fully taxable.
   {{else}}
   - No upfront tax-free lump sum was taken. Each UFPLS/DC Pension Drawdown withdrawal will have a 25% tax-free element.
   {{/if}}
@@ -85,10 +91,10 @@ const prompt = ai.definePrompt({
   - The primary goal is to make the 'DC Pension Balance' reach near zero by the 'Projection End Age' (e.g., 90).
   - Identify periods where 'DC Pension Drawdown' might be too low (leading to a large remaining balance late in life) or too high (depleting funds too early, unless that's the goal by age 90).
   - Suggest alternative 'DC Pension Drawdown' amounts or strategies for specific age ranges.
-  - Explain your reasoning clearly, linking to the zero-balance target, NET income needs (Target Annual Net Income), the use-savings-first strategy (Cash, then ISA, then GIA), and the tax-free lump sum decision.
-  - Emphasize adjustments to 'DC Pension Drawdown' that help manage the DC pot effectively throughout retirement, considering the balances and growth of Cash, ISA, and GIA pots.
-  - The "DC Pension Balance" column shows the year-end balance. "DC Pension Drawdown" is the amount taken during that year.
-  - The AI should suggest changes to the "DC Pension Drawdown" values in the CSV to achieve the zero DC balance target, considering the existing net income strategy and the PCLS choice, and the availability of other savings.
+  - Explain your reasoning clearly, linking to the zero-balance target, NET income needs (Target Annual Net Income), the use-savings-first strategy (Cash, then ISA, then GIA), the tax-free lump sum decision, and any ongoing DC contributions.
+  - Emphasize adjustments to 'DC Pension Drawdown' that help manage the DC pot effectively throughout retirement, considering the balances and growth of Cash, ISA, and GIA pots, and the impact of DC contributions pre-retirement.
+  - The "DC Pension Balance" column shows the year-end balance. "DC Pension Drawdown" is the amount taken during that year. "DC Pension Contribution" is the gross amount added during that year before retirement.
+  - The AI should suggest changes to the "DC Pension Drawdown" values in the CSV to achieve the zero DC balance target, considering the existing net income strategy, PCLS choice, ongoing contributions, and the availability of other savings.
 `,
 });
 
