@@ -10,11 +10,11 @@ import { drawdownOptimization, type DrawdownOptimizationOutput, type DrawdownOpt
 import LoadingSpinner from './shared/LoadingSpinner';
 import { Settings2Icon, AlertTriangleIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { PensionCalculationParameters } from '@/lib/types'; // Using the base type
+import type { PensionCalculationParameters } from '@/lib/types';
 
 interface DrawdownOptimizationCardProps {
   csvDataString: string;
-  financialParams: PensionCalculationParameters & { taxFreeLumpSumTaken?: number }; // Extended with optional PCLS taken
+  financialParams: PensionCalculationParameters & { taxFreeLumpSumTaken?: number }; 
 }
 
 const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataString, financialParams }) => {
@@ -33,7 +33,9 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           initialDcPensionValue: financialParams.initialDcPensionValue,
           takeTaxFreeLumpSum: financialParams.takeTaxFreeLumpSum,
           taxFreeLumpSumTaken: financialParams.taxFreeLumpSumTaken,
-          investmentPercentageGrowth: financialParams.investmentPercentageGrowth,
+          investmentPercentageGrowth: financialParams.investmentPercentageGrowth, // DC Pension growth
+          isaGrowthRate: financialParams.isaGrowthRate,
+          giaGrowthRate: financialParams.giaGrowthRate,
           inflationRate: financialParams.inflationRate,
           dcWithdrawalRate: financialParams.dcWithdrawalRate,
           annualChargeAMC: financialParams.annualChargeAMC,
@@ -84,7 +86,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income, savings usage, and tax-free lump sum choice.
+          Receive AI-driven suggestions to adjust UFPLS drawdown for a zero DC balance at plan end (age 90), considering your target net income, different savings pots (Cash, ISA, GIA) usage, and tax-free lump sum choice.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">

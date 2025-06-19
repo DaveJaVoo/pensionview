@@ -7,25 +7,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatCurrency, parseCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { DEFAULT_HEADERS } from '@/lib/pensionData'; // Import the new headers
+// import { DEFAULT_HEADERS } from '@/lib/pensionData'; // Headers now passed as prop
 
 interface PensionDataTableProps {
   data: PensionDataRow[];
-  headers: string[]; // This will now be DEFAULT_HEADERS from pensionData
+  headers: string[]; 
 }
 
 const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
+    // Broadened to catch more financial columns, including new savings columns
     return lowerHeader.includes('pension') ||
            lowerHeader.includes('income') ||
            lowerHeader.includes('savings') || 
+           lowerHeader.includes('cash') ||
+           lowerHeader.includes('isa') ||
+           lowerHeader.includes('gia') ||
            lowerHeader.includes('charge') || 
            lowerHeader.includes('growth') || 
            lowerHeader.includes('balance') || 
            lowerHeader.includes('drawdown') || 
            lowerHeader.includes('tax paid') || 
-           lowerHeader.includes('value') || 
+           lowerHeader.includes('value') ||
+           lowerHeader.includes('initial') ||
+           lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('dc minus amc');
   };
   
@@ -34,6 +40,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   }
 
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
+    // Keep existing specific headers and add new ones for savings
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
       'DC Pension Growth': ['DC Pension', 'Growth'],
@@ -44,7 +51,23 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
       'DC Pension Balance': ['DC Pension', 'Balance'],
       'DB Pension': ['DB Pension'],
       'State Pension': ['State Pension'],
-      'Withdraw from Savings': ['Withdraw', 'from Savings'],
+      // 'Withdraw from Savings': ['Withdraw', 'from Savings'], // Old, replaced
+      // 'Savings Balance': ['Savings', 'Balance'], // Old, replaced
+      'Cash Savings Initial': ['Cash Sav.', 'Initial'],
+      'Withdraw from Cash': ['Withdraw', 'Cash'],
+      'Cash Savings Balance': ['Cash Sav.', 'Balance'],
+      'ISA Initial': ['ISA Initial'],
+      'ISA Growth': ['ISA Growth'],
+      'ISA Value Before Withdrawal': ['ISA Value', 'Pre-Withdraw'],
+      'Withdraw from ISA': ['Withdraw', 'ISA'],
+      'ISA Balance': ['ISA Balance'],
+      'GIA Initial': ['GIA Initial'],
+      'GIA Growth': ['GIA Growth'],
+      'GIA Value Before Withdrawal': ['GIA Value', 'Pre-Withdraw'],
+      'Withdraw from GIA': ['Withdraw', 'GIA'],
+      'GIA Balance': ['GIA Balance'],
+      'Total Savings Withdrawn': ['Total Sav.', 'Withdrawn'],
+      'Total Savings Balance': ['Total Sav.', 'Balance'],
       'TOTAL INCOME': ['TOTAL', 'INCOME'],
       'Income Subject to Tax': ['Income Subject', 'to Tax'],
       'Income Tax Paid': ['Income Tax', 'Paid'],
@@ -53,6 +76,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
     };
 
     const upperHeader = header.toUpperCase();
+    // Normalize header keys by also converting them to uppercase for matching
     const foundHeaderKey = Object.keys(specificHeaders).find(key => key.toUpperCase() === upperHeader);
 
     if (foundHeaderKey && specificHeaders[foundHeaderKey]) {
@@ -68,11 +92,19 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   };
 
   const isGreenStyledHeader = (header: string): boolean => {
-    return header === 'DC Pension Drawdown' || header === 'State Pension' || header === 'Withdraw from Savings' || header === 'DB Pension';
+    const lowerHeader = header.toLowerCase();
+    return lowerHeader.includes('dc pension drawdown') || 
+           lowerHeader.includes('state pension') || 
+           lowerHeader.includes('db pension') ||
+           lowerHeader.includes('withdraw from cash') ||
+           lowerHeader.includes('withdraw from isa') ||
+           lowerHeader.includes('withdraw from gia') ||
+           lowerHeader.includes('total savings withdrawn');
   };
 
   const isBlueStyledHeader = (header: string): boolean => {
-    return header === 'Net Income Per Year' || header === 'Net Income Per Month';
+    const lowerHeader = header.toLowerCase();
+    return lowerHeader.includes('net income per year') || lowerHeader.includes('net income per month');
   };
 
   return (
@@ -84,7 +116,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
               <TableHead 
                 key={header} 
                 className="px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top"
-                style={{ whiteSpace: 'normal' }}
+                style={{ whiteSpace: 'normal' }} // Allows wrapped text for multi-line headers
               >
                 {formatHeaderForDisplay(header)}
               </TableHead>

@@ -10,7 +10,6 @@ import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
 import PensionCharts from '@/components/PensionCharts';
 import ViewModeToggle, { type ViewMode } from '@/components/ViewModeToggle';
-// import PensionInsightsCard from '@/components/PensionInsightsCard'; // Removed
 import DrawdownOptimizationCard from '@/components/DrawdownOptimizationCard';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/button';
@@ -19,19 +18,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from "@/components/ui/switch";
 
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
-const SCHEMA_FALLBACK_YEAR = 2024; // Static year to prevent hydration mismatch
+const SCHEMA_FALLBACK_YEAR = 2024; 
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
   projectionStartYear: z.coerce.number().min(SCHEMA_FALLBACK_YEAR - 20).max(SCHEMA_FALLBACK_YEAR + 20).default(SCHEMA_FALLBACK_YEAR),
-  initialSavingsAmount: z.coerce.number().min(0).default(50000),
+  
+  initialCashSavings: z.coerce.number().min(0).default(10000),
+  initialIsaAmount: z.coerce.number().min(0).default(20000),
+  isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
+  initialGiaAmount: z.coerce.number().min(0).default(20000),
+  giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
+  
   targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
@@ -39,7 +44,7 @@ const formSchema = z.object({
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
   initialDcPensionValue: z.coerce.number().min(0).default(188000),
   takeTaxFreeLumpSum: z.boolean().default(false),
-  investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
+  investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4), // For DC Pension
   inflationRate: z.coerce.number().min(-10).max(20).default(4),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
@@ -57,27 +62,29 @@ interface FormFieldProps {
   suffix?: string;
   infoLink?: string;
   infoLinkText?: string;
+  icon?: React.ElementType;
 }
 
-const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "number", placeholder, description, suffix, infoLink, infoLinkText }) => {
+const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "number", placeholder, description, suffix, infoLink, infoLinkText, icon: Icon }) => {
   const defaultPlaceholder = typeof label === 'string' && !React.isValidElement(label)
     ? `Enter ${label.toLowerCase()}`
     : 'Enter value';
   
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1">
+      <div className="flex items-start gap-1"> {/* Changed to items-start for multiline labels */}
+        {Icon && <Icon className="w-4 h-4 mr-1 mt-1 text-primary/80" />}
         <Label htmlFor={name} className="text-sm font-medium">
           {label}
         </Label>
         {description && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+              <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
                 <InfoIcon className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 text-sm" side="top" align="center"> {/* Adjusted width and align */}
+            <PopoverContent className="w-64 text-sm" side="top" align="center">
               {description}
               {infoLink && infoLinkText && (
                 <p className="mt-2">
@@ -95,7 +102,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
         control={control}
         render={({ field, fieldState: { error } }) => (
           <>
-            <div className="w-full max-w-[150px]">
+            <div className="w-full max-w-[160px]"> {/* Increased max-width slightly for amounts */}
               <div className="relative">
                 <Input
                   id={name}
@@ -104,13 +111,9 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                   placeholder={placeholder || defaultPlaceholder}
                   {...field}
                   onChange={e => {
-                    if (type === "number") {
-                      field.onChange(e.target.value); // Pass raw string, Zod will coerce
-                    } else {
-                      field.onChange(e.target.value);
-                    }
+                     field.onChange(e.target.value === '' && type === 'number' ? undefined : e.target.value);
                   }}
-                  value={field.value === undefined && type === "number" ? "" : field.value} // Handle undefined for empty number fields
+                  value={field.value === undefined && type === "number" ? "" : field.value}
                   className={cn(error ? "border-destructive" : "", suffix ? "pr-6" : "")}
                 />
                 {suffix && (
@@ -193,10 +196,10 @@ export default function PensionPilotPage() {
   }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, getValues]);
 
 
-  const investmentGrowth = watch("investmentPercentageGrowth");
+  const investmentGrowth = watch("investmentPercentageGrowth"); // DC Pension Growth
   const inflation = watch("inflationRate");
 
-  const realGrowth = useMemo(() => {
+  const realGrowthDC = useMemo(() => {
     if (!isFormInitialized) return '...'; 
     const growthVal = getValues("investmentPercentageGrowth");
     const inflationVal = getValues("inflationRate");
@@ -245,13 +248,20 @@ export default function PensionPilotPage() {
   const coreParamsFields: FormFieldProps[] = [
     { name: "currentAge", label: "Current Age", control: control, description: "Your current age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from." },
-    { name: "initialSavingsAmount", label: "Total Savings", control: control, placeholder: "Enter amount in £", description: "Total current value of your liquid savings (e.g., ISAs, cash). This projection assumes these savings do not earn investment returns and are drawn down as cash."},
     { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system attempts to meet this using simplified UK basic rate income tax calculations (20% on income above Personal Allowance). It does not account for National Insurance, different UK tax bands (e.g., higher/additional rates, Scottish rates), dividend tax, or capital gains tax." },
+  ];
+
+  const savingsFields: FormFieldProps[] = [
+    { name: "initialCashSavings", label: "Cash Savings", control: control, placeholder: "Enter amount in £", description: "Current value of your cash savings (e.g., bank accounts). Assumed to have no growth.", icon: PiggyBank},
+    { name: "initialIsaAmount", label: "ISA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your ISAs.", icon: Briefcase },
+    { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
+    { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
+    { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
     { name: "initialDcPensionValue", label: "Initial DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution pension pot value." },
-    { name: "investmentPercentageGrowth", label: "Investment Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your DC pension investments." },
+    { name: "investmentPercentageGrowth", label: "DC Inv. Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your DC pension investments." },
     { name: "annualChargeAMC", label: "Annual Management Charge", control: control, suffix: "%", description: "Annual Management Charge on your DC pension pot. Please refer to your Fund Fact Sheet supplied by your Pension Provider" },
     { name: "dcWithdrawalRate", label: "DC Withdrawal Rate", control: control, suffix: "%", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering, or if this withdrawal is higher than what's needed for the target net income." },
   ];
@@ -271,7 +281,8 @@ export default function PensionPilotPage() {
        suffix: "%",
        description: "Expected average annual inflation rate. For current UK rates, refer to the ONS.",
        infoLink: "https://www.ons.gov.uk/economy/inflationandpriceindices",
-       infoLinkText: "Check ONS for latest rates (opens new tab). If unsure, use a long-term average like 2-3%."
+       infoLinkText: "Check ONS for latest rates (opens new tab). If unsure, use a long-term average like 2-3%.",
+       icon: TrendingDown,
      },
   ];
 
@@ -300,7 +311,7 @@ export default function PensionPilotPage() {
             <CardDescription>
               Enter your financial details to project your retirement income up to age 90.
               All percentage inputs should be entered as numbers (e.g., 5 for 5%).
-              No data is stored on our servers. All information is for your eyes only.
+              No data is stored. All information is for your eyes only.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -308,6 +319,12 @@ export default function PensionPilotPage() {
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Core Parameters</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
+              </div>
+              
+              <Separator />
+              <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Savings & Investments</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6"> {/* Adjusted grid for savings */}
+                {savingsFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
 
               <Separator />
@@ -380,13 +397,13 @@ export default function PensionPilotPage() {
               <h3 className="text-xl font-headline font-semibold text-primary border-b pb-2">Economic Assumptions</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 {economicAssumptionsFields.map(field => <FormInput key={field.name} {...field} />)}
-                 <div className="w-full max-w-[150px]">
+                 <div className="w-full max-w-[160px]">
                     <Label className="text-sm font-medium">
-                      Real Growth Rate <span className="text-xs text-muted-foreground font-normal">(Investment Growth Rate minus Inflation Rate)</span>
+                      DC Real Growth Rate <span className="text-xs text-muted-foreground font-normal">(DC Growth - Inflation)</span>
                     </Label>
                     <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
                         <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-sm font-semibold">{realGrowth}% pa</span>
+                        <span className="text-sm font-semibold">{realGrowthDC}% pa</span>
                     </div>
                  </div>
               </div>
@@ -458,9 +475,8 @@ export default function PensionPilotPage() {
               )}
             </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mt-12">
-              {/* PensionInsightsCard section removed */}
-              <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-2"> {/* Make Drawdown card span full width if PensionInsights is removed */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 items-start mt-12"> {/* Changed to lg:grid-cols-1 if only one card */}
+              <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-1">
                 <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimization</h2>
                 <DrawdownOptimizationCard
                   csvDataString={calculatedData.csvString}
@@ -474,12 +490,9 @@ export default function PensionPilotPage() {
 
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border mt-auto">
         {footerYear && <p>&copy; {footerYear} PensionView+. All rights reserved.</p>}
-        {!footerYear && <p>&copy; PensionView+. All rights reserved.</p>} {/* Fallback or initial render */}
+        {!footerYear && <p>&copy; PensionView+. All rights reserved.</p>}
         <p>Pension planning, simplified.</p>
       </footer>
     </div>
   );
 }
-    
-
-    

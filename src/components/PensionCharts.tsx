@@ -1,10 +1,10 @@
 
 "use client";
 import type { FC } from 'react';
-import type { PensionDataRow } from '@/lib/types'; // Using the new PensionDataRow
+import type { PensionDataRow } from '@/lib/types'; 
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { formatCurrency, parseCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 interface PensionChartsProps {
   data: PensionDataRow[];
@@ -13,12 +13,11 @@ interface PensionChartsProps {
 const chartColors = {
   dcPensionBalance: "hsl(var(--chart-1))",
   totalIncome: "hsl(var(--chart-2))",
-  // myIncome: "hsl(var(--chart-3))", // My Income and Kate's Income are no longer direct columns
-  // katesIncome: "hsl(var(--chart-4))",
-  netIncomePerYear: "hsl(var(--chart-5))", // Using Net Income Per Year
+  netIncomePerYear: "hsl(var(--chart-5))", 
   taxPaid: "hsl(var(--destructive))",
   dbPension: "hsl(var(--chart-3))",
   statePension: "hsl(var(--chart-4))",
+  totalSavingsBalance: "hsl(var(--chart-1))", // Reusing a color for total savings
 };
 
 const CustomTooltip: FC<any> = ({ active, payload, label }) => {
@@ -38,20 +37,20 @@ const CustomTooltip: FC<any> = ({ active, payload, label }) => {
 };
 
 const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
-  // Map data according to the new PensionDataRow structure
   const chartData = data.map(row => ({
-    year: row.Year, // Assuming 'Year' is the string representation of the year
-    age: row.Age,   // For XAxis if preferring age
+    year: row.Year, 
+    age: row.Age,   
     dcPensionBalance: row['DC Pension Balance'],
     totalIncome: row['TOTAL INCOME'],
     netIncomePerYear: row['Net Income Per Year'],
     dbPension: row['DB Pension'] || 0,
     statePension: row['State Pension'] || 0,
     taxPaid: typeof row['Income Tax Paid'] === 'number' ? row['Income Tax Paid'] : 0,
+    totalSavingsBalance: row['Total Savings Balance'] || 0, // New data point
   }));
 
   const yAxisTickFormatter = (value: number) => formatCurrency(value, false);
-  const xAxisDataKey = "age"; // Or "year" string
+  const xAxisDataKey = "age"; 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
@@ -69,6 +68,25 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
               <Line type="monotone" dataKey="dcPensionBalance" name="DC Pension Balance" stroke={chartColors.dcPensionBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg rounded-xl">
+        <CardHeader>
+          <CardTitle className="font-headline text-xl">Total Savings Balance Over Time</CardTitle>
+          <CardDescription>Tracks the total balance of Cash, ISA, and GIA savings.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
+              <Legend />
+              <Line type="monotone" dataKey="totalSavingsBalance" name="Total Savings Balance" stroke={chartColors.totalSavingsBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -114,7 +132,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg rounded-xl">
+      <Card className="shadow-lg rounded-xl md:col-span-2"> {/* Make tax chart full width if an odd number of charts now */}
         <CardHeader>
           <CardTitle className="font-headline text-xl">Income Tax Paid Over Time</CardTitle>
           <CardDescription>Shows the amount of income tax paid each year.</CardDescription>
