@@ -10,7 +10,7 @@ import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
 import PensionCharts from '@/components/PensionCharts';
 import ViewModeToggle, { type ViewMode } from '@/components/ViewModeToggle';
-import PensionInsightsCard from '@/components/PensionInsightsCard';
+// import PensionInsightsCard from '@/components/PensionInsightsCard'; // Removed
 import DrawdownOptimizationCard from '@/components/DrawdownOptimizationCard';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/button';
@@ -66,7 +66,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
   
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1">
         <Label htmlFor={name} className="text-sm font-medium">
           {label}
         </Label>
@@ -77,7 +77,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                 <InfoIcon className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-60 text-sm" side="top" align="end">
+            <PopoverContent className="w-64 text-sm" side="top" align="center"> {/* Adjusted width and align */}
               {description}
               {infoLink && infoLinkText && (
                 <p className="mt-2">
@@ -103,7 +103,14 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                   step={type === "number" ? (name.includes("Rate") || name.includes("Charge") || name.includes("Growth") || name.includes("Inflation") || name.includes("AMC") ? "0.1" : "1") : undefined}
                   placeholder={placeholder || defaultPlaceholder}
                   {...field}
-                  onChange={e => field.onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+                  onChange={e => {
+                    if (type === "number") {
+                      field.onChange(e.target.value); // Pass raw string, Zod will coerce
+                    } else {
+                      field.onChange(e.target.value);
+                    }
+                  }}
+                  value={field.value === undefined && type === "number" ? "" : field.value} // Handle undefined for empty number fields
                   className={cn(error ? "border-destructive" : "", suffix ? "pr-6" : "")}
                 />
                 {suffix && (
@@ -238,8 +245,8 @@ export default function PensionPilotPage() {
   const coreParamsFields: FormFieldProps[] = [
     { name: "currentAge", label: "Current Age", control: control, description: "Your current age." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from." },
-    { name: "initialSavingsAmount", label: "Total Savings", control: control, placeholder: "Enter amount in £", description: "Total current value of your liquid savings (e.g., ISAs, cash)."},
-    { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system will attempt to calculate the gross income and withdrawals needed to achieve this net amount. The calculation aims to get as close as possible; precision can vary." },
+    { name: "initialSavingsAmount", label: "Total Savings", control: control, placeholder: "Enter amount in £", description: "Total current value of your liquid savings (e.g., ISAs, cash). This projection assumes these savings do not earn investment returns and are drawn down as cash."},
+    { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system attempts to meet this using simplified UK basic rate income tax calculations (20% on income above Personal Allowance). It does not account for National Insurance, different UK tax bands (e.g., higher/additional rates, Scottish rates), dividend tax, or capital gains tax." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
@@ -308,7 +315,7 @@ export default function PensionPilotPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
                  <div className="space-y-1 md:col-span-2 lg:col-span-1"> 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
                          <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
                             Take 25% Tax-Free Lump Sum?
                          </Label>
@@ -318,7 +325,7 @@ export default function PensionPilotPage() {
                                     <HelpCircleIcon className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-60 text-sm" side="top" align="end">
+                            <PopoverContent className="w-60 text-sm" side="top" align="center">
                                 If enabled, 25% of your 'Initial DC Pension Value' is taken tax-free at the start of the projection.
                                 The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
                                 If disabled, each UFPLS withdrawal will have a 25% tax-free element.
@@ -452,12 +459,8 @@ export default function PensionPilotPage() {
             </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mt-12">
-              <section aria-labelledby="pension-insights-heading">
-                <h2 id="pension-insights-heading" className="sr-only">Pension Insights</h2>
-                <PensionInsightsCard csvDataString={calculatedData.csvString} />
-              </section>
-
-              <section aria-labelledby="drawdown-optimization-heading">
+              {/* PensionInsightsCard section removed */}
+              <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-2"> {/* Make Drawdown card span full width if PensionInsights is removed */}
                 <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimization</h2>
                 <DrawdownOptimizationCard
                   csvDataString={calculatedData.csvString}
@@ -477,4 +480,6 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+    
+
     
