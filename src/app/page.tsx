@@ -132,9 +132,14 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                   placeholder={placeholder || defaultPlaceholder}
                   {...field}
                   onChange={e => {
-                     field.onChange(e.target.value === '' && type === 'number' ? undefined : e.target.value);
+                    const val = e.target.value;
+                    if (type === 'number' && val === '') {
+                        field.onChange(NaN);
+                    } else {
+                        field.onChange(val);
+                    }
                   }}
-                  value={field.value === undefined && type === "number" ? "" : field.value}
+                  value={Number.isNaN(field.value as number) ? '' : field.value ?? ''}
                   className={cn(error ? "border-destructive" : "", suffix ? "pr-6" : "")}
                 />
                 {suffix && (
@@ -520,7 +525,7 @@ export default function PensionPilotPage() {
                             </PopoverTrigger>
                             <PopoverContent className="w-60 text-sm" side="top" align="start">
                                 If enabled, 25% of your 'Current SIPP Value' is taken tax-free at the start of the projection.
-                                The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
+                                The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from SIPP are fully taxable.
                                 If disabled, each UFPLS withdrawal from SIPP will have a 25% tax-free element.
                             </PopoverContent>
                          </Popover>
@@ -694,3 +699,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
