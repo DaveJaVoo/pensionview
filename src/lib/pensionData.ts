@@ -185,10 +185,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const rows: PensionDataRow[] = [];
   let previousRow: PensionDataRow | null = null;
   
-  let currentCashBalance = initialCashSavings;
-  let currentIsaBalance = initialIsaAmount;
-  let currentGiaBalance = initialGiaAmount;
-
   const invGrowthDecimal = (investmentPercentageGrowth || 0) / 100;
   const sippInvGrowthDecimal = (sippInvestmentPercentageGrowth || 0) / 100;
   const inflationDecimal = (inflationRate || 0) / 100;
@@ -313,7 +309,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // --- DB Pension Calculation (Refactored) ---
     if (initialDbPensionAmount > 0 && age >= dbPensionStartAge) {
-      // Calculate directly from initial amount, inflating from start age to current age.
       row['DB Pension'] = initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge);
     } else {
       row['DB Pension'] = 0;
@@ -321,7 +316,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // --- State Pension Calculation (Refactored) ---
     if (initialStatePensionAmount > 0 && age >= statePensionAge) {
-        // Calculate directly from initial amount, inflating from start age to current age.
         row['State Pension'] = initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge);
     } else {
         row['State Pension'] = 0;
@@ -330,7 +324,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
     
-    let { dcDrawdown, sippDrawdown, cashWithdrawal, isaWithdrawal, giaWithdrawal, calculatedNet, taxPaid, incomeSubjectToTax, totalGrossIncome } = 
+    let { dcDrawdown, sippDrawdown, cashWithdrawal, isaWithdrawal, giaWithdrawal } = 
       calculateDrawdownsForNetTarget(
         inflatedTargetNetIncome,
         row['DB Pension'] || 0,
@@ -347,9 +341,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     let finalDcDrawdown = dcDrawdown;
     let finalSippDrawdown = sippDrawdown;
-    let finalCashWithdrawal = cashWithdrawal;
-    let finalIsaWithdrawal = isaWithdrawal;
-    let finalGiaWithdrawal = giaWithdrawal;
 
     // Standard percentage withdrawal post-SPA if higher or if target met by other means
     if (age >= statePensionAge) {
@@ -364,44 +355,24 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       }
     }
     
-    // Recalculate tax and net income with potentially adjusted finalDcDrawdown and finalSippDrawdown
+    // Recalculate tax based on the final determined pension drawdowns.
+    // Savings withdrawals from the solver are taken as final. If pension drawdowns increase, net income for the year will simply be higher.
     const taxableDCDrawdownFinal = finalDcDrawdown * (1 - dcUfplsTaxFreePortion);
     const taxableSippDrawdownFinal = finalSippDrawdown * (1 - sippUfplsTaxFreePortion);
     const taxableBaseIncomeFinal = (row['DB Pension'] || 0) + (row['State Pension'] || 0) + taxableDCDrawdownFinal + taxableSippDrawdownFinal;
     row['Income Subject to Tax'] = Math.max(0, taxableBaseIncomeFinal - currentPersonalAllowance);
     row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
     
-    // Recalculate savings withdrawal if pension drawdowns changed due to standard rates
-    // This logic ensures savings are only used if necessary after the potentially higher pension drawdowns.
-    let netFromPensionsFinal = ((row['DB Pension'] || 0) + (row['State Pension'] || 0) + finalDcDrawdown + finalSippDrawdown) - row['Income Tax Paid'];
-    let shortfallAfterPensionsFinal = inflatedTargetNetIncome - netFromPensionsFinal;
-
-    finalCashWithdrawal = 0;
-    finalIsaWithdrawal = 0;
-    finalGiaWithdrawal = 0;
-
-    if (shortfallAfterPensionsFinal > 0) {
-        finalCashWithdrawal = Math.min(shortfallAfterPensionsFinal, row['Cash Savings Initial']);
-        shortfallAfterPensionsFinal -= finalCashWithdrawal;
-    }
-    if (shortfallAfterPensionsFinal > 0) {
-        finalIsaWithdrawal = Math.min(shortfallAfterPensionsFinal, row['ISA Value Before Withdrawal']);
-        shortfallAfterPensionsFinal -= finalIsaWithdrawal;
-    }
-    if (shortfallAfterPensionsFinal > 0) {
-        finalGiaWithdrawal = Math.min(shortfallAfterPensionsFinal, row['GIA Value Before Withdrawal']);
-    }
-
     row['DC Pension Drawdown'] = Math.max(0, Math.min(finalDcDrawdown, row['DC Minus AMC']));
     row['SIPP Drawdown'] = Math.max(0, Math.min(finalSippDrawdown, row['SIPP Minus AMC']));
     
-    row['Withdraw from Cash'] = Math.min(finalCashWithdrawal, row['Cash Savings Initial']);
+    row['Withdraw from Cash'] = Math.min(cashWithdrawal, row['Cash Savings Initial']);
     row['Cash Savings Balance'] = row['Cash Savings Initial'] - row['Withdraw from Cash'];
     
-    row['Withdraw from ISA'] = Math.min(finalIsaWithdrawal, row['ISA Value Before Withdrawal']);
+    row['Withdraw from ISA'] = Math.min(isaWithdrawal, row['ISA Value Before Withdrawal']);
     row['ISA Balance'] = row['ISA Value Before Withdrawal'] - row['Withdraw from ISA'];
 
-    row['Withdraw from GIA'] = Math.min(finalGiaWithdrawal, row['GIA Value Before Withdrawal']);
+    row['Withdraw from GIA'] = Math.min(giaWithdrawal, row['GIA Value Before Withdrawal']);
     row['GIA Balance'] = row['GIA Value Before Withdrawal'] - row['Withdraw from GIA'];
 
     row['Total Savings Withdrawn'] = row['Withdraw from Cash'] + row['Withdraw from ISA'] + row['Withdraw from GIA'];
