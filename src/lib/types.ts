@@ -99,6 +99,6 @@ export interface CalculatedPensionData {
   csvString: string;
 }
 
-export const PERSONAL_ALLOWANCE = 12400;
+export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
