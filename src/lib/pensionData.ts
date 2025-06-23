@@ -366,22 +366,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // Standard percentage withdrawal post-SPA if higher or if target met by other means
     if (age >= statePensionAge) {
-      const dcBasisForRate = (age === currentAge && dcContributionThisYear > 0) ? row['DC Minus AMC'] : 
-                              (previousRow ? (previousRow['DC Pension Balance'] || 0) : row['DC Minus AMC']);
-      const dcDrawdownByRate = Math.min(dcBasisForRate, row['DC Minus AMC']) * dcWithdrawDecimal;
-
+      const dcDrawdownByRate = row['DC Minus AMC'] * dcWithdrawDecimal;
       if (dcDrawdownByRate > finalDcDrawdown) {
         finalDcDrawdown = dcDrawdownByRate;
-        // If DC drawdown increases, re-evaluate savings withdrawals as they might not be needed or less is needed.
-        // This requires recalculating net income with the new finalDcDrawdown and then adjusting savings.
-        // For simplicity here, if DC by rate is higher, we assume it's taken, and other sources (savings, SIPP specific target part) are implicitly reduced
-        // if they were part of the initial `calculateDrawdownsForNetTarget`.
-        // This part can be complex if we want perfect optimization; for now, prioritize the rate if it's higher.
       }
 
-      const sippBasisForRate = (age === currentAge && sippContributionThisYear > 0) ? row['SIPP Minus AMC'] :
-                               (previousRow ? (previousRow['SIPP Balance'] || 0) : row['SIPP Minus AMC']);
-      const sippDrawdownByRate = Math.min(sippBasisForRate, row['SIPP Minus AMC']) * sippWithdrawDecimal;
+      const sippDrawdownByRate = row['SIPP Minus AMC'] * sippWithdrawDecimal;
       if (sippDrawdownByRate > finalSippDrawdown) {
         finalSippDrawdown = sippDrawdownByRate;
       }
