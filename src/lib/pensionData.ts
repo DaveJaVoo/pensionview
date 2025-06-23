@@ -2,21 +2,6 @@
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION as GENERAL_UFPLS_TAX_FREE_PORTION } from './types';
 
-export const DEFAULT_HEADERS = [
-  'Age', 'Year',
-  'Initial DC Pension', 'DC Pension Contribution', 'DC Pension Growth', 'DC Pension + Growth',
-  'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance',
-  'Initial SIPP', 'SIPP Contribution', 'SIPP Growth', 'SIPP + Growth',
-  'SIPP AMC Charge', 'SIPP Minus AMC', 'SIPP Drawdown', 'SIPP Balance',
-  'DB Pension', 'State Pension', 
-  'Cash Savings Initial', 'Withdraw from Cash', 'Cash Savings Balance',
-  'ISA Initial', 'ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance',
-  'GIA Initial', 'GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance',
-  'Total Savings Withdrawn', 'Total Savings Balance',
-  'TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid',
-  'Net Income Per Year', 'Net Income Per Month',
-];
-
 function calculateDrawdownsForNetTarget(
   targetNetIncomeThisYear: number,
   dbPensionThisYear: number,
@@ -181,6 +166,48 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     inflationRate,
     initialCashSavings, initialIsaAmount, isaGrowthRate, initialGiaAmount, giaGrowthRate
   } = params;
+
+  const dynamicHeaders = [
+    'Age', 'Year',
+    'Initial DC Pension', 'DC Pension Contribution', 'DC Pension Growth', 'DC Pension + Growth',
+    'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance',
+  ];
+
+  if (params.initialSippValue > 0 || params.annualSippContribution > 0) {
+    dynamicHeaders.push(
+      'Initial SIPP', 'SIPP Contribution', 'SIPP Growth', 'SIPP + Growth',
+      'SIPP AMC Charge', 'SIPP Minus AMC', 'SIPP Drawdown', 'SIPP Balance'
+    );
+  }
+
+  if (params.initialDbPensionAmount > 0) {
+    dynamicHeaders.push('DB Pension');
+  }
+
+  dynamicHeaders.push('State Pension');
+
+  const showCash = params.initialCashSavings > 0;
+  const showIsa = params.initialIsaAmount > 0;
+  const showGia = params.initialGiaAmount > 0;
+
+  if (showCash) {
+    dynamicHeaders.push('Cash Savings Initial', 'Withdraw from Cash', 'Cash Savings Balance');
+  }
+  if (showIsa) {
+    dynamicHeaders.push('ISA Initial', 'ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance');
+  }
+  if (showGia) {
+    dynamicHeaders.push('GIA Initial', 'GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance');
+  }
+
+  if (showCash || showIsa || showGia) {
+    dynamicHeaders.push('Total Savings Withdrawn', 'Total Savings Balance');
+  }
+
+  dynamicHeaders.push(
+    'TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid',
+    'Net Income Per Year', 'Net Income Per Month'
+  );
 
   const rows: PensionDataRow[] = [];
   let previousRow: PensionDataRow | null = null;
@@ -387,7 +414,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
 
-    DEFAULT_HEADERS.forEach(header => {
+    dynamicHeaders.forEach(header => {
         if (header === 'Year') return; 
         const val = row[header];
         if (typeof val === 'number') {
@@ -402,9 +429,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     previousRow = row;
   }
 
-  const csvHeaderString = DEFAULT_HEADERS.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
+  const csvHeaderString = dynamicHeaders.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
   const csvRowStrings = rows.map(r => {
-    return DEFAULT_HEADERS.map(header => {
+    return dynamicHeaders.map(header => {
       let val = r[header];
       if (typeof val === 'number') {
         if (isNaN(val)) return "";
@@ -417,5 +444,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   });
   const csvString = [csvHeaderString, ...csvRowStrings].join('\n');
 
-  return { rows, headers: DEFAULT_HEADERS, parameters: outputParameters, csvString };
+  return { rows, headers: dynamicHeaders, parameters: outputParameters, csvString };
 }
