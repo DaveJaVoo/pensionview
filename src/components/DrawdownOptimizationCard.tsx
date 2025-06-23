@@ -60,6 +60,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           currentAge: financialParams.currentAge,
           projectionEndAge: 90, 
           targetAnnualNetIncome: financialParams.targetAnnualNetIncome,
+          initialOtherIncome: financialParams.initialOtherIncome,
         };
         const result = await drawdownOptimization(input);
         setSuggestion(result);

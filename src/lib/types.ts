@@ -13,36 +13,37 @@ export interface PensionDataRow {
   'DC Pension Drawdown': number;
   'DC Pension Balance': number;
 
-  'Initial SIPP': number;
-  'SIPP Contribution': number;
-  'SIPP Growth': number;
-  'SIPP + Growth': number;
-  'SIPP AMC Charge': number;
-  'SIPP Minus AMC': number;
-  'SIPP Drawdown': number;
-  'SIPP Balance': number;
+  'Initial SIPP'?: number;
+  'SIPP Contribution'?: number;
+  'SIPP Growth'?: number;
+  'SIPP + Growth'?: number;
+  'SIPP AMC Charge'?: number;
+  'SIPP Minus AMC'?: number;
+  'SIPP Drawdown'?: number;
+  'SIPP Balance'?: number;
 
   'DB Pension'?: number;
   'State Pension'?: number;
+  'Other Income'?: number;
 
-  'Cash Savings Initial': number;
-  'Withdraw from Cash': number;
-  'Cash Savings Balance': number;
+  'Cash Savings Initial'?: number;
+  'Withdraw from Cash'?: number;
+  'Cash Savings Balance'?: number;
 
-  'ISA Initial': number;
-  'ISA Growth': number;
-  'ISA Value Before Withdrawal': number;
-  'Withdraw from ISA': number;
-  'ISA Balance': number;
+  'ISA Initial'?: number;
+  'ISA Growth'?: number;
+  'ISA Value Before Withdrawal'?: number;
+  'Withdraw from ISA'?: number;
+  'ISA Balance'?: number;
 
-  'GIA Initial': number;
-  'GIA Growth': number;
-  'GIA Value Before Withdrawal': number;
-  'Withdraw from GIA': number;
-  'GIA Balance': number;
+  'GIA Initial'?: number;
+  'GIA Growth'?: number;
+  'GIA Value Before Withdrawal'?: number;
+  'Withdraw from GIA'?: number;
+  'GIA Balance'?: number;
   
-  'Total Savings Withdrawn': number;
-  'Total Savings Balance': number;
+  'Total Savings Withdrawn'?: number;
+  'Total Savings Balance'?: number;
 
   'TOTAL INCOME': number;
   'Income Subject to Tax': number;
@@ -60,6 +61,7 @@ export interface PensionCalculationParameters {
   dbPensionStartAge: number;
   statePensionAge: number;
   initialStatePensionAmount: number;
+  initialOtherIncome: number;
 
   initialDcPensionValue: number;
   annualDcPensionContribution: number;

@@ -42,7 +42,8 @@ const DrawdownOptimizationInputSchema = z.object({
   statePensionAge: z.number().describe('The age at which state pension begins, influencing drawdown needs.'),
   currentAge: z.number().optional().describe('User current age from the projection.'),
   projectionEndAge: z.number().optional().describe('The end age of the projection (e.g. 90).'),
-  targetAnnualNetIncome: z.number().optional().describe('The user\'s target annual income AFTER TAX.'), 
+  targetAnnualNetIncome: z.number().optional().describe('The user\'s target annual income AFTER TAX.'),
+  initialOtherIncome: z.number().optional().describe("The user's other regular annual income, which is assumed to grow with inflation."),
 });
 
 export type DrawdownOptimizationInput = z.infer<typeof DrawdownOptimizationInputSchema>;
@@ -68,7 +69,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert pension planner specializing in optimizing Uncrystallised Funds Pension Lump Sum (UFPLS) drawdown strategies from Defined Contribution (DC) Pensions and Self-Invested Personal Pensions (SIPPs).
   Your goal is to help the user adjust their 'DC Pension Drawdown' and 'SIPP Drawdown' amounts in the provided pension projection (CSV data) to aim for both 'DC Pension Balance' and 'SIPP Balance' to be zero by approximately age 90, while considering their NET income needs and other savings.
 
-  The projection already incorporates a strategy where available non-pension savings (Cash, ISA, GIA, used in that order) are used first to meet the 'Target Annual Net Income' before any DC pension or SIPP funds are drawn for income shortfall. If savings cover the target, DC/SIPP drawdown might still occur based on a standard percentage rate post-State Pension Age if that withdrawal is higher.
+  The projection already incorporates a strategy where available non-pension savings (Cash, ISA, GIA, used in that order) are used first to meet the 'Target Annual Net Income' before any DC pension or SIPP funds are drawn for income shortfall. Other regular income (like DB Pension, State Pension, and Other Income) also reduces this shortfall. If savings cover the target, DC/SIPP drawdown might still occur based on a standard percentage rate post-State Pension Age if that withdrawal is higher.
   - Cash savings ('Cash Savings Balance' column) do not grow.
   - ISA savings ('ISA Balance' column) grow at {{isaGrowthRate}}% annually.
   - GIA savings ('GIA Balance' column) grow at {{giaGrowthRate}}% annually (tax on GIA growth is not modeled in the projection).
@@ -112,6 +113,7 @@ const prompt = ai.definePrompt({
   {{#if currentAge}}- Current Age: {{currentAge}}{{/if}}
   {{#if projectionEndAge}}- Projection End Age: {{projectionEndAge}}{{/if}}
   {{#if targetAnnualNetIncome}}- Target Annual Net Income: {{targetAnnualNetIncome}}{{/if}}
+  {{#if initialOtherIncome}}- Other Regular Annual Income (inflating): {{initialOtherIncome}}{{/if}}
 
   Based on all this information, provide specific, actionable suggestions on how to adjust the 'DC Pension Drawdown' and 'SIPP Drawdown' amounts in different years/ages.
   - The primary goal is to make both 'DC Pension Balance' and 'SIPP Balance' reach near zero by the 'Projection End Age' (e.g., 90).

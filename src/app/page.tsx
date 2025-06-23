@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown, Landmark, Banknote } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown, Landmark, Banknote, Building2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from "@/components/ui/switch";
 
@@ -42,6 +42,7 @@ const formSchema = z.object({
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
+  initialOtherIncome: z.coerce.number().min(0).default(0),
   
   initialDcPensionValue: z.coerce.number().min(0).default(188000),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
@@ -393,11 +394,12 @@ export default function PensionPilotPage() {
     { name: "sippWithdrawalRate", label: "SIPP Withdrawal Rate", control: control, suffix: "%", description: "Annual % to withdraw from SIPP pot post-SPA if no shortfall or if higher than target income need from SIPP." },
   ];
 
-  const dbStatePensionFields: FormFieldProps[] = [
+  const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
     { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
     { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC & SIPP Pension Contributions will default to end at this age." },
+    { name: "initialOtherIncome", label: "Other Annual Income", control: control, placeholder: "Enter amount in £ pa", icon: Building2, description: "Any other regular, taxable annual income you expect (e.g., from rental properties, side-hustles). This will be assumed to grow with inflation. Leave at 0 if none." },
   ];
 
   const economicAssumptionsFields: FormFieldProps[] = [
@@ -551,7 +553,7 @@ export default function PensionPilotPage() {
 
               <Separator />
               <div className="flex items-center gap-2 border-b pb-2">
-                <h3 className="text-xl font-headline font-semibold text-primary">Defined Benefit (DB) &amp; State Pension</h3>
+                <h3 className="text-xl font-headline font-semibold text-primary">Other Income Sources</h3>
                 <span className="text-sm text-muted-foreground">(Leave values at 0 if not applicable)</span>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -560,12 +562,12 @@ export default function PensionPilotPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-60 text-sm" side="top" align="start">
-                    A Defined Benefit (DB) pension, often referred to as a final salary pension, is a type of workplace pension where the employer guarantees a specific income for the employee during retirement.
+                    Includes Defined Benefit (DB) pensions, State Pension, and any other regular income you expect.
                   </PopoverContent>
                 </Popover>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
-                {dbStatePensionFields.map(field => <FormInput key={field.name} {...field} />)}
+                {otherIncomeFields.map(field => <FormInput key={field.name} {...field} />)}
               </div>
 
               <Separator />

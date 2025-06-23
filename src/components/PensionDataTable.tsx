@@ -17,7 +17,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('pension') ||
-           lowerHeader.includes('sipp') || // Added for SIPP
+           lowerHeader.includes('sipp') ||
            lowerHeader.includes('income') ||
            lowerHeader.includes('savings') || 
            lowerHeader.includes('cash') ||
@@ -32,7 +32,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
            lowerHeader.includes('initial') ||
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
-           lowerHeader.includes('minus amc'); // Generic for 'DC Minus AMC' and 'SIPP Minus AMC'
+           lowerHeader.includes('minus amc');
   };
   
   const isNumericHeader = (header: string): boolean => {
@@ -61,6 +61,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
 
       'DB Pension': ['DB Pension'],
       'State Pension': ['State Pension'],
+      'Other Income': ['Other Income'],
       'Cash Savings Initial': ['Cash Sav.', 'Initial'],
       'Withdraw from Cash': ['Withdraw', 'Cash'],
       'Cash Savings Balance': ['Cash Sav.', 'Balance'],
@@ -101,11 +102,12 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   const isGreenStyledHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('dc pension drawdown') || 
-           lowerHeader.includes('sipp drawdown') || // Added for SIPP
+           lowerHeader.includes('sipp drawdown') ||
            lowerHeader.includes('state pension') || 
            lowerHeader.includes('db pension') ||
+           lowerHeader.includes('other income') ||
            lowerHeader.includes('dc pension contribution') || 
-           lowerHeader.includes('sipp contribution') || // Added for SIPP
+           lowerHeader.includes('sipp contribution') ||
            lowerHeader.includes('withdraw from cash') ||
            lowerHeader.includes('withdraw from isa') ||
            lowerHeader.includes('withdraw from gia') ||
