@@ -311,35 +311,22 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     row['GIA Growth'] = row['GIA Initial'] * giaGrowthDecimal;
     row['GIA Value Before Withdrawal'] = row['GIA Initial'] + row['GIA Growth'];
 
-    if (initialDbPensionAmount > 0) {
-        if (age < dbPensionStartAge) {
-            row['DB Pension'] = 0;
-        } else {
-            if (!previousRow) {
-                 row['DB Pension'] = initialDbPensionAmount * Math.pow(1 + inflationDecimal, Math.max(0, currentAge - dbPensionStartAge));
-            } else {
-                if ((previousRow['DB Pension'] || 0) > 0) row['DB Pension'] = (previousRow['DB Pension'] || 0) * (1 + inflationDecimal);
-                else if (age === dbPensionStartAge) row['DB Pension'] = initialDbPensionAmount;
-                else row['DB Pension'] = 0; 
-            }
-        }
+    // --- DB Pension Calculation (Refactored) ---
+    if (initialDbPensionAmount > 0 && age >= dbPensionStartAge) {
+      // Calculate directly from initial amount, inflating from start age to current age.
+      row['DB Pension'] = initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge);
+    } else {
+      row['DB Pension'] = 0;
     }
-    row['DB Pension'] = Math.max(0, row['DB Pension'] || 0);
 
-    if (initialStatePensionAmount > 0) {
-        if (age < statePensionAge) {
-            row['State Pension'] = 0;
-        } else {
-            if (!previousRow) {
-                 row['State Pension'] = initialStatePensionAmount * Math.pow(1 + inflationDecimal, Math.max(0, currentAge - statePensionAge));
-            } else {
-                if ((previousRow['State Pension'] || 0) > 0) row['State Pension'] = (previousRow['State Pension'] || 0) * (1 + inflationDecimal);
-                else if (age === statePensionAge) row['State Pension'] = initialStatePensionAmount;
-                else row['State Pension'] = 0;
-            }
-        }
+    // --- State Pension Calculation (Refactored) ---
+    if (initialStatePensionAmount > 0 && age >= statePensionAge) {
+        // Calculate directly from initial amount, inflating from start age to current age.
+        row['State Pension'] = initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge);
+    } else {
+        row['State Pension'] = 0;
     }
-    row['State Pension'] = Math.max(0, row['State Pension'] || 0);
+
 
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
     
