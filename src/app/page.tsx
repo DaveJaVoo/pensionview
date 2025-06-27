@@ -501,7 +501,7 @@ export default function PensionPilotPage() {
   const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
-    { name: "initialFasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", icon: LifeBuoy, description: "Annual amount from the Financial Assistance Scheme (FAS). This is treated as taxable income." },
+    { name: "initialFasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", icon: LifeBuoy, description: "Annual amount from the Financial Assistance Scheme (FAS). This is treated as gross taxable income. The projection calculates the total tax due and includes it in the 'Income Tax Paid' column." },
     { name: "fasStartAge", label: "FAS Start Age", control: control, description: "Age at which FAS payments begin." },
     { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
     { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC & SIPP Pension Contributions will default to end at this age." },
@@ -808,7 +808,7 @@ export default function PensionPilotPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 items-start mt-12">
               <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-1">
-                <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimization</h2>
+                <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimisation</h2>
                 <DrawdownOptimizationCard
                   csvDataString={calculatedData.csvString}
                   financialParams={calculatedData.parameters}
@@ -829,3 +829,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
