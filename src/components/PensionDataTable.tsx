@@ -1,4 +1,3 @@
-
 "use client";
 import type { FC } from 'react';
 import React from 'react';
@@ -106,6 +105,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
            lowerHeader.includes('state pension') || 
            lowerHeader.includes('db pension') ||
            lowerHeader.includes('other income') ||
+           lowerHeader.includes('fas') ||
            lowerHeader.includes('dc pension contribution') || 
            lowerHeader.includes('sipp contribution') ||
            lowerHeader.includes('withdraw from cash') ||
