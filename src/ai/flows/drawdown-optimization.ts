@@ -66,8 +66,10 @@ const prompt = ai.definePrompt({
   name: 'drawdownOptimizationPrompt',
   input: {schema: DrawdownOptimizationInputSchema},
   output: {schema: DrawdownOptimizationOutputSchema},
-  prompt: `You are an expert pension planner specializing in optimizing Uncrystallised Funds Pension Lump Sum (UFPLS) drawdown strategies from Defined Contribution (DC) Pensions and Self-Invested Personal Pensions (SIPPs).
+  prompt: `You are an expert UK pension planner specialising in optimising Uncrystallised Funds Pension Lump Sum (UFPLS) drawdown strategies from Defined Contribution (DC) Pensions and Self-Invested Personal Pensions (SIPPs).
   Your goal is to help the user adjust their 'DC Pension Drawdown' and 'SIPP Drawdown' amounts in the provided pension projection (CSV data) to aim for both 'DC Pension Balance' and 'SIPP Balance' to be zero by approximately age 90, while considering their NET income needs and other savings.
+
+  IMPORTANT: All of your output must be in UK English. For example, use 'optimising' instead of 'utilising'. All financial values must be represented in pounds sterling (£), not dollars ($).
 
   The projection already incorporates a strategy where available non-pension savings (Cash, ISA, GIA, used in that order) are used first to meet the 'Target Annual Net Income' before any DC pension or SIPP funds are drawn for income shortfall. Other regular income (like DB Pension, State Pension, and Other Income) also reduces this shortfall. If savings cover the target, DC/SIPP drawdown might still occur based on a standard percentage rate post-State Pension Age if that withdrawal is higher.
   - Cash savings ('Cash Savings Balance' column) do not grow.
