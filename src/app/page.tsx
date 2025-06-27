@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown, Landmark, Banknote, Building2 } from 'lucide-react';
+import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown, Landmark, Banknote, Building2, LifeBuoy } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from "@/components/ui/switch";
 
@@ -41,6 +41,8 @@ const formSchema = z.object({
   targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
+  initialFasAmount: z.coerce.number().min(0).default(0),
+  fasStartAge: z.coerce.number().min(50).max(80).default(65),
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
   initialOtherIncome: z.coerce.number().min(0).default(0),
@@ -189,6 +191,8 @@ export default function PensionPilotPage() {
        sippContributionStartAge: 55,
        sippContributionEndAge: 67,
        projectionStartYear: new Date().getFullYear(),
+       dbPensionStartAge: 65,
+       fasStartAge: 65,
     }), 
   });
   
@@ -203,6 +207,8 @@ export default function PensionPilotPage() {
         dcContributionEndAge: 67, 
         sippContributionStartAge: 55,
         sippContributionEndAge: 67,
+        dbPensionStartAge: 65,
+        fasStartAge: 65,
       });
       reset({
         ...initialFormValues,
@@ -363,7 +369,10 @@ export default function PensionPilotPage() {
     };
     
     const incomeSources: React.ReactNode[] = [];
-
+    
+    if (rowData['FAS'] && rowData['FAS'] > 0) {
+        incomeSources.push(<> {formatBoldCurrency(rowData['FAS'])} from FAS</>);
+    }
     if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
     }
@@ -425,6 +434,8 @@ export default function PensionPilotPage() {
         sippContributionStartAge: 55,
         sippContributionEndAge: 67,
         projectionStartYear: clientCurrentYear,
+        dbPensionStartAge: 65,
+        fasStartAge: 65,
     });
     reset({
       ...defaultValues,
@@ -490,6 +501,8 @@ export default function PensionPilotPage() {
   const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
+    { name: "initialFasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", icon: LifeBuoy, description: "Annual amount from the Financial Assistance Scheme (FAS). This is treated as taxable income." },
+    { name: "fasStartAge", label: "FAS Start Age", control: control, description: "Age at which FAS payments begin." },
     { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
     { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC & SIPP Pension Contributions will default to end at this age." },
     { name: "initialOtherIncome", label: "Other Annual Income", control: control, placeholder: "Enter amount in £ pa", icon: Building2, description: "Any other regular, taxable annual income you expect (e.g., from rental properties, side-hustles). This will be assumed to grow with inflation. Leave at 0 if none." },
@@ -565,7 +578,7 @@ export default function PensionPilotPage() {
                             <PopoverContent className="w-60 text-sm" side="top" align="start">
                                 If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at the start of the projection.
                                 The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
-                                If disabled, each UFPLS withdrawal will have a 25% tax-free element.
+                                If disabled, each UFPLS withdrawal will have a 25% tax-free element. This changes the withdrawal strategy to be 'pension-first' to maximise tax efficiency.
                             </PopoverContent>
                          </Popover>
                     </div>
@@ -653,7 +666,7 @@ export default function PensionPilotPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-60 text-sm" side="top" align="start">
-                    Includes Defined Benefit (DB) pensions, State Pension, and any other regular income you expect.
+                    Includes Defined Benefit (DB) pensions, State Pension, Financial Assistance Scheme (FAS) and any other regular income you expect.
                   </PopoverContent>
                 </Popover>
               </div>

@@ -25,6 +25,7 @@ export interface PensionDataRow {
   'DB Pension'?: number;
   'State Pension'?: number;
   'Other Income'?: number;
+  'FAS'?: number;
 
   'Cash Savings Initial'?: number;
   'Withdraw from Cash'?: number;
@@ -63,6 +64,8 @@ export interface PensionCalculationParameters {
   statePensionAge: number;
   initialStatePensionAmount: number;
   initialOtherIncome: number;
+  initialFasAmount: number;
+  fasStartAge: number;
 
   initialDcPensionValue: number;
   annualDcPensionContribution: number;

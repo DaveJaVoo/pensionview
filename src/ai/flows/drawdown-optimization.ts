@@ -44,6 +44,8 @@ const DrawdownOptimizationInputSchema = z.object({
   projectionEndAge: z.number().optional().describe('The end age of the projection (e.g. 90).'),
   targetAnnualNetIncome: z.number().optional().describe('The user\'s target annual income AFTER TAX.'),
   initialOtherIncome: z.number().optional().describe("The user's other regular annual income, which is assumed to grow with inflation."),
+  initialFasAmount: z.number().optional().describe("The user's annual income from the Financial Assistance Scheme (FAS), which is taxable and grows with inflation."),
+  fasStartAge: z.number().optional().describe("The age at which FAS payments begin."),
 });
 
 export type DrawdownOptimizationInput = z.infer<typeof DrawdownOptimizationInputSchema>;
@@ -71,7 +73,8 @@ const prompt = ai.definePrompt({
 
   IMPORTANT: All of your output must be in UK English. For example, use 'optimising' instead of 'utilising'. All financial values must be represented in pounds sterling (£), not dollars ($).
 
-  The projection already incorporates a strategy where available non-pension savings (Cash, ISA, GIA, used in that order) are used first to meet the 'Target Annual Net Income' before any DC pension or SIPP funds are drawn for income shortfall. Other regular income (like DB Pension, State Pension, and Other Income) also reduces this shortfall. If savings cover the target, DC/SIPP drawdown might still occur based on a standard percentage rate post-State Pension Age if that withdrawal is higher.
+  The projection already incorporates a sophisticated withdrawal strategy. If no upfront 25% tax-free cash was taken, it prioritises pension withdrawals (UFPLS with 25% tax-free) over savings to be tax efficient. If a 25% lump sum was taken, it prioritises using savings (Cash, ISA, GIA) first, as pension withdrawals are fully taxable. In both cases, it attempts to use up the annual Personal Allowance with pension withdrawals if other taxable income doesn't cover it.
+
   - Cash savings ('Cash Savings Balance' column) do not grow.
   - ISA savings ('ISA Balance' column) grow at {{isaGrowthRate}}% annually.
   - GIA savings ('GIA Balance' column) grow at {{giaGrowthRate}}% annually (tax on GIA growth is not modeled in the projection).
@@ -116,15 +119,16 @@ const prompt = ai.definePrompt({
   {{#if projectionEndAge}}- Projection End Age: {{projectionEndAge}}{{/if}}
   {{#if targetAnnualNetIncome}}- Target Annual Net Income: {{targetAnnualNetIncome}}{{/if}}
   {{#if initialOtherIncome}}- Other Regular Annual Income (inflating): {{initialOtherIncome}}{{/if}}
+  {{#if initialFasAmount}}- Financial Assistance Scheme (FAS) Annual Income (inflating): {{initialFasAmount}} starting at age {{fasStartAge}}{{/if}}
 
   Based on all this information, provide specific, actionable suggestions on how to adjust the 'DC Pension Drawdown' and 'SIPP Drawdown' amounts in different years/ages.
   - The primary goal is to make both 'DC Pension Balance' and 'SIPP Balance' reach near zero by the 'Projection End Age' (e.g., 90).
   - Identify periods where 'DC Pension Drawdown' or 'SIPP Drawdown' might be too low (leading to large remaining balances late in life) or too high (depleting funds too early, unless that's the goal by age 90).
   - Suggest alternative drawdown amounts or strategies for specific age ranges for both DC and SIPP pots.
-  - Explain your reasoning clearly, linking to the zero-balance target for both pots, NET income needs, the use-savings-first strategy, tax-free lump sum decisions for both pots, and any ongoing contributions to both.
+  - Explain your reasoning clearly, linking to the zero-balance target for both pots, NET income needs, the tax-optimised withdrawal strategy, tax-free lump sum decisions for both pots, ongoing contributions, and all other income sources (DB, State Pension, FAS, Other).
   - Emphasize adjustments that help manage both DC and SIPP pots effectively throughout retirement.
   - The "DC Pension Balance" and "SIPP Balance" columns show the year-end balances. "DC Pension Drawdown" and "SIPP Drawdown" are amounts taken during that year. Contributions are gross amounts added pre-retirement.
-  - The AI should suggest changes to the "DC Pension Drawdown" and "SIPP Drawdown" values in the CSV to achieve the zero balance targets, considering the existing net income strategy, PCLS choices, ongoing contributions, and other savings.
+  - The AI should suggest changes to the "DC Pension Drawdown" and "SIPP Drawdown" values in the CSV to achieve the zero balance targets.
 `,
 });
 
