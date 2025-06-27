@@ -526,6 +526,9 @@ export default function PensionPilotPage() {
               Enter your financial details to project your retirement income up to age 90.
               All percentage inputs should be entered as numbers (e.g., 5 for 5%).
               No data is stored. All information is for your eyes only.
+              <p className="mt-4 border-t border-border pt-3 text-muted-foreground italic text-xs">
+                <strong>Disclaimer:</strong> The information provided on this app is for educational and informational purposes only and should not be considered financial advice. While I aim to share useful insights and general guidance, I am not a licensed financial advisor, and the content shared does not take into account your individual financial situation, needs, or goals. Always do your own research to ensure that any options are right for your specific circumstances.
+              </p>
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
