@@ -160,122 +160,111 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     let shortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
     
-    const remainingPersonalAllowance = Math.max(0, currentPersonalAllowance - fixedGrossTaxableIncome);
-
-    const pensionWithdrawal = (shortfallToCover: number) => {
-        let dcTaken = 0;
-        let sippTaken = 0;
+    const takeTaxablePension = (shortfallToCover: number) => {
+        let netFromTaxablePension = 0;
         
-        let paShortfall = Math.min(shortfallToCover, remainingPersonalAllowance);
-        if (paShortfall > 0) {
-            const paDcNeeded = paShortfall / (1 - dcUfplsTaxFreePortion / (1 - INCOME_TAX_RATE) * INCOME_TAX_RATE);
-            let paDcTaken = Math.min(paDcNeeded, dcPotForDrawdown);
-            dcTaken += paDcTaken;
-            dcPotForDrawdown -= paDcTaken;
-
-            let remainingPaShortfall = paShortfall - (paDcTaken * (1 - (dcUfplsTaxFreePortion / (1 - INCOME_TAX_RATE) * INCOME_TAX_RATE)));
-            if(remainingPaShortfall > 0) {
-                const paSippNeeded = remainingPaShortfall / (1 - sippUfplsTaxFreePortion / (1 - INCOME_TAX_RATE) * INCOME_TAX_RATE);
-                let paSippTaken = Math.min(paSippNeeded, sippPotForDrawdown);
-                sippTaken += paSippTaken;
-                sippPotForDrawdown -= paSippTaken;
-            }
-        }
-        
-        let taxableShortfall = shortfallToCover - (dcTaken + sippTaken) + (dcTaken * (1-dcUfplsTaxFreePortion) * INCOME_TAX_RATE + sippTaken * (1-sippUfplsTaxFreePortion) * INCOME_TAX_RATE);
-        if (taxableShortfall > 0) {
-            let taxDcNeeded = taxableShortfall / (1 - INCOME_TAX_RATE * (1-dcUfplsTaxFreePortion));
-            let taxDcTaken = Math.min(taxDcNeeded, dcPotForDrawdown);
-            dcTaken += taxDcTaken;
-            dcPotForDrawdown -= taxDcTaken;
-
-            let remainingTaxShortfall = taxableShortfall - (taxDcTaken * (1 - INCOME_TAX_RATE * (1-dcUfplsTaxFreePortion)));
-            if(remainingTaxShortfall > 0) {
-                let taxSippNeeded = remainingTaxShortfall / (1 - INCOME_TAX_RATE * (1-sippUfplsTaxFreePortion));
-                let taxSippTaken = Math.min(taxSippNeeded, sippPotForDrawdown);
-                sippTaken += taxSippTaken;
-                sippPotForDrawdown -= taxSippTaken;
-            }
-        }
-
-        dcDrawdown = dcTaken;
-        sippDrawdown = sippTaken;
-
-        const netFromPensions = (dcTaken + sippTaken) - (Math.max(0, (dcTaken * (1-dcUfplsTaxFreePortion) + sippTaken * (1-sippUfplsTaxFreePortion) + fixedGrossTaxableIncome) - currentPersonalAllowance) * INCOME_TAX_RATE - taxOnFixedIncome);
-        return netFromPensions;
-    }
-
-    const savingsWithdrawal = (shortfallToCover: number) => {
-        cashWithdrawal = Math.min(shortfallToCover, initialCash);
-        let netFromSavings = cashWithdrawal;
-        initialCash -= cashWithdrawal;
-        shortfallToCover -= cashWithdrawal;
-
-        if (shortfallToCover > 0) {
-            isaWithdrawal = Math.min(shortfallToCover, isaValueBeforeWithdrawal);
-            netFromSavings += isaWithdrawal;
-            isaValueBeforeWithdrawal -= isaWithdrawal;
-            shortfallToCover -= isaWithdrawal;
+        let dcNetPerGross = (1 - INCOME_TAX_RATE * (1 - dcUfplsTaxFreePortion));
+        if (dcNetPerGross > 0 && shortfallToCover > 0) {
+            const dcGrossNeeded = shortfallToCover / dcNetPerGross;
+            const canTake = Math.min(dcPotForDrawdown, dcGrossNeeded);
+            dcDrawdown += canTake;
+            dcPotForDrawdown -= canTake;
+            const netFromThis = canTake * dcNetPerGross;
+            netFromTaxablePension += netFromThis;
+            shortfallToCover -= netFromThis;
         }
 
         if (shortfallToCover > 0) {
-            giaWithdrawal = Math.min(shortfallToCover, giaValueBeforeWithdrawal);
-            netFromSavings += giaWithdrawal;
-            giaValueBeforeWithdrawal -= giaWithdrawal;
+            let sippNetPerGross = (1 - INCOME_TAX_RATE * (1 - sippUfplsTaxFreePortion));
+            if (sippNetPerGross > 0) {
+                const sippGrossNeeded = shortfallToCover / sippNetPerGross;
+                const canTake = Math.min(sippPotForDrawdown, sippGrossNeeded);
+                sippDrawdown += canTake;
+                sippPotForDrawdown -= canTake;
+                const netFromThis = canTake * sippNetPerGross;
+                netFromTaxablePension += netFromThis;
+            }
+        }
+        return netFromTaxablePension;
+    };
+
+    const takeFromSavings = (shortfallToCover: number) => {
+        let netFromSavings = 0;
+        const takeCash = Math.min(shortfallToCover, initialCash);
+        cashWithdrawal += takeCash;
+        initialCash -= takeCash;
+        netFromSavings += takeCash;
+        shortfallToCover -= takeCash;
+
+        if (shortfallToCover > 0) {
+            const takeIsa = Math.min(shortfallToCover, isaValueBeforeWithdrawal);
+            isaWithdrawal += takeIsa;
+            isaValueBeforeWithdrawal -= takeIsa;
+            netFromSavings += takeIsa;
+            shortfallToCover -= takeIsa;
+        }
+        if (shortfallToCover > 0) {
+            const takeGia = Math.min(shortfallToCover, giaValueBeforeWithdrawal);
+            giaWithdrawal += takeGia;
+            giaValueBeforeWithdrawal -= takeGia;
+            netFromSavings += takeGia;
         }
         return netFromSavings;
     };
-    
+
     if (withdrawalStrategy === 'pensionFirst') {
-        const netFromPension = pensionWithdrawal(shortfall);
-        shortfall -= netFromPension;
-        if(shortfall > 0) {
-            savingsWithdrawal(shortfall);
+        if (shortfall > 0) {
+            shortfall -= takeTaxablePension(shortfall);
         }
-    } else { // savingsFirst
-        // Always try to fill PA first with pension, as it's most tax efficient
-        let paFillPensionDrawdown = 0;
-        let paFillSippDrawdown = 0;
+        if (shortfall > 0) {
+            shortfall -= takeFromSavings(shortfall);
+        }
+    } else { // 'savingsFirst'
+        const remainingPersonalAllowance = Math.max(0, currentPersonalAllowance - fixedGrossTaxableIncome);
+        if (remainingPersonalAllowance > 0 && shortfall > 0) {
+            // Gross to take to fill PA = PA / (1-TFP)
+            const dcGrossToFillPa = (dcUfplsTaxFreePortion < 1) ? remainingPersonalAllowance / (1 - dcUfplsTaxFreePortion) : Infinity;
+            let dcToTake = Math.min(dcPotForDrawdown, dcGrossToFillPa);
+            let netFromDc = dcToTake; // It's all tax-free since it's within the PA
 
-        if (remainingPersonalAllowance > 0) {
-             const grossNeededToFillPa = remainingPersonalAllowance / (1-dcUfplsTaxFreePortion);
-             const canTakeFromDc = Math.min(grossNeededToFillPa, dcPotForDrawdown);
-             const taxablePartOfDc = canTakeFromDc * (1-dcUfplsTaxFreePortion);
-             paFillPensionDrawdown = canTakeFromDc;
+            if (netFromDc > shortfall) {
+                dcToTake = shortfall;
+            }
+            dcDrawdown += dcToTake;
+            dcPotForDrawdown -= dcToTake;
+            shortfall -= dcToTake;
 
-             const remainingPaAfterDc = remainingPersonalAllowance - taxablePartOfDc;
-             if (remainingPaAfterDc > 0) {
-                const grossSippNeeded = remainingPaAfterDc / (1-sippUfplsTaxFreePortion);
-                const canTakeFromSipp = Math.min(grossSippNeeded, sippPotForDrawdown);
-                paFillSippDrawdown = canTakeFromSipp;
-             }
+            const taxableIncomeFromDc = dcToTake * (1 - dcUfplsTaxFreePortion);
+            const paAfterDc = remainingPersonalAllowance - taxableIncomeFromDc;
+
+            if (paAfterDc > 0 && shortfall > 0) {
+                const sippGrossToFillPa = (sippUfplsTaxFreePortion < 1) ? paAfterDc / (1 - sippUfplsTaxFreePortion) : Infinity;
+                let sippToTake = Math.min(sippPotForDrawdown, sippGrossToFillPa);
+                let netFromSipp = sippToTake;
+
+                if (netFromSipp > shortfall) {
+                    sippToTake = shortfall;
+                }
+                sippDrawdown += sippToTake;
+                sippPotForDrawdown -= sippToTake;
+                shortfall -= sippToTake;
+            }
+        }
+
+        if (shortfall > 0) {
+            shortfall -= takeFromSavings(shortfall);
         }
         
-        const netFromPaFill = paFillPensionDrawdown + paFillSippDrawdown;
-        const actualPaFillTake = Math.min(netFromPaFill, shortfall);
-        const ratio = netFromPaFill > 0 ? actualPaFillTake / netFromPaFill : 0;
-        
-        dcDrawdown += paFillPensionDrawdown * ratio;
-        dcPotForDrawdown -= paFillPensionDrawdown * ratio;
-        sippDrawdown += paFillSippDrawdown * ratio;
-        sippPotForDrawdown -= paFillSippDrawdown * ratio;
-        shortfall -= actualPaFillTake;
-
-        if(shortfall > 0) {
-            const netFromSavings = savingsWithdrawal(shortfall);
-            shortfall -= netFromSavings;
-        }
-        if(shortfall > 0) {
-            pensionWithdrawal(shortfall);
+        if (shortfall > 0) {
+            shortfall -= takeTaxablePension(shortfall);
         }
     }
-
 
     let finalDcDrawdown = dcDrawdown;
     let finalSippDrawdown = sippDrawdown;
     
     if (age >= statePensionAge) {
-      const dcStandardWithdrawal = (initialDCPension) * dcWithdrawDecimal;
+      const dcStandardWithdrawal = (initialDCPension + dcContributionThisYear) * dcWithdrawDecimal;
       if (dcStandardWithdrawal > finalDcDrawdown) {
           const extraDrawdown = dcStandardWithdrawal - finalDcDrawdown;
           const availableFromDc = dcPotForDrawdown;
@@ -283,7 +272,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
           dcPotForDrawdown -= Math.min(extraDrawdown, availableFromDc);
       }
       
-      const sippStandardWithdrawal = (initialSipp) * sippWithdrawDecimal;
+      const sippStandardWithdrawal = (initialSipp + sippContributionThisYear) * sippWithdrawDecimal;
       if (sippStandardWithdrawal > finalSippDrawdown) {
           const extraDrawdown = sippStandardWithdrawal - finalSippDrawdown;
           const availableFromSipp = sippPotForDrawdown;
@@ -300,8 +289,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     row['Income Subject to Tax'] = Math.max(0, totalGrossTaxableIncome - currentPersonalAllowance);
     row['Income Tax Paid'] = row['Income Subject to Tax'] * INCOME_TAX_RATE;
-    row['TOTAL INCOME'] = fixedGrossTaxableIncome + totalSavingsWithdrawn + finalDcDrawdown + finalSippDrawdown;
-    row['Net Income Per Year'] = row['TOTAL INCOME'] - row['Income Tax Paid'];
+    const grossIncomeFromSources = fixedGrossTaxableIncome + finalDcDrawdown + finalSippDrawdown + totalSavingsWithdrawn;
+    row['TOTAL INCOME'] = grossIncomeFromSources;
+    row['Net Income Per Year'] = grossIncomeFromSources - row['Income Tax Paid'];
     row['Net Income Per Month'] = row['Net Income Per Year'] / 12;
 
     const finalCashBalance = initialCash;
