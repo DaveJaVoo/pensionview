@@ -1,8 +1,5 @@
-
 import { config } from 'dotenv';
 config();
 
-// import '@/ai/flows/pension-insights.ts'; // Removed
-import '@/ai/flows/drawdown-optimization.ts';
-
-    
+// This file is used to register Genkit flows for development.
+// Since all AI features have been removed, this file is currently empty.

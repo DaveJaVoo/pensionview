@@ -10,7 +10,6 @@ import AppHeader from '@/components/AppHeader';
 import PensionDataTable from '@/components/PensionDataTable';
 import PensionCharts from '@/components/PensionCharts';
 import ViewModeToggle, { type ViewMode } from '@/components/ViewModeToggle';
-import DrawdownOptimizationCard from '@/components/DrawdownOptimizationCard';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -810,16 +809,6 @@ export default function PensionPilotPage() {
                     )}
                 </CardContent>
             </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 items-start mt-12">
-              <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-1">
-                <h2 id="drawdown-optimization-heading" className="sr-only">Drawdown Optimisation</h2>
-                <DrawdownOptimizationCard
-                  csvDataString={calculatedData.csvString}
-                  financialParams={calculatedData.parameters}
-                />
-              </section>
-            </div>
           </>
         )}
       </main>
