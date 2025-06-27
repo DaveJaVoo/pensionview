@@ -62,7 +62,7 @@ function solveForPensionDrawdown(
 
 export function calculatePensionProjection(params: PensionCalculationParameters): CalculatedPensionData {
   const {
-    currentAge, projectionStartYear, targetAnnualNetIncome,
+    currentAge, projectionStartYear, projectionEndAge, targetAnnualNetIncome,
     initialDbPensionAmount, dbPensionStartAge,
     statePensionAge, initialStatePensionAmount,
     initialOtherIncome,
@@ -159,7 +159,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     sippTaxFreeLumpSumTaken: sippTaxFreeLumpSumTakenAmount,
   };
 
-  for (let age = currentAge; age <= 90; age++) {
+  for (let age = currentAge; age <= projectionEndAge; age++) {
     const yearOffset = age - currentAge;
     const currentYearStr = (projectionStartYear + yearOffset).toString();
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
@@ -239,7 +239,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
         
         const totalPensionForAllowance = dcDrawForAllowance + sippDrawForAllowance;
-        const netFromPensionForAllowance = totalPensionForAllowance - ((totalPensionForAllowance * (1 - (dcUfplsTaxFreePortion+sippUfplsTaxFreePortion)/2) - remainingPersonalAllowance) * INCOME_TAX_RATE);
+        const netFromPensionForAllowance = totalPensionForAllowance; // Tax should be zero on this portion
         
         const actualPensionToTakeForAllowance = Math.min(shortfall, netFromPensionForAllowance);
         
@@ -288,12 +288,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     let finalSippDrawdown = sippDrawdown;
 
     if (age >= statePensionAge) {
-      const dcStandardWithdrawal = dcPotAfterGrowth * dcWithdrawDecimal;
+      const dcStandardWithdrawal = (dcPotForDrawdown + dcDrawdown) * dcWithdrawDecimal;
       if (dcStandardWithdrawal > finalDcDrawdown) {
           finalDcDrawdown = dcStandardWithdrawal;
       }
       
-      const sippStandardWithdrawal = sippPotAfterGrowth * sippWithdrawDecimal;
+      const sippStandardWithdrawal = (sippPotForDrawdown + sippDrawdown) * sippWithdrawDecimal;
       if (sippStandardWithdrawal > finalSippDrawdown) {
           finalSippDrawdown = sippStandardWithdrawal;
       }

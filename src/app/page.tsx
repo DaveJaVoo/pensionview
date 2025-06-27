@@ -29,6 +29,7 @@ const SCHEMA_FALLBACK_YEAR = new Date().getFullYear();
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
+  projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   projectionStartYear: z.coerce.number().min(SCHEMA_FALLBACK_YEAR - 20).max(SCHEMA_FALLBACK_YEAR + 20).default(SCHEMA_FALLBACK_YEAR),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
@@ -69,6 +70,9 @@ const formSchema = z.object({
 }).refine(data => data.sippContributionEndAge > data.sippContributionStartAge, {
   message: "SIPP Contribution End Age must be after Start Age.",
   path: ["sippContributionEndAge"],
+}).refine(data => data.projectionEndAge > data.currentAge, {
+    message: "Projection End Age must be after Current Age.",
+    path: ["projectionEndAge"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -178,6 +182,7 @@ export default function PensionPilotPage() {
     resolver: zodResolver(formSchema),
     defaultValues: formSchema.parse({
        currentAge: 55, 
+       projectionEndAge: 90,
        dcContributionStartAge: 55, 
        statePensionAge: 67, 
        dcContributionEndAge: 67,
@@ -192,6 +197,7 @@ export default function PensionPilotPage() {
       const clientCurrentYear = new Date().getFullYear();
       const initialFormValues = formSchema.parse({
         currentAge: 55,
+        projectionEndAge: 90,
         dcContributionStartAge: 55, 
         statePensionAge: 67,
         dcContributionEndAge: 67, 
@@ -412,6 +418,7 @@ export default function PensionPilotPage() {
     const clientCurrentYear = new Date().getFullYear();
     const defaultValues = formSchema.parse({
         currentAge: 55,
+        projectionEndAge: 90,
         dcContributionStartAge: 55,
         statePensionAge: 67,
         dcContributionEndAge: 67,
@@ -447,6 +454,7 @@ export default function PensionPilotPage() {
 
   const coreParamsFields: FormFieldProps[] = [
     { name: "currentAge", label: "Current Age", control: control, description: "Your current age. DC & SIPP Pension Contributions will default to start from this age." },
+    { name: "projectionEndAge", label: "Project to Age", control: control, description: "The age at which you want the projection to end (e.g., your life expectancy)." },
     { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from." },
     { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system attempts to meet this using simplified UK basic rate income tax calculations (20% on income above Personal Allowance). It does not account for National Insurance, different UK tax bands (e.g., higher/additional rates, Scottish rates), dividend tax, or capital gains tax." },
   ];
@@ -523,12 +531,7 @@ export default function PensionPilotPage() {
               <CardTitle className="text-3xl font-headline">Pension Projection Calculator</CardTitle>
             </div>
             <CardDescription>
-              Enter your financial details to project your retirement income up to age 90.
-              All percentage inputs should be entered as numbers (e.g., 5 for 5%).
-              No data is stored. All information is for your eyes only.
-              <p className="mt-4 border-t border-border pt-3 text-muted-foreground italic text-xs">
-                <strong>Disclaimer:</strong> The information provided on this app is for educational and informational purposes only and should not be considered financial advice. While I aim to share useful insights and general guidance, I am not a licensed financial advisor, and the content shared does not take into account your individual financial situation, needs, or goals. Always do your own research to ensure that any options are right for your specific circumstances.
-              </p>
+              All percentage inputs should be entered as numbers (e.g., 5 for 5%). No data is stored. All information is for your eyes only.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -732,7 +735,7 @@ export default function PensionPilotPage() {
           <>
             <section aria-labelledby="data-visualization-heading" className="mt-12">
               <h2 id="data-visualization-heading" className="text-2xl font-headline font-semibold mb-6 text-center text-primary">
-                Your Pension Projection Results (up to Age 90)
+                Your Pension Projection Results (up to Age {calculatedData.parameters.projectionEndAge})
               </h2>
                {calculatedData.parameters.takeTaxFreeLumpSum && calculatedData.parameters.taxFreeLumpSumTaken !== undefined && (
                 <Alert variant="default" className="mb-4 bg-primary/10 border-primary/30">
@@ -804,7 +807,10 @@ export default function PensionPilotPage() {
       </main>
 
       <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border mt-auto">
-        {footerYear !== null ? <p>&copy; {footerYear} PensionView+. All rights reserved.</p> : <p>&copy; PensionView+. All rights reserved.</p>}
+        <p className="px-4 text-xs italic">
+          Disclaimer: The information provided on this app is for educational and informational purposes only and should not be considered financial advice. While I aim to share useful insights and general guidance, I am not a licensed financial advisor, and the content shared does not take into account your individual financial situation, needs, or goals. Always do your own research to ensure that any options are right for your specific circumstances.
+        </p>
+        <p className="mt-4">&copy; {footerYear ?? new Date().getFullYear()} PensionView+. All rights reserved.</p>
         <p>Pension planning, simplified.</p>
       </footer>
     </div>

@@ -55,6 +55,7 @@ export interface PensionDataRow {
 export interface PensionCalculationParameters {
   currentAge: number;
   projectionStartYear: number;
+  projectionEndAge: number;
   targetAnnualNetIncome: number;
 
   initialDbPensionAmount: number;

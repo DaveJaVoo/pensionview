@@ -58,7 +58,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           inflationRate: financialParams.inflationRate,
           statePensionAge: financialParams.statePensionAge,
           currentAge: financialParams.currentAge,
-          projectionEndAge: 90, 
+          projectionEndAge: financialParams.projectionEndAge, 
           targetAnnualNetIncome: financialParams.targetAnnualNetIncome,
           initialOtherIncome: financialParams.initialOtherIncome,
         };
@@ -104,7 +104,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           <CardTitle className="font-headline text-2xl">AI Drawdown Optimization (DC & SIPP)</CardTitle>
         </div>
         <CardDescription className="text-primary-foreground/80 pt-1">
-          Receive AI-driven suggestions to adjust UFPLS drawdown from both your DC Pension and SIPP to aim for a zero balance in each pot at plan end (age 90). Considers your target net income, savings (Cash, ISA, GIA), contributions, and tax-free lump sum choices for both pension types.
+          Receive AI-driven suggestions to adjust UFPLS drawdown from both your DC Pension and SIPP to aim for a zero balance in each pot at plan end (age {financialParams.projectionEndAge}). Considers your target net income, savings (Cash, ISA, GIA), contributions, and tax-free lump sum choices for both pension types.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
