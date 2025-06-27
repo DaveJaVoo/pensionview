@@ -168,7 +168,7 @@ export default function PensionPilotPage() {
   const [calculatedSippLumpSumDisplay, setCalculatedSippLumpSumDisplay] = useState<number>(0);
   const [footerYear, setFooterYear] = useState<number | null>(null);
   const [yearInBrief, setYearInBrief] = useState<string>('');
-  const [summaryText, setSummaryText] = useState<string>('');
+  const [summaryText, setSummaryText] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     setFooterYear(new Date().getFullYear());
@@ -321,7 +321,7 @@ export default function PensionPilotPage() {
     setIsLoading(true);
     setCalculationError(null);
     setCalculatedData(null);
-    setSummaryText('');
+    setSummaryText(null);
     setYearInBrief('');
     try {
       const parameters: PensionCalculationParameters = { ...data };
@@ -341,7 +341,7 @@ export default function PensionPilotPage() {
 
   useEffect(() => {
     if (!calculatedData || !yearInBrief) {
-        setSummaryText('');
+        setSummaryText(null);
         return;
     }
 
@@ -352,39 +352,57 @@ export default function PensionPilotPage() {
         return;
     }
 
-    const withdrawals: string[] = [];
+    const formatBoldCurrency = (value: number | string | undefined) => {
+      return <strong className="font-semibold">{formatCurrency(value)}</strong>;
+    };
+    
+    const incomeSources: React.ReactNode[] = [];
+
+    if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
+        incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
+    }
+    if (rowData['State Pension'] && rowData['State Pension'] > 0) {
+        incomeSources.push(<> {formatBoldCurrency(rowData['State Pension'])} from State Pension</>);
+    }
     if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
-        withdrawals.push(`${formatCurrency(rowData['DC Pension Drawdown'])} from your DC Pension`);
+        incomeSources.push(<> {formatBoldCurrency(rowData['DC Pension Drawdown'])} from your DC Pension</>);
     }
     if (rowData['SIPP Drawdown'] && rowData['SIPP Drawdown'] > 0) {
-        withdrawals.push(`${formatCurrency(rowData['SIPP Drawdown'])} from your SIPP`);
+        incomeSources.push(<> {formatBoldCurrency(rowData['SIPP Drawdown'])} from your SIPP</>);
+    }
+    if (rowData['Other Income'] && rowData['Other Income'] > 0) {
+        incomeSources.push(<> {formatBoldCurrency(rowData['Other Income'])} from other income sources</>);
     }
     if (rowData['Withdraw from Cash'] && rowData['Withdraw from Cash'] > 0) {
-        withdrawals.push(`${formatCurrency(rowData['Withdraw from Cash'])} from your Cash Savings`);
+        incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from Cash'])} from your Cash Savings</>);
     }
     if (rowData['Withdraw from ISA'] && rowData['Withdraw from ISA'] > 0) {
-        withdrawals.push(`${formatCurrency(rowData['Withdraw from ISA'])} from your ISA`);
+        incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from ISA'])} from your ISA</>);
     }
     if (rowData['Withdraw from GIA'] && rowData['Withdraw from GIA'] > 0) {
-        withdrawals.push(`${formatCurrency(rowData['Withdraw from GIA'])} from your GIA`);
+        incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from GIA'])} from your GIA</>);
     }
-
-    let withdrawalText = '';
-    if (withdrawals.length > 0) {
-        if (withdrawals.length > 1) {
-            const last = withdrawals.pop();
-            withdrawalText = `you will take ${withdrawals.join(', ')} and ${last}`;
-        } else {
-            withdrawalText = `you will take ${withdrawals[0]}`;
-        }
+    
+    let incomeText: React.ReactNode;
+    if (incomeSources.length > 0) {
+        const joinedSources = incomeSources.reduce((acc, curr, index) => {
+            if (index === 0) return [curr];
+            if (index === incomeSources.length - 1) return [...acc, ' and', curr];
+            return [...acc, ',', curr];
+        }, [] as React.ReactNode[]);
+        incomeText = <>you will draw income of{...joinedSources}</>;
     } else {
-        withdrawalText = 'you will not need to take any withdrawals';
+        incomeText = 'you will not need to draw any income';
     }
 
-    const taxPaid = rowData['Income Tax Paid'] > 0 ? formatCurrency(rowData['Income Tax Paid']) : '£0';
-    const netIncome = formatCurrency(rowData['Net Income Per Year']);
+    const taxPaid = rowData['Income Tax Paid'] > 0 ? formatBoldCurrency(rowData['Income Tax Paid']) : <strong>£0</strong>;
+    const netIncome = formatBoldCurrency(rowData['Net Income Per Year']);
 
-    const finalSummary = `In ${yearInBrief}, ${withdrawalText}. You will pay ${taxPaid} in Income Tax and your Net Income will be ${netIncome}.`;
+    const finalSummary = (
+        <>
+            In <strong className="font-semibold">{yearInBrief}</strong>, {incomeText}. You will pay {taxPaid} in Income Tax and your Net Income will be {netIncome}.
+        </>
+    );
     setSummaryText(finalSummary);
 
   }, [yearInBrief, calculatedData]);
@@ -408,7 +426,7 @@ export default function PensionPilotPage() {
     setCalculatedData(null);
     setCalculationError(null);
     setYearInBrief('');
-    setSummaryText('');
+    setSummaryText(null);
     
     const newInitialDcPensionValue = getValues("initialDcPensionValue");
     const newTakeTaxFreeLumpSum = getValues("takeTaxFreeLumpSum");
