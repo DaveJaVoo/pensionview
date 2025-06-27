@@ -25,7 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
-const SCHEMA_FALLBACK_YEAR = 2024; 
+const SCHEMA_FALLBACK_YEAR = new Date().getFullYear();
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
@@ -50,7 +50,7 @@ const formSchema = z.object({
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
-  inflationRate: z.coerce.number().min(-10).max(20).default(4),
+  inflationRate: z.coerce.number().min(-10).max(20).default(2),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
 
@@ -167,6 +167,8 @@ export default function PensionPilotPage() {
   const [calculatedLumpSumDisplay, setCalculatedLumpSumDisplay] = useState<number>(0);
   const [calculatedSippLumpSumDisplay, setCalculatedSippLumpSumDisplay] = useState<number>(0);
   const [footerYear, setFooterYear] = useState<number | null>(null);
+  const [yearInBrief, setYearInBrief] = useState<string>('');
+  const [summaryText, setSummaryText] = useState<string>('');
 
   useEffect(() => {
     setFooterYear(new Date().getFullYear());
@@ -181,6 +183,7 @@ export default function PensionPilotPage() {
        dcContributionEndAge: 67,
        sippContributionStartAge: 55,
        sippContributionEndAge: 67,
+       projectionStartYear: new Date().getFullYear(),
     }), 
   });
   
@@ -318,10 +321,15 @@ export default function PensionPilotPage() {
     setIsLoading(true);
     setCalculationError(null);
     setCalculatedData(null);
+    setSummaryText('');
+    setYearInBrief('');
     try {
       const parameters: PensionCalculationParameters = { ...data };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
+      if (result.rows.length > 0) {
+        setYearInBrief(String(result.rows[0].Year));
+      }
     } catch (error) {
       console.error("Failed to calculate pension data:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during calculation.";
@@ -330,6 +338,57 @@ export default function PensionPilotPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!calculatedData || !yearInBrief) {
+        setSummaryText('');
+        return;
+    }
+
+    const rowData = calculatedData.rows.find(row => String(row.Year) === String(yearInBrief));
+
+    if (!rowData) {
+        setSummaryText(`No data available for the year ${yearInBrief}. Please enter a year between ${calculatedData.rows[0].Year} and ${calculatedData.rows[calculatedData.rows.length - 1].Year}.`);
+        return;
+    }
+
+    const withdrawals: string[] = [];
+    if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
+        withdrawals.push(`${formatCurrency(rowData['DC Pension Drawdown'])} from your DC Pension`);
+    }
+    if (rowData['SIPP Drawdown'] && rowData['SIPP Drawdown'] > 0) {
+        withdrawals.push(`${formatCurrency(rowData['SIPP Drawdown'])} from your SIPP`);
+    }
+    if (rowData['Withdraw from Cash'] && rowData['Withdraw from Cash'] > 0) {
+        withdrawals.push(`${formatCurrency(rowData['Withdraw from Cash'])} from your Cash Savings`);
+    }
+    if (rowData['Withdraw from ISA'] && rowData['Withdraw from ISA'] > 0) {
+        withdrawals.push(`${formatCurrency(rowData['Withdraw from ISA'])} from your ISA`);
+    }
+    if (rowData['Withdraw from GIA'] && rowData['Withdraw from GIA'] > 0) {
+        withdrawals.push(`${formatCurrency(rowData['Withdraw from GIA'])} from your GIA`);
+    }
+
+    let withdrawalText = '';
+    if (withdrawals.length > 0) {
+        if (withdrawals.length > 1) {
+            const last = withdrawals.pop();
+            withdrawalText = `you will take ${withdrawals.join(', ')} and ${last}`;
+        } else {
+            withdrawalText = `you will take ${withdrawals[0]}`;
+        }
+    } else {
+        withdrawalText = 'you will not need to take any withdrawals';
+    }
+
+    const taxPaid = rowData['Income Tax Paid'] > 0 ? formatCurrency(rowData['Income Tax Paid']) : '£0';
+    const netIncome = formatCurrency(rowData['Net Income Per Year']);
+
+    const finalSummary = `In ${yearInBrief}, ${withdrawalText}. You will pay ${taxPaid} in Income Tax and your Net Income will be ${netIncome}.`;
+    setSummaryText(finalSummary);
+
+  }, [yearInBrief, calculatedData]);
+
 
   const handleResetForm = () => {
     const clientCurrentYear = new Date().getFullYear();
@@ -340,6 +399,7 @@ export default function PensionPilotPage() {
         dcContributionEndAge: 67,
         sippContributionStartAge: 55,
         sippContributionEndAge: 67,
+        projectionStartYear: clientCurrentYear,
     });
     reset({
       ...defaultValues,
@@ -347,6 +407,8 @@ export default function PensionPilotPage() {
     });
     setCalculatedData(null);
     setCalculationError(null);
+    setYearInBrief('');
+    setSummaryText('');
     
     const newInitialDcPensionValue = getValues("initialDcPensionValue");
     const newTakeTaxFreeLumpSum = getValues("takeTaxFreeLumpSum");
@@ -678,6 +740,34 @@ export default function PensionPilotPage() {
                 <PensionCharts data={calculatedData.rows} />
               )}
             </section>
+            
+            <Card className="mt-8 shadow-xl rounded-xl">
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl">Year in Brief</CardTitle>
+                    <CardDescription>Enter a year from your projection to see a quick summary of the results for that year.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center gap-4">
+                        <Label htmlFor="yearInBrief" className="font-semibold shrink-0">Enter Year:</Label>
+                        <Input
+                            id="yearInBrief"
+                            type="number"
+                            value={yearInBrief}
+                            onChange={(e) => setYearInBrief(e.target.value)}
+                            placeholder="e.g., 2030"
+                            className="w-32"
+                        />
+                    </div>
+                    {summaryText && (
+                        <Alert className="bg-primary/10 border-primary/30">
+                            <InfoIcon className="h-5 w-5 text-primary" />
+                            <AlertDescription className="text-primary/90">
+                                {summaryText}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 items-start mt-12">
               <section aria-labelledby="drawdown-optimization-heading" className="lg:col-span-1">
@@ -699,5 +789,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
