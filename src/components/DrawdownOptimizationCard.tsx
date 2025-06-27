@@ -31,6 +31,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
     setSuggestion(null);
     startTransition(async () => {
       try {
+        const ageAtProjectionStart = financialParams.currentAge + (financialParams.projectionStartYear - financialParams.calculationTriggerYear);
         const input: DrawdownOptimizationInput = {
           pensionDataCsv: csvDataString,
           initialDcPensionValue: financialParams.initialDcPensionValue,
@@ -57,7 +58,7 @@ const DrawdownOptimizationCard: FC<DrawdownOptimizationCardProps> = ({ csvDataSt
           giaGrowthRate: financialParams.giaGrowthRate,
           inflationRate: financialParams.inflationRate,
           statePensionAge: financialParams.statePensionAge,
-          currentAge: financialParams.currentAge,
+          projectionStartAge: ageAtProjectionStart,
           projectionEndAge: financialParams.projectionEndAge, 
           targetAnnualNetIncome: financialParams.targetAnnualNetIncome,
           initialOtherIncome: financialParams.initialOtherIncome,

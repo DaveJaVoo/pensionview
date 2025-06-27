@@ -72,8 +72,12 @@ const formSchema = z.object({
 }).refine(data => data.sippContributionEndAge > data.sippContributionStartAge, {
   message: "SIPP Contribution End Age must be after Start Age.",
   path: ["sippContributionEndAge"],
-}).refine(data => data.projectionEndAge > data.currentAge, {
-    message: "Projection End Age must be after Current Age.",
+}).refine(data => {
+    const triggerYear = new Date().getFullYear();
+    const ageAtProjectionStart = data.currentAge + (data.projectionStartYear - triggerYear);
+    return data.projectionEndAge > ageAtProjectionStart;
+}, {
+    message: "Projection End Age must be after the calculated age at the start of the projection.",
     path: ["projectionEndAge"],
 });
 
@@ -336,7 +340,8 @@ export default function PensionPilotPage() {
     setSummaryText(null);
     setYearInBrief('');
     try {
-      const parameters: PensionCalculationParameters = { ...data };
+      const triggerYear = new Date().getFullYear();
+      const parameters: PensionCalculationParameters = { ...data, calculationTriggerYear: triggerYear };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
       if (result.rows.length > 0) {
@@ -465,8 +470,8 @@ export default function PensionPilotPage() {
 
   const coreParamsFields: FormFieldProps[] = [
     { name: "currentAge", label: "Current Age", control: control, description: "Your current age. DC & SIPP Pension Contributions will default to start from this age." },
+    { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from. The projection will calculate your starting age based on your Current Age and this year." },
     { name: "projectionEndAge", label: "Project to Age", control: control, description: "The age at which you want the projection to end (e.g., your life expectancy)." },
-    { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from." },
     { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system attempts to meet this using simplified UK basic rate income tax calculations (20% on income above Personal Allowance). It does not account for National Insurance, different UK tax bands (e.g., higher/additional rates, Scottish rates), dividend tax, or capital gains tax." },
   ];
 
@@ -829,5 +834,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    

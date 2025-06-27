@@ -4,7 +4,7 @@ import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './t
 
 export function calculatePensionProjection(params: PensionCalculationParameters): CalculatedPensionData {
   const {
-    currentAge, projectionStartYear, projectionEndAge, targetAnnualNetIncome,
+    currentAge, projectionStartYear, projectionEndAge, targetAnnualNetIncome, calculationTriggerYear,
     initialDbPensionAmount, dbPensionStartAge,
     statePensionAge, initialStatePensionAmount,
     initialOtherIncome, initialFasAmount, fasStartAge,
@@ -21,8 +21,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     initialCashSavings, initialIsaAmount, isaGrowthRate, initialGiaAmount, giaGrowthRate
   } = params;
 
-  if (projectionEndAge <= currentAge) {
-    throw new Error('Projection End Age must be greater than Current Age.');
+  const ageAtProjectionStart = currentAge + (projectionStartYear - calculationTriggerYear);
+  
+  if (projectionEndAge <= ageAtProjectionStart) {
+    throw new Error('Projection End Age must be greater than the calculated age at the start of the projection.');
   }
 
   const headers: string[] = ['Age', 'Year'];
@@ -109,33 +111,32 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     sippTaxFreeLumpSumTaken: sippTaxFreeLumpSumTakenAmount,
   };
 
-  let initialDcPension = 0;
-  let initialSipp = 0;
+  for (let age = ageAtProjectionStart; age <= projectionEndAge; age++) {
+    const yearOffset = age - ageAtProjectionStart;
+    const currentYear = projectionStartYear + yearOffset;
+    const currentYearStr = currentYear.toString();
 
-  for (let age = currentAge; age <= projectionEndAge; age++) {
-    const yearOffset = age - currentAge;
-    const currentYearStr = (projectionStartYear + yearOffset).toString();
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
 
     const row: PensionDataRow = { Age: age, Year: currentYearStr };
 
     // --- POT CALCULATIONS (before withdrawals for the year) ---
-    initialDcPension = previousRow ? (previousRow['DC Pension Balance'] || 0) : actualInitialDcPensionForProjection;
+    const initialDcPension = previousRow ? (previousRow['DC Pension Balance'] || 0) : actualInitialDcPensionForProjection;
     const dcContributionThisYear = (age >= dcContributionStartAge && age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     const dcPotBeforeGrowth = initialDcPension + dcContributionThisYear;
     const dcGrowth = dcPotBeforeGrowth * invGrowthDecimal;
     const dcPotAfterGrowth = dcPotBeforeGrowth + dcGrowth;
     const dcAmcCharge = dcPotAfterGrowth * amcDecimal;
-    const dcPotForDrawdown = dcPotAfterGrowth - dcAmcCharge;
+    const dcPotForDrawdown = Math.max(0, dcPotAfterGrowth - dcAmcCharge);
 
-    initialSipp = previousRow ? (previousRow['SIPP Balance'] || 0) : actualInitialSippForProjection;
+    const initialSipp = previousRow ? (previousRow['SIPP Balance'] || 0) : actualInitialSippForProjection;
     const sippContributionThisYear = (age >= sippContributionStartAge && age < sippContributionEndAge && annualSippContribution > 0) ? annualSippContribution : 0;
     const sippPotBeforeGrowth = initialSipp + sippContributionThisYear;
     const sippGrowth = sippPotBeforeGrowth * sippInvGrowthDecimal;
     const sippPotAfterGrowth = sippPotBeforeGrowth + sippGrowth;
     const sippAmcCharge = sippPotAfterGrowth * sippAmcDecimal;
-    const sippPotForDrawdown = sippPotAfterGrowth - sippAmcCharge;
+    const sippPotForDrawdown = Math.max(0, sippPotAfterGrowth - sippAmcCharge);
 
     const initialCash = showCash ? (previousRow ? (previousRow['Cash Savings Balance'] || 0) : initialCashSavings) : 0;
     const isaStartOfYear = (previousRow ? (previousRow['ISA Balance'] || 0) : initialIsaAmount);
@@ -167,25 +168,21 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (netShortfall > 0) {
       let paRoom = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
       if (paRoom > 0 && showDcPension) {
-        const taxablePortion = 1 - dcUfplsTaxFreePortion;
-        if (taxablePortion > 0) {
-          const grossNeeded = paRoom / taxablePortion;
+          const taxablePortion = 1 - dcUfplsTaxFreePortion;
+          const grossNeeded = taxablePortion > 0 ? paRoom / taxablePortion : paRoom;
           const draw = Math.min(dcPotForDrawdown, grossNeeded, netShortfall);
           dcDrawdown += draw;
           netShortfall -= draw;
-        }
       }
-      if (netShortfall > 0 && showSipp) {
+      if (netShortfall > 0 && paRoom > 0 && showSipp) {
         const currentTaxable = fixedTaxableIncome + (dcDrawdown * (1 - dcUfplsTaxFreePortion));
         paRoom = Math.max(0, currentPersonalAllowance - currentTaxable);
         if (paRoom > 0) {
           const taxablePortion = 1 - sippUfplsTaxFreePortion;
-          if (taxablePortion > 0) {
-            const grossNeeded = paRoom / taxablePortion;
-            const draw = Math.min(sippPotForDrawdown, grossNeeded, netShortfall);
-            sippDrawdown += draw;
-            netShortfall -= draw;
-          }
+          const grossNeeded = taxablePortion > 0 ? paRoom / taxablePortion : paRoom;
+          const draw = Math.min(sippPotForDrawdown, grossNeeded, netShortfall);
+          sippDrawdown += draw;
+          netShortfall -= draw;
         }
       }
     }
@@ -234,13 +231,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       if (showDcPension) {
         const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
         if (dcStandardWithdrawal > dcDrawdown) {
-          dcDrawdown = dcStandardWithdrawal;
+          dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
         }
       }
       if (showSipp) {
         const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
         if (sippStandardWithdrawal > sippDrawdown) {
-          sippDrawdown = sippStandardWithdrawal;
+          sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
         }
       }
     }

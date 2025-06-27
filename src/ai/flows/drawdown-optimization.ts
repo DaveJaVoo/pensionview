@@ -40,7 +40,7 @@ const DrawdownOptimizationInputSchema = z.object({
   giaGrowthRate: z.number().optional().describe('The GIA investment percentage growth rate.'),
   inflationRate: z.number().describe('The inflation rate.'),
   statePensionAge: z.number().describe('The age at which state pension begins, influencing drawdown needs.'),
-  currentAge: z.number().optional().describe('User current age from the projection.'),
+  projectionStartAge: z.number().optional().describe('The user\'s age at the start of the projection.'),
   projectionEndAge: z.number().optional().describe('The end age of the projection (e.g. 90).'),
   targetAnnualNetIncome: z.number().optional().describe('The user\'s target annual income AFTER TAX.'),
   initialOtherIncome: z.number().optional().describe("The user's other regular annual income, which is assumed to grow with inflation."),
@@ -115,7 +115,7 @@ const prompt = ai.definePrompt({
   - GIA Growth Rate: {{giaGrowthRate}}%
   - Inflation Rate: {{inflationRate}}%
   - State Pension Age: {{statePensionAge}}
-  {{#if currentAge}}- Current Age: {{currentAge}}{{/if}}
+  {{#if projectionStartAge}}- Projection Start Age: {{projectionStartAge}}{{/if}}
   {{#if projectionEndAge}}- Projection End Age: {{projectionEndAge}}{{/if}}
   {{#if targetAnnualNetIncome}}- Target Annual Net Income: {{targetAnnualNetIncome}}{{/if}}
   {{#if initialOtherIncome}}- Other Regular Annual Income (inflating): {{initialOtherIncome}}{{/if}}
