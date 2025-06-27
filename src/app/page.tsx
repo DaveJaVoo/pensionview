@@ -29,7 +29,7 @@ const SCHEMA_FALLBACK_YEAR = new Date().getFullYear();
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
-  projectionStartYear: z.coerce.number().min(SCHEMA_FALLBACK_YEAR - 20).max(SCHEMA_FALLBACK_YEAR + 20).default(SCHEMA_FALLBACK_YEAR),
+  projectionStartYear: z.coerce.number().min(SCHEMA_FALLBACK_YEAR - 20).max(SCHEMA_FALLBACK_YEAR + 50).default(SCHEMA_FALLBACK_YEAR),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
