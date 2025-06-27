@@ -115,6 +115,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const yearOffset = age - ageAtProjectionStart;
     const currentYear = projectionStartYear + yearOffset;
     const currentYearStr = currentYear.toString();
+    const minPensionAccessAge = currentYear >= 2028 ? 57 : 55;
 
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
@@ -164,30 +165,35 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     let netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
 
-    // STEP 1: USE PENSION TO FILL PERSONAL ALLOWANCE
-    if (netShortfall > 0) {
-      let paRoom = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
-      if (paRoom > 0 && showDcPension) {
-          const taxablePortion = 1 - dcUfplsTaxFreePortion;
-          const grossNeeded = taxablePortion > 0 ? paRoom / taxablePortion : paRoom;
-          const draw = Math.min(dcPotForDrawdown, grossNeeded, netShortfall);
-          dcDrawdown += draw;
-          netShortfall -= draw;
-      }
-      if (netShortfall > 0 && paRoom > 0 && showSipp) {
-        const currentTaxable = fixedTaxableIncome + (dcDrawdown * (1 - dcUfplsTaxFreePortion));
-        paRoom = Math.max(0, currentPersonalAllowance - currentTaxable);
-        if (paRoom > 0) {
-          const taxablePortion = 1 - sippUfplsTaxFreePortion;
-          const grossNeeded = taxablePortion > 0 ? paRoom / taxablePortion : paRoom;
-          const draw = Math.min(sippPotForDrawdown, grossNeeded, netShortfall);
-          sippDrawdown += draw;
-          netShortfall -= draw;
+    // PENSION AND SAVINGS WITHDRAWAL LOGIC
+    if (age >= minPensionAccessAge) {
+      // 1. USE PENSION TO FILL PERSONAL ALLOWANCE
+      if (netShortfall > 0) {
+        let paRoom = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
+        if (paRoom > 0 && showDcPension) {
+            const taxablePortion = 1 - dcUfplsTaxFreePortion;
+            const grossNeededForPa = taxablePortion > 0 ? paRoom : paRoom; // Simplified, as PA is tax free
+            const netFromGrossNeededPa = grossNeededForPa; 
+            const draw = Math.min(dcPotForDrawdown, grossNeededForPa, netShortfall);
+            dcDrawdown += draw;
+            netShortfall -= draw; 
+        }
+        if (netShortfall > 0 && showSipp) {
+          const currentTaxable = fixedTaxableIncome + (dcDrawdown * (1 - dcUfplsTaxFreePortion));
+          let paRoomForSipp = Math.max(0, currentPersonalAllowance - currentTaxable);
+          if (paRoomForSipp > 0) {
+            const taxablePortion = 1 - sippUfplsTaxFreePortion;
+            const grossNeededForPa = taxablePortion > 0 ? paRoomForSipp : paRoomForSipp;
+            const netFromGrossNeededPa = grossNeededForPa;
+            const draw = Math.min(sippPotForDrawdown, grossNeededForPa, netShortfall);
+            sippDrawdown += draw;
+            netShortfall -= draw; 
+          }
         }
       }
     }
     
-    // STEP 2: USE SAVINGS
+    // 2. USE SAVINGS
     if (netShortfall > 0 && showCash) {
       const draw = Math.min(initialCash, netShortfall);
       cashWithdrawal += draw;
@@ -204,40 +210,44 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       netShortfall -= draw;
     }
 
-    // STEP 3: USE PENSION TAXABLY
-    if (netShortfall > 0 && showDcPension) {
-      const taxablePortion = 1 - dcUfplsTaxFreePortion;
-      const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
-      if (netPerGross > 0) {
-        const grossNeeded = netShortfall / netPerGross;
-        const draw = Math.min(dcPotForDrawdown - dcDrawdown, grossNeeded);
-        dcDrawdown += draw;
-        netShortfall -= draw * netPerGross;
-      }
-    }
-    if (netShortfall > 0 && showSipp) {
-      const taxablePortion = 1 - sippUfplsTaxFreePortion;
-      const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
-      if (netPerGross > 0) {
-        const grossNeeded = netShortfall / netPerGross;
-        const draw = Math.min(sippPotForDrawdown - sippDrawdown, grossNeeded);
-        sippDrawdown += draw;
-        netShortfall -= draw * netPerGross;
-      }
-    }
-
-    // STEP 4: APPLY MINIMUM WITHDRAWAL RATE (ADDITIVE)
-    if (age >= statePensionAge) {
-      if (showDcPension) {
-        const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
-        if (dcStandardWithdrawal > dcDrawdown) {
-          dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
+    if (age >= minPensionAccessAge) {
+      // 3. USE PENSION TAXABLY
+      if (netShortfall > 0) {
+        if (showDcPension) {
+          const taxablePortion = 1 - dcUfplsTaxFreePortion;
+          const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
+          if (netPerGross > 0) {
+            const grossNeeded = netShortfall / netPerGross;
+            const draw = Math.min(dcPotForDrawdown - dcDrawdown, grossNeeded);
+            dcDrawdown += draw;
+            netShortfall -= draw * netPerGross;
+          }
+        }
+        if (showSipp && netShortfall > 0) {
+          const taxablePortion = 1 - sippUfplsTaxFreePortion;
+          const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
+          if (netPerGross > 0) {
+            const grossNeeded = netShortfall / netPerGross;
+            const draw = Math.min(sippPotForDrawdown - sippDrawdown, grossNeeded);
+            sippDrawdown += draw;
+            netShortfall -= draw * netPerGross;
+          }
         }
       }
-      if (showSipp) {
-        const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
-        if (sippStandardWithdrawal > sippDrawdown) {
-          sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
+
+      // 4. APPLY MINIMUM WITHDRAWAL RATE (ADDITIVE)
+      if (age >= statePensionAge) {
+        if (showDcPension) {
+          const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
+          if (dcStandardWithdrawal > dcDrawdown) {
+            dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
+          }
+        }
+        if (showSipp) {
+          const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
+          if (sippStandardWithdrawal > sippDrawdown) {
+            sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
+          }
         }
       }
     }

@@ -338,8 +338,20 @@ export default function PensionPilotPage() {
     setCalculatedData(null);
     setSummaryText(null);
     setYearInBrief('');
+
+    const triggerYear = new Date().getFullYear();
+    const ageAtProjectionStart = data.currentAge + (data.projectionStartYear - triggerYear);
+    const minPensionAccessAge = data.projectionStartYear >= 2028 ? 57 : 55;
+
+    const hasPension = data.initialDcPensionValue > 0 || data.annualDcPensionContribution > 0 || data.initialSippValue > 0 || data.annualSippContribution > 0;
+
+    if (hasPension && ageAtProjectionStart < minPensionAccessAge) {
+        setCalculationError(`Pension projection cannot begin before the legal access age. For a ${data.projectionStartYear} start, the minimum age is ${minPensionAccessAge}, but your calculated starting age is ${ageAtProjectionStart}. Please adjust the Projection Start Year or Current Age.`);
+        setIsLoading(false);
+        return;
+    }
+
     try {
-      const triggerYear = new Date().getFullYear();
       const parameters: PensionCalculationParameters = { ...data, calculationTriggerYear: triggerYear };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
