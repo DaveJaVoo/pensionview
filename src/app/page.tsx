@@ -71,13 +71,6 @@ const formSchema = z.object({
 }).refine(data => data.sippContributionEndAge > data.sippContributionStartAge, {
   message: "SIPP Contribution End Age must be after Start Age.",
   path: ["sippContributionEndAge"],
-}).refine(data => {
-    const triggerYear = new Date().getFullYear();
-    const ageAtProjectionStart = data.currentAge + (data.projectionStartYear - triggerYear);
-    return data.projectionEndAge > ageAtProjectionStart;
-}, {
-    message: "Projection End Age must be after the calculated age at the start of the projection.",
-    path: ["projectionEndAge"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -321,22 +314,14 @@ export default function PensionPilotPage() {
   const inflation = watch("inflationRate");
 
   const realGrowthDC = useMemo(() => {
-    const growthVal = parseFloat(String(investmentGrowth));
-    const inflationVal = parseFloat(String(inflation));
-    
-    const growth = !isNaN(growthVal) ? growthVal : 0;
-    const infl = !isNaN(inflationVal) ? inflationVal : 0;
-
+    const growth = parseFloat(String(investmentGrowth)) || 0;
+    const infl = parseFloat(String(inflation)) || 0;
     return (growth - infl).toFixed(2);
   }, [investmentGrowth, inflation]);
 
   const realGrowthSIPP = useMemo(() => {
-    const growthVal = parseFloat(String(sippInvestmentGrowth));
-    const inflationVal = parseFloat(String(inflation));
-    
-    const growth = !isNaN(growthVal) ? growthVal : 0;
-    const infl = !isNaN(inflationVal) ? inflationVal : 0;
-
+    const growth = parseFloat(String(sippInvestmentGrowth)) || 0;
+    const infl = parseFloat(String(inflation)) || 0;
     return (growth - infl).toFixed(2);
   }, [sippInvestmentGrowth, inflation]);
 
@@ -350,8 +335,14 @@ export default function PensionPilotPage() {
 
     const triggerYear = new Date().getFullYear();
     const ageAtProjectionStart = data.currentAge + (data.projectionStartYear - triggerYear);
-    const minPensionAccessAge = data.projectionStartYear >= 2028 ? 57 : 55;
 
+    if (data.projectionEndAge <= ageAtProjectionStart) {
+        setCalculationError("Projection End Age must be after the calculated age at the start of the projection. Please adjust the Projection End Age or other parameters.");
+        setIsLoading(false);
+        return;
+    }
+
+    const minPensionAccessAge = data.projectionStartYear >= 2028 ? 57 : 55;
     const hasPension = data.initialDcPensionValue > 0 || data.annualDcPensionContribution > 0 || data.initialSippValue > 0 || data.annualSippContribution > 0;
 
     if (hasPension && ageAtProjectionStart < minPensionAccessAge) {
