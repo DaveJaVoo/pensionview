@@ -314,22 +314,18 @@ export default function PensionPilotPage() {
   const inflation = watch("inflationRate");
 
   const realGrowthDC = useMemo(() => {
-    if (!isFormInitialized) return '...'; 
-    const growthVal = getValues("investmentPercentageGrowth");
-    const inflationVal = getValues("inflationRate");
-    const growth = typeof growthVal === 'number' ? growthVal : 0;
-    const infl = typeof inflationVal === 'number' ? inflationVal : 0;
+    if (!isFormInitialized) return '...';
+    const growth = typeof investmentGrowth === 'number' ? investmentGrowth : 0;
+    const infl = typeof inflation === 'number' ? inflation : 0;
     return (growth - infl).toFixed(2);
-  }, [isFormInitialized, investmentGrowth, inflation, getValues]);
+  }, [isFormInitialized, investmentGrowth, inflation]);
 
   const realGrowthSIPP = useMemo(() => {
     if (!isFormInitialized) return '...';
-    const growthVal = getValues("sippInvestmentPercentageGrowth");
-    const inflationVal = getValues("inflationRate");
-    const growth = typeof growthVal === 'number' ? growthVal : 0;
-    const infl = typeof inflationVal === 'number' ? inflationVal : 0;
+    const growth = typeof sippInvestmentGrowth === 'number' ? sippInvestmentGrowth : 0;
+    const infl = typeof inflation === 'number' ? inflation : 0;
     return (growth - infl).toFixed(2);
-  }, [isFormInitialized, sippInvestmentGrowth, inflation, getValues]);
+  }, [isFormInitialized, sippInvestmentGrowth, inflation]);
 
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
@@ -517,7 +513,7 @@ export default function PensionPilotPage() {
   const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
-    { name: "initialFasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", icon: LifeBuoy, description: "Annual amount from the Financial Assistance Scheme (FAS). This is treated as gross taxable income. The projection calculates the total tax due and includes it in the 'Income Tax Paid' column." },
+    { name: "initialFasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", icon: LifeBuoy, description: "Annual amount from the Financial Assistance Scheme (FAS). This is treated as taxable income and the result shown in the projection will reflect this" },
     { name: "fasStartAge", label: "FAS Start Age", control: control, description: "Age at which FAS payments begin." },
     { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
     { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC & SIPP Pension Contributions will default to end at this age." },
