@@ -314,18 +314,24 @@ export default function PensionPilotPage() {
   const inflation = watch("inflationRate");
 
   const realGrowthDC = useMemo(() => {
-    if (!isFormInitialized) return '...';
-    const growth = typeof investmentGrowth === 'number' ? investmentGrowth : 0;
-    const infl = typeof inflation === 'number' ? inflation : 0;
+    const growthVal = parseFloat(String(investmentGrowth));
+    const inflationVal = parseFloat(String(inflation));
+    
+    const growth = !isNaN(growthVal) ? growthVal : 0;
+    const infl = !isNaN(inflationVal) ? inflationVal : 0;
+
     return (growth - infl).toFixed(2);
-  }, [isFormInitialized, investmentGrowth, inflation]);
+  }, [investmentGrowth, inflation]);
 
   const realGrowthSIPP = useMemo(() => {
-    if (!isFormInitialized) return '...';
-    const growth = typeof sippInvestmentGrowth === 'number' ? sippInvestmentGrowth : 0;
-    const infl = typeof inflation === 'number' ? inflation : 0;
+    const growthVal = parseFloat(String(sippInvestmentGrowth));
+    const inflationVal = parseFloat(String(inflation));
+    
+    const growth = !isNaN(growthVal) ? growthVal : 0;
+    const infl = !isNaN(inflationVal) ? inflationVal : 0;
+
     return (growth - infl).toFixed(2);
-  }, [isFormInitialized, sippInvestmentGrowth, inflation]);
+  }, [sippInvestmentGrowth, inflation]);
 
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
