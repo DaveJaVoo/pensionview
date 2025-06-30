@@ -165,91 +165,156 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     let netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
 
-    // PENSION AND SAVINGS WITHDRAWAL LOGIC
-    if (age >= minPensionAccessAge) {
-      // 1. USE PENSION TO FILL PERSONAL ALLOWANCE
-      if (netShortfall > 0) {
-        let paRoom = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
-        if (paRoom > 0 && showDcPension) {
-            const taxablePortion = 1 - dcUfplsTaxFreePortion;
-            const grossNeededForPa = taxablePortion > 0 ? paRoom : paRoom; // Simplified, as PA is tax free
-            const netFromGrossNeededPa = grossNeededForPa; 
-            const draw = Math.min(dcPotForDrawdown, grossNeededForPa, netShortfall);
-            dcDrawdown += draw;
-            netShortfall -= draw; 
+    const savingsFirstStrategy = takeTaxFreeLumpSum || takeSippTaxFreeLumpSum;
+
+    if (savingsFirstStrategy) {
+        // --- SAVINGS-FIRST WATERFALL ---
+        // Used when a lump sum has been taken, making the remaining pension fully taxable and less efficient than savings.
+        
+        // 1. USE SAVINGS (tax-free)
+        if (netShortfall > 0 && showCash) {
+            const draw = Math.min(initialCash, netShortfall);
+            cashWithdrawal += draw;
+            netShortfall -= draw;
         }
-        if (netShortfall > 0 && showSipp) {
-          const currentTaxable = fixedTaxableIncome + (dcDrawdown * (1 - dcUfplsTaxFreePortion));
-          let paRoomForSipp = Math.max(0, currentPersonalAllowance - currentTaxable);
-          if (paRoomForSipp > 0) {
-            const taxablePortion = 1 - sippUfplsTaxFreePortion;
-            const grossNeededForPa = taxablePortion > 0 ? paRoomForSipp : paRoomForSipp;
-            const netFromGrossNeededPa = grossNeededForPa;
-            const draw = Math.min(sippPotForDrawdown, grossNeededForPa, netShortfall);
-            sippDrawdown += draw;
-            netShortfall -= draw; 
-          }
+        if (netShortfall > 0 && showIsa) {
+            const draw = Math.min(isaValueBeforeWithdrawal, netShortfall);
+            isaWithdrawal += draw;
+            netShortfall -= draw;
         }
-      }
-    }
-    
-    // 2. USE SAVINGS
-    if (netShortfall > 0 && showCash) {
-      const draw = Math.min(initialCash, netShortfall);
-      cashWithdrawal += draw;
-      netShortfall -= draw;
-    }
-    if (netShortfall > 0 && showIsa) {
-      const draw = Math.min(isaValueBeforeWithdrawal, netShortfall);
-      isaWithdrawal += draw;
-      netShortfall -= draw;
-    }
-    if (netShortfall > 0 && showGia) {
-      const draw = Math.min(giaValueBeforeWithdrawal, netShortfall);
-      giaWithdrawal += draw;
-      netShortfall -= draw;
+        if (netShortfall > 0 && showGia) {
+            const draw = Math.min(giaValueBeforeWithdrawal, netShortfall);
+            giaWithdrawal += draw;
+            netShortfall -= draw;
+        }
+
+        // 2. USE PENSIONS (now fully taxable) if still a shortfall
+        if (netShortfall > 0 && age >= minPensionAccessAge) {
+            let taxableIncomeSoFar = fixedTaxableIncome;
+            // DC Pension
+            if (netShortfall > 0 && showDcPension) {
+                const paRoom = Math.max(0, currentPersonalAllowance - taxableIncomeSoFar);
+                if (paRoom > 0) {
+                    const draw = Math.min(dcPotForDrawdown, paRoom, netShortfall);
+                    dcDrawdown += draw;
+                    netShortfall -= draw;
+                    taxableIncomeSoFar += draw;
+                }
+                if (netShortfall > 0) {
+                    const netPerGross = 1 - INCOME_TAX_RATE; // 100% is taxable
+                    if (netPerGross > 0) {
+                        const grossNeeded = netShortfall / netPerGross;
+                        const draw = Math.min(dcPotForDrawdown - dcDrawdown, grossNeeded);
+                        dcDrawdown += draw;
+                        netShortfall -= draw * netPerGross;
+                    }
+                }
+            }
+            // SIPP
+            if (netShortfall > 0 && showSipp) {
+                const paRoom = Math.max(0, currentPersonalAllowance - taxableIncomeSoFar);
+                if (paRoom > 0) {
+                    const draw = Math.min(sippPotForDrawdown, paRoom, netShortfall);
+                    sippDrawdown += draw;
+                    netShortfall -= draw;
+                }
+                if (netShortfall > 0) {
+                    const netPerGross = 1 - INCOME_TAX_RATE;
+                    if (netPerGross > 0) {
+                        const grossNeeded = netShortfall / netPerGross;
+                        const draw = Math.min(sippPotForDrawdown - sippDrawdown, grossNeeded);
+                        sippDrawdown += draw;
+                        netShortfall -= draw * netPerGross;
+                    }
+                }
+            }
+        }
+    } else {
+        // --- PENSION-FIRST WATERFALL ---
+        // More tax-efficient due to the 25% tax-free element in each withdrawal (UFPLS).
+
+        // 1. USE PENSION TO FILL PERSONAL ALLOWANCE
+        if (netShortfall > 0 && age >= minPensionAccessAge) {
+            let taxableIncomeSoFar = fixedTaxableIncome;
+            if (netShortfall > 0 && showDcPension) {
+                const paRoomForDc = Math.max(0, currentPersonalAllowance - taxableIncomeSoFar);
+                if (paRoomForDc > 0) {
+                    const taxablePortion = 1 - dcUfplsTaxFreePortion; // 0.75
+                    const maxGrossDraw = taxablePortion > 0 ? paRoomForDc / taxablePortion : paRoomForDc;
+                    const draw = Math.min(dcPotForDrawdown, maxGrossDraw, netShortfall);
+                    dcDrawdown += draw;
+                    netShortfall -= draw;
+                    taxableIncomeSoFar += draw * taxablePortion;
+                }
+            }
+            if (netShortfall > 0 && showSipp) {
+                const paRoomForSipp = Math.max(0, currentPersonalAllowance - taxableIncomeSoFar);
+                if (paRoomForSipp > 0) {
+                    const taxablePortion = 1 - sippUfplsTaxFreePortion; // 0.75
+                    const maxGrossDraw = taxablePortion > 0 ? paRoomForSipp / taxablePortion : paRoomForSipp;
+                    const draw = Math.min(sippPotForDrawdown, maxGrossDraw, netShortfall);
+                    sippDrawdown += draw;
+                    netShortfall -= draw;
+                }
+            }
+        }
+
+        // 2. USE SAVINGS
+        if (netShortfall > 0 && showCash) {
+            const draw = Math.min(initialCash, netShortfall);
+            cashWithdrawal += draw;
+            netShortfall -= draw;
+        }
+        if (netShortfall > 0 && showIsa) {
+            const draw = Math.min(isaValueBeforeWithdrawal, netShortfall);
+            isaWithdrawal += draw;
+            netShortfall -= draw;
+        }
+        if (netShortfall > 0 && showGia) {
+            const draw = Math.min(giaValueBeforeWithdrawal, netShortfall);
+            giaWithdrawal += draw;
+            netShortfall -= draw;
+        }
+
+        // 3. USE PENSION TAXABLY
+        if (netShortfall > 0 && age >= minPensionAccessAge) {
+            if (netShortfall > 0 && showDcPension) {
+                const taxablePortion = 1 - dcUfplsTaxFreePortion;
+                const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
+                if (netPerGross > 0) {
+                    const grossNeeded = netShortfall / netPerGross;
+                    const draw = Math.min(dcPotForDrawdown - dcDrawdown, grossNeeded);
+                    dcDrawdown += draw;
+                    netShortfall -= draw * netPerGross;
+                }
+            }
+            if (netShortfall > 0 && showSipp) {
+                const taxablePortion = 1 - sippUfplsTaxFreePortion;
+                const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
+                if (netPerGross > 0) {
+                    const grossNeeded = netShortfall / netPerGross;
+                    const draw = Math.min(sippPotForDrawdown - sippDrawdown, grossNeeded);
+                    sippDrawdown += draw;
+                    netShortfall -= draw * netPerGross;
+                }
+            }
+        }
     }
 
-    if (age >= minPensionAccessAge) {
-      // 3. USE PENSION TAXABLY
-      if (netShortfall > 0) {
+    // 4. APPLY MINIMUM WITHDRAWAL RATE (ADDITIVE)
+    if (age >= statePensionAge) {
         if (showDcPension) {
-          const taxablePortion = 1 - dcUfplsTaxFreePortion;
-          const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
-          if (netPerGross > 0) {
-            const grossNeeded = netShortfall / netPerGross;
-            const draw = Math.min(dcPotForDrawdown - dcDrawdown, grossNeeded);
-            dcDrawdown += draw;
-            netShortfall -= draw * netPerGross;
-          }
-        }
-        if (showSipp && netShortfall > 0) {
-          const taxablePortion = 1 - sippUfplsTaxFreePortion;
-          const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
-          if (netPerGross > 0) {
-            const grossNeeded = netShortfall / netPerGross;
-            const draw = Math.min(sippPotForDrawdown - sippDrawdown, grossNeeded);
-            sippDrawdown += draw;
-            netShortfall -= draw * netPerGross;
-          }
-        }
-      }
-
-      // 4. APPLY MINIMUM WITHDRAWAL RATE (ADDITIVE)
-      if (age >= statePensionAge) {
-        if (showDcPension) {
-          const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
-          if (dcStandardWithdrawal > dcDrawdown) {
-            dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
-          }
+            const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
+            if (dcStandardWithdrawal > dcDrawdown) {
+                dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
+            }
         }
         if (showSipp) {
-          const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
-          if (sippStandardWithdrawal > sippDrawdown) {
-            sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
-          }
+            const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
+            if (sippStandardWithdrawal > sippDrawdown) {
+                sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
+            }
         }
-      }
     }
     
     // --- FINAL TALLY ---
