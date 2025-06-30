@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -277,30 +277,43 @@ export default function PensionPilotPage() {
   const initialDcPensionValueWatched = watch("initialDcPensionValue");
   const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
 
-  useEffect(() => {
-    if (!isFormInitialized) return;
-    
-    if (takeTaxFreeLumpSumWatched) {
-      const pcls = (initialDcPensionValueWatched || 0) * 0.25;
+  const updateDcLumpSum = useCallback(() => {
+    const takeLumpSum = getValues("takeTaxFreeLumpSum");
+    const dcValue = getValues("initialDcPensionValue") || 0;
+    if (takeLumpSum) {
+      const pcls = dcValue * 0.25;
       setCalculatedLumpSumDisplay(pcls);
     } else {
       setCalculatedLumpSumDisplay(0);
     }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched]);
+  }, [getValues]);
+
+  useEffect(() => {
+    if (isFormInitialized) {
+      updateDcLumpSum();
+    }
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, updateDcLumpSum]);
+
 
   const initialSippValueWatched = watch("initialSippValue");
   const takeSippTaxFreeLumpSumWatched = watch("takeSippTaxFreeLumpSum");
-
-  useEffect(() => {
-    if (!isFormInitialized) return;
-    
-    if (takeSippTaxFreeLumpSumWatched) {
-      const pcls = (initialSippValueWatched || 0) * 0.25;
+  
+  const updateSippLumpSum = useCallback(() => {
+    const takeLumpSum = getValues("takeSippTaxFreeLumpSum");
+    const sippValue = getValues("initialSippValue") || 0;
+    if (takeLumpSum) {
+      const pcls = sippValue * 0.25;
       setCalculatedSippLumpSumDisplay(pcls);
     } else {
       setCalculatedSippLumpSumDisplay(0);
     }
-  }, [isFormInitialized, initialSippValueWatched, takeSippTaxFreeLumpSumWatched]);
+  }, [getValues]);
+
+  useEffect(() => {
+    if (isFormInitialized) {
+      updateSippLumpSum();
+    }
+  }, [isFormInitialized, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateSippLumpSum]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -746,7 +759,7 @@ export default function PensionPilotPage() {
               <h2 id="data-visualization-heading" className="text-2xl font-headline font-semibold mb-6 text-center text-primary">
                 Your Pension Projection Results (up to Age {calculatedData.parameters.projectionEndAge})
               </h2>
-               {calculatedData.parameters.takeTaxFreeLumpSum && calculatedData.parameters.taxFreeLumpSumTaken !== undefined && (
+               {calculatedData.parameters.takeTaxFreeLumpSum && calculatedData.parameters.taxFreeLumpSumTaken !== undefined && calculatedData.parameters.taxFreeLumpSumTaken > 0 && (
                 <Alert variant="default" className="mb-4 bg-primary/10 border-primary/30">
                   <InfoIcon className="h-5 w-5 text-primary" />
                   <AlertTitle className="font-semibold text-primary">DC Pension Tax-Free Lump Sum Taken</AlertTitle>
@@ -756,7 +769,7 @@ export default function PensionPilotPage() {
                   </AlertDescription>
                 </Alert>
               )}
-              {calculatedData.parameters.takeSippTaxFreeLumpSum && calculatedData.parameters.sippTaxFreeLumpSumTaken !== undefined && (
+              {calculatedData.parameters.takeSippTaxFreeLumpSum && calculatedData.parameters.sippTaxFreeLumpSumTaken !== undefined && calculatedData.parameters.sippTaxFreeLumpSumTaken > 0 && (
                 <Alert variant="default" className="mb-4 bg-primary/10 border-primary/30">
                   <InfoIcon className="h-5 w-5 text-primary" />
                   <AlertTitle className="font-semibold text-primary">SIPP Tax-Free Lump Sum Taken</AlertTitle>

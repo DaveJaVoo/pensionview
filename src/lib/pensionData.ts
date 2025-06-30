@@ -9,11 +9,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     statePensionAge, initialStatePensionAmount,
     initialOtherIncome, initialFasAmount, fasStartAge,
     
-    initialDcPensionValue: totalInitialDcPensionValue,
+    initialDcPensionValue,
     annualDcPensionContribution, dcContributionStartAge, dcContributionEndAge,
     investmentPercentageGrowth, dcWithdrawalRate, annualChargeAMC, takeTaxFreeLumpSum,
 
-    initialSippValue: totalInitialSippValue,
+    initialSippValue,
     annualSippContribution, sippContributionStartAge, sippContributionEndAge,
     sippInvestmentPercentageGrowth, sippWithdrawalRate, sippAnnualChargeAMC, takeSippTaxFreeLumpSum,
     
@@ -28,38 +28,38 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   }
 
   const headers: string[] = ['Age', 'Year'];
-  const showDcPension = params.initialDcPensionValue > 0 || params.annualDcPensionContribution > 0;
-  const showSipp = params.initialSippValue > 0 || params.annualSippContribution > 0;
+  const showDcPension = initialDcPensionValue > 0 || annualDcPensionContribution > 0;
+  const showSipp = initialSippValue > 0 || annualSippContribution > 0;
 
   if (showDcPension) {
       headers.push('Initial DC Pension');
-      if (params.annualDcPensionContribution > 0) {
+      if (annualDcPensionContribution > 0) {
         headers.push('DC Pension Contribution');
       }
       headers.push('DC Pension Growth', 'DC Pension + Growth', 'DC AMC Charge', 'DC Minus AMC', 'DC Pension Drawdown', 'DC Pension Balance');
   }
   if (showSipp) {
       headers.push('Initial SIPP');
-      if (params.annualSippContribution > 0) {
+      if (annualSippContribution > 0) {
           headers.push('SIPP Contribution');
       }
       headers.push('SIPP Growth', 'SIPP + Growth', 'SIPP AMC Charge', 'SIPP Minus AMC', 'SIPP Drawdown', 'SIPP Balance');
   }
-  if (params.initialDbPensionAmount > 0) {
+  if (initialDbPensionAmount > 0) {
       headers.push('DB Pension');
   }
-   if (params.initialStatePensionAmount > 0) {
+   if (initialStatePensionAmount > 0) {
       headers.push('State Pension');
   }
-  if (params.initialOtherIncome > 0) {
+  if (initialOtherIncome > 0) {
       headers.push('Other Income');
   }
-  if (params.initialFasAmount > 0) {
+  if (initialFasAmount > 0) {
       headers.push('FAS');
   }
-  const showCash = params.initialCashSavings > 0;
-  const showIsa = params.initialIsaAmount > 0;
-  const showGia = params.initialGiaAmount > 0;
+  const showCash = initialCashSavings > 0;
+  const showIsa = initialIsaAmount > 0;
+  const showGia = initialGiaAmount > 0;
   if (showCash) {
       headers.push('Cash Savings Initial', 'Withdraw from Cash', 'Cash Savings Balance');
   }
@@ -87,22 +87,22 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
   const giaGrowthDecimal = (giaGrowthRate || 0) / 100;
 
-  let actualInitialDcPensionForProjection = totalInitialDcPensionValue;
+  let actualInitialDcPensionForProjection = initialDcPensionValue;
   let taxFreeLumpSumTakenAmount = 0;
   const dcUfplsTaxFreePortion = takeTaxFreeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
 
   if (takeTaxFreeLumpSum) {
-    taxFreeLumpSumTakenAmount = totalInitialDcPensionValue * 0.25;
-    actualInitialDcPensionForProjection = totalInitialDcPensionValue * 0.75;
+    taxFreeLumpSumTakenAmount = initialDcPensionValue * 0.25;
+    actualInitialDcPensionForProjection = initialDcPensionValue * 0.75;
   }
 
-  let actualInitialSippForProjection = totalInitialSippValue;
+  let actualInitialSippForProjection = initialSippValue;
   let sippTaxFreeLumpSumTakenAmount = 0;
   const sippUfplsTaxFreePortion = takeSippTaxFreeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
 
   if (takeSippTaxFreeLumpSum) {
-    sippTaxFreeLumpSumTakenAmount = totalInitialSippValue * 0.25;
-    actualInitialSippForProjection = totalInitialSippValue * 0.75;
+    sippTaxFreeLumpSumTakenAmount = initialSippValue * 0.25;
+    actualInitialSippForProjection = initialSippValue * 0.75;
   }
 
   const outputParameters = { 
@@ -261,17 +261,17 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
         // 2. USE SAVINGS
         if (netShortfall > 0 && showCash) {
-            const draw = Math.min(initialCash, netShortfall);
+            const draw = Math.min(initialCash - cashWithdrawal, netShortfall);
             cashWithdrawal += draw;
             netShortfall -= draw;
         }
         if (netShortfall > 0 && showIsa) {
-            const draw = Math.min(isaValueBeforeWithdrawal, netShortfall);
+            const draw = Math.min(isaValueBeforeWithdrawal - isaWithdrawal, netShortfall);
             isaWithdrawal += draw;
             netShortfall -= draw;
         }
         if (netShortfall > 0 && showGia) {
-            const draw = Math.min(giaValueBeforeWithdrawal, netShortfall);
+            const draw = Math.min(giaValueBeforeWithdrawal - giaWithdrawal, netShortfall);
             giaWithdrawal += draw;
             netShortfall -= draw;
         }
@@ -343,7 +343,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     if (showDcPension) {
       Object.assign(row, { 'Initial DC Pension': dcPotBeforeGrowth - dcContributionThisYear });
-      if (params.annualDcPensionContribution > 0) {
+      if (annualDcPensionContribution > 0) {
         row['DC Pension Contribution'] = dcContributionThisYear;
       }
       Object.assign(row, {
@@ -355,7 +355,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     if (showSipp) {
         Object.assign(row, { 'Initial SIPP': sippPotBeforeGrowth - sippContributionThisYear });
-        if(params.annualSippContribution > 0) {
+        if(annualSippContribution > 0) {
             row['SIPP Contribution'] = sippContributionThisYear;
         }
         Object.assign(row, {
@@ -365,10 +365,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         });
     }
 
-    if (params.initialDbPensionAmount > 0) row['DB Pension'] = dbPensionThisYear;
-    if (params.initialStatePensionAmount > 0) row['State Pension'] = statePensionThisYear;
-    if (params.initialOtherIncome > 0) row['Other Income'] = otherIncomeThisYear;
-    if (params.initialFasAmount > 0) row['FAS'] = fasThisYear;
+    if (initialDbPensionAmount > 0) row['DB Pension'] = dbPensionThisYear;
+    if (initialStatePensionAmount > 0) row['State Pension'] = statePensionThisYear;
+    if (initialOtherIncome > 0) row['Other Income'] = otherIncomeThisYear;
+    if (initialFasAmount > 0) row['FAS'] = fasThisYear;
     
     if (showCash) Object.assign(row, { 'Cash Savings Initial': initialCash, 'Withdraw from Cash': cashWithdrawal, 'Cash Savings Balance': finalCashBalance });
     if (showIsa) Object.assign(row, { 'ISA Initial': isaStartOfYear, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': isaValueBeforeWithdrawal, 'Withdraw from ISA': isaWithdrawal, 'ISA Balance': finalIsaBalance });
