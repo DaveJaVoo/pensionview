@@ -24,12 +24,10 @@ import { Switch } from "@/components/ui/switch";
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
-const SCHEMA_FALLBACK_YEAR = new Date().getFullYear();
-
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
-  projectionStartYear: z.coerce.number().min(SCHEMA_FALLBACK_YEAR - 20).max(SCHEMA_FALLBACK_YEAR + 50).default(SCHEMA_FALLBACK_YEAR),
+  projectionStartYear: z.coerce.number().min(2000).max(2100).default(2024),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
@@ -65,10 +63,20 @@ const formSchema = z.object({
   sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
   sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
 
-}).refine(data => data.dcContributionEndAge > data.dcContributionStartAge, {
+}).refine(data => {
+  if (data.annualDcPensionContribution > 0) {
+    return data.dcContributionEndAge > data.dcContributionStartAge;
+  }
+  return true;
+}, {
   message: "DC Contribution End Age must be after Start Age.",
   path: ["dcContributionEndAge"],
-}).refine(data => data.sippContributionEndAge > data.sippContributionStartAge, {
+}).refine(data => {
+  if (data.annualSippContribution > 0) {
+    return data.sippContributionEndAge > data.sippContributionStartAge;
+  }
+  return true;
+}, {
   message: "SIPP Contribution End Age must be after Start Age.",
   path: ["sippContributionEndAge"],
 });
@@ -186,7 +194,6 @@ export default function PensionPilotPage() {
        dcContributionEndAge: 67,
        sippContributionStartAge: 55,
        sippContributionEndAge: 67,
-       projectionStartYear: new Date().getFullYear(),
        dbPensionStartAge: 65,
        fasStartAge: 65,
     }), 
@@ -449,7 +456,6 @@ export default function PensionPilotPage() {
         dcContributionEndAge: 67,
         sippContributionStartAge: 55,
         sippContributionEndAge: 67,
-        projectionStartYear: clientCurrentYear,
         dbPensionStartAge: 65,
         fasStartAge: 65,
     });
