@@ -27,7 +27,7 @@ import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
-  projectionStartYear: z.coerce.number().min(2000).max(2100).default(2024),
+  projectionStartYear: z.coerce.number().min(2000).max(2100).default(new Date().getFullYear()),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
@@ -186,32 +186,14 @@ export default function PensionPilotPage() {
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: formSchema.parse({
-       currentAge: 55, 
-       projectionEndAge: 90,
-       dcContributionStartAge: 55, 
-       statePensionAge: 67, 
-       dcContributionEndAge: 67,
-       sippContributionStartAge: 55,
-       sippContributionEndAge: 67,
-       dbPensionStartAge: 65,
-       fasStartAge: 65,
-    }), 
+    defaultValues: formSchema.parse({}), 
   });
   
   useEffect(() => {
     if (!isFormInitialized) {
       const clientCurrentYear = new Date().getFullYear();
       const initialFormValues = formSchema.parse({
-        currentAge: 55,
-        projectionEndAge: 90,
-        dcContributionStartAge: 55, 
-        statePensionAge: 67,
-        dcContributionEndAge: 67, 
-        sippContributionStartAge: 55,
-        sippContributionEndAge: 67,
-        dbPensionStartAge: 65,
-        fasStartAge: 65,
+        projectionStartYear: clientCurrentYear,
       });
       reset({
         ...initialFormValues,
@@ -449,15 +431,7 @@ export default function PensionPilotPage() {
   const handleResetForm = () => {
     const clientCurrentYear = new Date().getFullYear();
     const defaultValues = formSchema.parse({
-        currentAge: 55,
-        projectionEndAge: 90,
-        dcContributionStartAge: 55,
-        statePensionAge: 67,
-        dcContributionEndAge: 67,
-        sippContributionStartAge: 55,
-        sippContributionEndAge: 67,
-        dbPensionStartAge: 65,
-        fasStartAge: 65,
+        projectionStartYear: clientCurrentYear,
     });
     reset({
       ...defaultValues,
@@ -825,5 +799,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
