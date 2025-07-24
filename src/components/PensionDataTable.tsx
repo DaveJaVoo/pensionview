@@ -31,6 +31,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
            lowerHeader.includes('initial') ||
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
+           lowerHeader.includes('fas') ||
            lowerHeader.includes('minus amc');
   };
   
