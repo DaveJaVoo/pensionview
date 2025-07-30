@@ -27,7 +27,7 @@ import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
-  projectionStartYear: z.coerce.number().min(2000).max(2100).default(new Date().getFullYear()),
+  projectionStartYear: z.coerce.number().min(2000).max(2100).default(2024),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
@@ -192,11 +192,9 @@ export default function PensionPilotPage() {
   useEffect(() => {
     if (!isFormInitialized) {
       const clientCurrentYear = new Date().getFullYear();
-      const initialFormValues = formSchema.parse({
-        projectionStartYear: clientCurrentYear,
-      });
+      const defaultValues = formSchema.parse({});
       reset({
-        ...initialFormValues,
+        ...defaultValues,
         projectionStartYear: clientCurrentYear,
       });
       setIsFormInitialized(true);
@@ -799,3 +797,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
