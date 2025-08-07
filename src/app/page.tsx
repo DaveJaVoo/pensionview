@@ -27,7 +27,7 @@ import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(55),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
-  projectionStartYear: z.coerce.number().min(2000).max(2100).default(2024),
+  projectionStartYear: z.coerce.number().min(2000).max(2100).default(new Date().getFullYear()),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
@@ -325,15 +325,6 @@ export default function PensionPilotPage() {
 
     if (data.projectionEndAge <= ageAtProjectionStart) {
         setCalculationError("Projection End Age must be after the calculated age at the start of the projection. Please adjust the Projection End Age or other parameters.");
-        setIsLoading(false);
-        return;
-    }
-
-    const minPensionAccessAge = data.projectionStartYear >= 2028 ? 57 : 55;
-    const hasPension = data.initialDcPensionValue > 0 || data.annualDcPensionContribution > 0 || data.initialSippValue > 0 || data.annualSippContribution > 0;
-
-    if (hasPension && ageAtProjectionStart < minPensionAccessAge) {
-        setCalculationError(`Pension projection cannot begin before the legal access age. For a ${data.projectionStartYear} start, the minimum age is ${minPensionAccessAge}, but your calculated starting age is ${ageAtProjectionStart}. Please adjust the Projection Start Year or Current Age.`);
         setIsLoading(false);
         return;
     }
@@ -797,5 +788,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
