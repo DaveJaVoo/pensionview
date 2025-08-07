@@ -52,6 +52,7 @@ const formSchema = z.object({
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   inflationRate: z.coerce.number().min(-10).max(20).default(2),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
+  applyDcWithdrawalRateInSurplus: z.boolean().default(false),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
 
   initialSippValue: z.coerce.number().min(0).default(0),
@@ -62,6 +63,7 @@ const formSchema = z.object({
   sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
   sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
+  applySippWithdrawalRateInSurplus: z.boolean().default(false),
 
 }).refine(data => {
   if (data.annualDcPensionContribution > 0) {
@@ -574,6 +576,39 @@ export default function PensionPilotPage() {
                         </p>
                     )}
                 </div>
+                 <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
+                    <div className="flex items-center gap-1">
+                         <Label htmlFor="applyDcWithdrawalRateInSurplus" className="text-sm font-medium">
+                            Apply Rate in Surplus Years?
+                         </Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                    <HelpCircleIcon className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-60 text-sm" side="top" align="start">
+                               If enabled, the 'DC Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
+                            </PopoverContent>
+                         </Popover>
+                    </div>
+                    <Controller
+                        name="applyDcWithdrawalRateInSurplus"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                    id="applyDcWithdrawalRateInSurplus"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                <span className="text-sm text-muted-foreground">
+                                    {field.value ? "Yes" : "No"}
+                                </span>
+                            </div>
+                        )}
+                    />
+                </div>
               </div>
 
               <Separator />
@@ -620,6 +655,39 @@ export default function PensionPilotPage() {
                             Calculated SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
                         </p>
                     )}
+                </div>
+                 <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
+                    <div className="flex items-center gap-1">
+                         <Label htmlFor="applySippWithdrawalRateInSurplus" className="text-sm font-medium">
+                            Apply Rate in Surplus Years?
+                         </Label>
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                    <HelpCircleIcon className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-60 text-sm" side="top" align="start">
+                               If enabled, the 'SIPP Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
+                            </PopoverContent>
+                         </Popover>
+                    </div>
+                    <Controller
+                        name="applySippWithdrawalRateInSurplus"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                    id="applySippWithdrawalRateInSurplus"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                <span className="text-sm text-muted-foreground">
+                                    {field.value ? "Yes" : "No"}
+                                </span>
+                            </div>
+                        )}
+                    />
                 </div>
               </div>
 

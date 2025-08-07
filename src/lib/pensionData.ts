@@ -12,10 +12,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     initialDcPensionValue,
     annualDcPensionContribution, dcContributionStartAge, dcContributionEndAge,
     investmentPercentageGrowth, dcWithdrawalRate, annualChargeAMC, takeTaxFreeLumpSum,
+    applyDcWithdrawalRateInSurplus,
 
     initialSippValue,
     annualSippContribution, sippContributionStartAge, sippContributionEndAge,
     sippInvestmentPercentageGrowth, sippWithdrawalRate, sippAnnualChargeAMC, takeSippTaxFreeLumpSum,
+    applySippWithdrawalRateInSurplus,
     
     inflationRate,
     initialCashSavings, initialIsaAmount, isaGrowthRate, initialGiaAmount, giaGrowthRate
@@ -156,7 +158,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
     const statePensionThisYear = (initialStatePensionAmount > 0 && age >= statePensionAge) ? initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge) : 0;
-    const otherIncomeThisYear = (initialOtherIncome > 0) ? initialOtherIncome * Math.pow(1 + inflationDecimal, yearOffset) : 0;
+    const otherIncomeThisYear = (initialOtherIncome > 0) ? otherIncomeThisYear * Math.pow(1 + inflationDecimal, yearOffset) : 0;
     const fasThisYear = (initialFasAmount > 0 && age >= fasStartAge) ? initialFasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
     
     const fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear;
@@ -279,20 +281,21 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
     }
 
-    // 4. APPLY MINIMUM WITHDRAWAL RATE (ADDITIVE) if post-SPA
-    if (age >= statePensionAge) {
-        if (showDcPension) {
-            const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
-            if (dcStandardWithdrawal > dcDrawdown) {
-                dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
-            }
-        }
-        if (showSipp) {
-            const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
-            if (sippStandardWithdrawal > sippDrawdown) {
-                sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
-            }
-        }
+    // 4. APPLY STANDARD WITHDRAWAL RATE in surplus years if enabled
+    const isSurplusYear = netShortfall <= 0;
+    if (age >= statePensionAge && isSurplusYear) {
+      if (applyDcWithdrawalRateInSurplus && showDcPension) {
+          const dcStandardWithdrawal = dcPotForDrawdown * dcWithdrawDecimal;
+          if (dcStandardWithdrawal > dcDrawdown) {
+              dcDrawdown = Math.min(dcPotForDrawdown, dcStandardWithdrawal);
+          }
+      }
+      if (applySippWithdrawalRateInSurplus && showSipp) {
+          const sippStandardWithdrawal = sippPotForDrawdown * sippWithdrawDecimal;
+          if (sippStandardWithdrawal > sippDrawdown) {
+              sippDrawdown = Math.min(sippPotForDrawdown, sippStandardWithdrawal);
+          }
+      }
     }
     
     // --- FINAL TALLY ---

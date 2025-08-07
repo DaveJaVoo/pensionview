@@ -78,6 +78,7 @@ export interface PensionCalculationParameters {
   dcWithdrawalRate: number;
   annualChargeAMC: number;
   takeTaxFreeLumpSum: boolean;
+  applyDcWithdrawalRateInSurplus: boolean;
 
   initialSippValue: number;
   annualSippContribution: number;
@@ -87,6 +88,7 @@ export interface PensionCalculationParameters {
   sippAnnualChargeAMC: number;
   sippWithdrawalRate: number;
   takeSippTaxFreeLumpSum: boolean;
+  applySippWithdrawalRateInSurplus: boolean;
 
   initialCashSavings: number;
   initialIsaAmount: number;
