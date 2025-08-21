@@ -170,35 +170,50 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const savingsFirstStrategy = takeTaxFreeLumpSum || takeSippTaxFreeLumpSum;
 
     if (netShortfall > 0) { // Only enter withdrawal logic if there is a shortfall
+        const pensionDrawdownOrder = () => {
+          if (!showDcPension) return ['sipp'];
+          if (!showSipp) return ['dc'];
+
+          if (amcDecimal > sippAmcDecimal) return ['dc', 'sipp'];
+          if (sippAmcDecimal > amcDecimal) return ['sipp', 'dc'];
+          
+          if (invGrowthDecimal < sippInvGrowthDecimal) return ['dc', 'sipp'];
+          if (sippInvGrowthDecimal < invGrowthDecimal) return ['sipp', 'dc'];
+
+          if (dcPotForDrawdown <= sippPotForDrawdown) return ['dc', 'sipp'];
+          return ['sipp', 'dc'];
+        };
+        const orderedPots = pensionDrawdownOrder();
+
+        const executePensionDrawdown = (drawdownFunction: (potType: 'dc' | 'sipp') => number) => {
+          for (const pot of orderedPots) {
+            if (netShortfall > 0) {
+              if (pot === 'dc') {
+                dcDrawdown += drawdownFunction('dc');
+              } else {
+                sippDrawdown += drawdownFunction('sipp');
+              }
+            }
+          }
+        };
+
         if (savingsFirstStrategy) {
             // --- SAVINGS-FIRST WATERFALL (Tax-efficient when pensions are fully taxable) ---
-            // 1. USE SAVINGS (tax-free)
-            if (netShortfall > 0 && showCash) {
-                const draw = Math.min(initialCash, netShortfall);
-                cashWithdrawal += draw;
-                netShortfall -= draw;
-            }
-            if (netShortfall > 0 && showIsa) {
-                const draw = Math.min(isaValueBeforeWithdrawal, netShortfall);
-                isaWithdrawal += draw;
-                netShortfall -= draw;
-            }
-            if (netShortfall > 0 && showGia) {
-                const draw = Math.min(giaValueBeforeWithdrawal, netShortfall);
-                giaWithdrawal += draw;
-                netShortfall -= draw;
-            }
+            if (netShortfall > 0 && showCash) { const draw = Math.min(initialCash, netShortfall); cashWithdrawal += draw; netShortfall -= draw; }
+            if (netShortfall > 0 && showIsa) { const draw = Math.min(isaValueBeforeWithdrawal, netShortfall); isaWithdrawal += draw; netShortfall -= draw; }
+            if (netShortfall > 0 && showGia) { const draw = Math.min(giaValueBeforeWithdrawal, netShortfall); giaWithdrawal += draw; netShortfall -= draw; }
 
-            // 2. USE PENSIONS (now fully taxable) if still a shortfall
             if (netShortfall > 0 && age >= minPensionAccessAge) {
                 let taxableIncomeSoFar = fixedTaxableIncome;
                 const netPerGross = 1 - INCOME_TAX_RATE;
 
-                const drawFromPension = (pot: number, currentDrawdown: number) => {
+                const drawFromPension = (potType: 'dc' | 'sipp') => {
+                    const pot = potType === 'dc' ? dcPotForDrawdown : sippPotForDrawdown;
+                    const currentDrawdown = potType === 'dc' ? dcDrawdown : sippDrawdown;
+
                     if (netShortfall <= 0 || pot <= currentDrawdown) return 0;
                     
                     let totalDraw = 0;
-                    // Fill PA first
                     const paRoom = Math.max(0, currentPersonalAllowance - taxableIncomeSoFar);
                     if (paRoom > 0) {
                         const draw = Math.min(pot - currentDrawdown, paRoom, netShortfall);
@@ -206,7 +221,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                         netShortfall -= draw;
                         taxableIncomeSoFar += draw;
                     }
-                    // Then draw taxably
                     if (netShortfall > 0 && netPerGross > 0) {
                         const grossNeeded = netShortfall / netPerGross;
                         const draw = Math.min(pot - currentDrawdown - totalDraw, grossNeeded);
@@ -215,20 +229,15 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                     }
                     return totalDraw;
                 };
-
-                if (showDcPension) {
-                    dcDrawdown += drawFromPension(dcPotForDrawdown, dcDrawdown);
-                }
-                if (showSipp) {
-                    sippDrawdown += drawFromPension(sippPotForDrawdown, sippDrawdown);
-                }
+                executePensionDrawdown(drawFromPension);
             }
         } else {
             // --- PENSION-FIRST WATERFALL (Tax-efficient with UFPLS) ---
-            // 1. USE PENSION TO FILL PERSONAL ALLOWANCE (most efficient step)
             if (netShortfall > 0 && age >= minPensionAccessAge) {
                 let taxableIncomeSoFar = fixedTaxableIncome;
-                const drawToFillPA = (pot: number, taxFreePortion: number) => {
+                const drawToFillPA = (potType: 'dc' | 'sipp') => {
+                     const pot = potType === 'dc' ? dcPotForDrawdown : sippPotForDrawdown;
+                     const taxFreePortion = potType === 'dc' ? dcUfplsTaxFreePortion : sippUfplsTaxFreePortion;
                      if (netShortfall <= 0) return 0;
                      const taxablePortion = 1 - taxFreePortion;
                      if (taxablePortion <= 0) return 0;
@@ -245,30 +254,19 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                      taxableIncomeSoFar += draw * taxablePortion;
                      return draw;
                 };
-                if (showDcPension) dcDrawdown += drawToFillPA(dcPotForDrawdown, dcUfplsTaxFreePortion);
-                if (showSipp) sippDrawdown += drawToFillPA(sippPotForDrawdown, sippUfplsTaxFreePortion);
+                executePensionDrawdown(drawToFillPA);
             }
 
-            // 2. USE SAVINGS (next most efficient)
-            if (netShortfall > 0 && showCash) {
-                const draw = Math.min(initialCash - cashWithdrawal, netShortfall);
-                cashWithdrawal += draw;
-                netShortfall -= draw;
-            }
-            if (netShortfall > 0 && showIsa) {
-                const draw = Math.min(isaValueBeforeWithdrawal - isaWithdrawal, netShortfall);
-                isaWithdrawal += draw;
-                netShortfall -= draw;
-            }
-            if (netShortfall > 0 && showGia) {
-                const draw = Math.min(giaValueBeforeWithdrawal - giaWithdrawal, netShortfall);
-                giaWithdrawal += draw;
-                netShortfall -= draw;
-            }
+            if (netShortfall > 0 && showCash) { const draw = Math.min(initialCash - cashWithdrawal, netShortfall); cashWithdrawal += draw; netShortfall -= draw; }
+            if (netShortfall > 0 && showIsa) { const draw = Math.min(isaValueBeforeWithdrawal - isaWithdrawal, netShortfall); isaWithdrawal += draw; netShortfall -= draw; }
+            if (netShortfall > 0 && showGia) { const draw = Math.min(giaValueBeforeWithdrawal - giaWithdrawal, netShortfall); giaWithdrawal += draw; netShortfall -= draw; }
 
-            // 3. USE PENSION TAXABLY (least efficient step)
             if (netShortfall > 0 && age >= minPensionAccessAge) {
-                 const drawTaxably = (pot: number, currentDrawdown: number, taxFreePortion: number) => {
+                 const drawTaxably = (potType: 'dc' | 'sipp') => {
+                    const pot = potType === 'dc' ? dcPotForDrawdown : sippPotForDrawdown;
+                    const currentDrawdown = potType === 'dc' ? dcDrawdown : sippDrawdown;
+                    const taxFreePortion = potType === 'dc' ? dcUfplsTaxFreePortion : sippUfplsTaxFreePortion;
+
                     if (netShortfall <= 0) return 0;
                     const taxablePortion = 1 - taxFreePortion;
                     const netPerGross = 1 - (INCOME_TAX_RATE * taxablePortion);
@@ -279,8 +277,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                     netShortfall -= draw * netPerGross;
                     return draw;
                 };
-                if (showDcPension) dcDrawdown += drawTaxably(dcPotForDrawdown, dcDrawdown, dcUfplsTaxFreePortion);
-                if (showSipp) sippDrawdown += drawTaxably(sippPotForDrawdown, sippDrawdown, sippUfplsTaxFreePortion);
+                executePensionDrawdown(drawTaxably);
             }
         }
     }
