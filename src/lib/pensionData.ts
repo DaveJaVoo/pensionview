@@ -238,8 +238,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                      
                      const maxGrossDraw = paRoom / taxablePortion;
                      const netFromDraw = (maxGrossDraw * taxFreePortion) + (maxGrossDraw * taxablePortion); 
-                     const draw = Math.min(pot, maxGrossDraw, netShortfall);
-                     netShortfall -= draw;
+                     const draw = Math.min(pot, maxGrossDraw, netFromDraw > netShortfall ? netShortfall : pot);
+                     
+                     const netFromThisDraw = (draw * taxFreePortion) + (draw * taxablePortion);
+                     netShortfall -= netFromThisDraw;
                      taxableIncomeSoFar += draw * taxablePortion;
                      return draw;
                 };
