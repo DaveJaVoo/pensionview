@@ -5,21 +5,19 @@ export interface PensionDataRow {
   Year: string;
 
   'Initial DC Pension': number;
+  'DC Pension Drawdown': number;
   'DC Pension Contribution': number;
+  'DC AMC Charge': number;
   'DC Pension Growth': number;
   'DC Pension + Growth': number;
-  'DC AMC Charge': number;
-  'DC Minus AMC': number;
-  'DC Pension Drawdown': number;
   'DC Pension Balance': number;
 
   'Initial SIPP'?: number;
+  'SIPP Drawdown'?: number;
   'SIPP Contribution'?: number;
+  'SIPP AMC Charge'?: number;
   'SIPP Growth'?: number;
   'SIPP + Growth'?: number;
-  'SIPP AMC Charge'?: number;
-  'SIPP Minus AMC'?: number;
-  'SIPP Drawdown'?: number;
   'SIPP Balance'?: number;
 
   'DB Pension'?: number;

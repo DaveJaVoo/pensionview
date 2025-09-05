@@ -1,3 +1,4 @@
+
 "use client";
 import type { FC } from 'react';
 import React from 'react';
@@ -42,26 +43,25 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
+      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC Pension Contribution': ['DC Pension', 'Contrib.'],
+      'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Pension Growth': ['DC Pension', 'Growth'],
       'DC Pension + Growth': ['DC Pension', '+ Growth'],
-      'DC AMC Charge': ['DC AMC', 'Charge'],
-      'DC Minus AMC': ['DC Minus', 'AMC'],
-      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC Pension Balance': ['DC Pension', 'Balance'],
 
       'Initial SIPP': ['Initial SIPP'],
+      'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP Contribution': ['SIPP', 'Contrib.'],
+      'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
       'SIPP Growth': ['SIPP', 'Growth'],
       'SIPP + Growth': ['SIPP', '+ Growth'],
-      'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
-      'SIPP Minus AMC': ['SIPP Minus', 'AMC'],
-      'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP Balance': ['SIPP', 'Balance'],
 
       'DB Pension': ['DB Pension'],
       'State Pension': ['State Pension'],
       'Other Income': ['Other Income'],
+      'FAS': ['FAS'],
       'Cash Savings Initial': ['Cash Sav.', 'Initial'],
       'Withdraw from Cash': ['Withdraw', 'Cash'],
       'Cash Savings Balance': ['Cash Sav.', 'Balance'],
