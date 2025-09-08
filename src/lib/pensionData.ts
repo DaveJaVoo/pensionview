@@ -30,19 +30,19 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const showSipp = initialSippValue > 0 || annualSippContribution > 0;
 
   if (showDcPension) {
-      const dcHeaders = ['Initial DC Pension'];
+      const dcHeaders = ['Initial DC Pension', 'DC Pension Drawdown'];
       if (annualDcPensionContribution > 0) {
         dcHeaders.push('DC Pension Contribution');
       }
-      dcHeaders.push('DC Pension Drawdown', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Balance');
+      dcHeaders.push('DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Balance');
       headers.push(...dcHeaders);
   }
   if (showSipp) {
-      headers.push('Initial SIPP');
+      headers.push('Initial SIPP', 'SIPP Drawdown');
       if (annualSippContribution > 0) {
         headers.push('SIPP Contribution');
       }
-      headers.push('SIPP Drawdown', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Balance');
+      headers.push('SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Balance');
   }
   if (initialDbPensionAmount > 0) {
       headers.push('DB Pension');
@@ -165,8 +165,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       if (initialDcPension <= initialSipp) return ['dc', 'sipp'];
       return ['sipp', 'dc'];
     };
-
-    const withdrawalOrder = takeTaxFreeLumpSum || takeSippTaxFreeLumpSum ? ['pension', 'cash', 'isa', 'gia'] : ['cash', 'isa', 'gia', 'pension'];
+    
+    const withdrawalOrder = ['pension', 'cash', 'isa', 'gia'];
 
     for (const source of withdrawalOrder) {
       if (netShortfall <= 0) break;
@@ -242,21 +242,21 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const dcAmcCharge = dcPotAfterDrawdown * amcDecimal;
     const sippAmcCharge = sippPotAfterDrawdown * sippAmcDecimal;
 
-    const dcPotForGrowth = dcPotAfterDrawdown - dcAmcCharge + dcContributionThisYear;
-    const sippPotForGrowth = sippPotAfterDrawdown - sippAmcCharge + sippContributionThisYear;
+    const dcPotAfterDeductions = dcPotAfterDrawdown - dcAmcCharge;
+    const sippPotAfterDeductions = sippPotAfterDrawdown - sippAmcCharge;
 
     let dcGrowth = 0;
     if (yearOffset > 0) {
-      dcGrowth = dcPotForGrowth * invGrowthDecimal;
+      dcGrowth = dcPotAfterDeductions * invGrowthDecimal;
     }
 
     let sippGrowth = 0;
     if (yearOffset > 0) {
-      sippGrowth = sippPotForGrowth * sippInvGrowthDecimal;
+      sippGrowth = sippPotAfterDeductions * sippInvGrowthDecimal;
     }
 
-    const finalDcBalance = Math.max(0, dcPotForGrowth + dcGrowth);
-    const finalSippBalance = Math.max(0, sippPotForGrowth + sippGrowth);
+    const finalDcBalance = Math.max(0, dcPotAfterDeductions + dcGrowth + dcContributionThisYear);
+    const finalSippBalance = Math.max(0, sippPotAfterDeductions + sippGrowth + sippContributionThisYear);
 
     // --- FINAL TALLY ---
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
@@ -285,10 +285,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (showDcPension) {
       Object.assign(row, {
         'Initial DC Pension': initialDcPension,
-        'DC Pension Contribution': dcContributionThisYear,
         'DC Pension Drawdown': dcDrawdown,
+        'DC Pension Contribution': dcContributionThisYear,
         'DC AMC Charge': dcAmcCharge,
-        'DC Pension After Deductions': dcPotForGrowth,
+        'DC Pension After Deductions': dcPotAfterDeductions,
         'DC Pension Growth': dcGrowth,
         'DC Pension Balance': finalDcBalance
       });
@@ -297,10 +297,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (showSipp) {
         Object.assign(row, {
             'Initial SIPP': initialSipp,
-            'SIPP Contribution': sippContributionThisYear,
             'SIPP Drawdown': sippDrawdown,
+            'SIPP Contribution': sippContributionThisYear,
             'SIPP AMC Charge': sippAmcCharge,
-            'SIPP After Deductions': sippPotForGrowth,
+            'SIPP After Deductions': sippPotAfterDeductions,
             'SIPP Growth': sippGrowth,
             'SIPP Balance': finalSippBalance
         });
