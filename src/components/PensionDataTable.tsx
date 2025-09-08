@@ -56,7 +56,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
       'SIPP Contribution': ['SIPP', 'Contrib.'],
       'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
       'SIPP Growth': ['SIPP', 'Growth'],
-      'SIPP Pre-Growth': ['SIPP', 'Pre-Growth'],
+      'SIPP After Deductions': ['SIPP', 'After Deductions'],
       'SIPP Balance': ['SIPP', 'Balance'],
 
       'DB Pension': ['DB Pension'],

@@ -17,7 +17,7 @@ export interface PensionDataRow {
   'SIPP Contribution'?: number;
   'SIPP AMC Charge'?: number;
   'SIPP Growth'?: number;
-  'SIPP Pre-Growth'?: number;
+  'SIPP After Deductions'?: number;
   'SIPP Balance'?: number;
 
   'DB Pension'?: number;
