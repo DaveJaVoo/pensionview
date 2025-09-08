@@ -30,7 +30,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const showSipp = initialSippValue > 0 || annualSippContribution > 0;
 
   if (showDcPension) {
-      headers.push('Initial DC Pension', 'DC Pension Contribution', 'DC AMC Charge', 'DC Pension Growth', 'DC Pension Pre-Growth', 'DC Pension Drawdown', 'DC Pension Balance');
+      const dcHeaders = ['Initial DC Pension'];
+      if (annualDcPensionContribution > 0) {
+        dcHeaders.push('DC Pension Contribution');
+      }
+      dcHeaders.push('DC AMC Charge', 'DC Pension Growth', 'DC Pension Pre-Growth', 'DC Pension Drawdown', 'DC Pension Balance');
+      headers.push(...dcHeaders);
   }
   if (showSipp) {
       headers.push('Initial SIPP', 'SIPP Contribution', 'SIPP AMC Charge', 'SIPP Growth', 'SIPP Pre-Growth', 'SIPP Drawdown', 'SIPP Balance');
