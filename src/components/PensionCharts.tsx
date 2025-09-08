@@ -23,9 +23,10 @@ const chartColors = {
 
 const CustomTooltip: FC<any> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const age = payload[0].payload.age;
     return (
       <div className="bg-background/80 backdrop-blur-sm p-3 border border-border rounded-lg shadow-lg">
-        <p className="label font-semibold text-foreground">{`Year: ${label}`}</p>
+        <p className="label font-semibold text-foreground">{`Age: ${age} (Year: ${label})`}</p>
         {payload.map((entry: any, index: number) => (
           <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm">
             {`${entry.name}: ${formatCurrency(entry.value)}`}
@@ -65,7 +66,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} name="Age" />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
@@ -85,7 +86,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} name="Age" />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
@@ -104,7 +105,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} name="Age" />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
@@ -124,7 +125,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} name="Age" />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
@@ -144,7 +145,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData.filter(d => d.taxPaid > 0)}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} />
+              <XAxis dataKey={xAxisDataKey} stroke="hsl(var(--foreground))" tick={{ fontSize: 12 }} name="Age" />
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />

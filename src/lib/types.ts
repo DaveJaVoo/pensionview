@@ -9,7 +9,7 @@ export interface PensionDataRow {
   'DC Pension Contribution': number;
   'DC AMC Charge': number;
   'DC Pension Growth': number;
-  'DC Pension + Growth': number;
+  'DC Pension Pre-Growth': number;
   'DC Pension Balance': number;
 
   'Initial SIPP'?: number;
@@ -17,7 +17,7 @@ export interface PensionDataRow {
   'SIPP Contribution'?: number;
   'SIPP AMC Charge'?: number;
   'SIPP Growth'?: number;
-  'SIPP + Growth'?: number;
+  'SIPP Pre-Growth'?: number;
   'SIPP Balance'?: number;
 
   'DB Pension'?: number;
