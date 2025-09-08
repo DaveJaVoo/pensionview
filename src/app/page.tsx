@@ -25,7 +25,7 @@ import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
 const formSchema = z.object({
-  currentAge: z.coerce.number().min(18).max(89).default(55),
+  currentAge: z.coerce.number().min(18).max(89).default(63),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   projectionStartYear: z.coerce.number().min(2000).max(2100).default(new Date().getFullYear()),
   
@@ -38,13 +38,13 @@ const formSchema = z.object({
   targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
-  initialFasAmount: z.coerce.number().min(0).default(0),
+  initialFasAmount: z.coerce.number().min(0).default(6500),
   fasStartAge: z.coerce.number().min(50).max(80).default(65),
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
   initialOtherIncome: z.coerce.number().min(0).default(0),
   
-  initialDcPensionValue: z.coerce.number().min(0).default(188000),
+  initialDcPensionValue: z.coerce.number().min(0).default(250000),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionStartAge: z.coerce.number().min(18).max(89).default(55),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
@@ -55,7 +55,7 @@ const formSchema = z.object({
   applyDcWithdrawalRateInSurplus: z.boolean().default(false),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
 
-  initialSippValue: z.coerce.number().min(0).default(0),
+  initialSippValue: z.coerce.number().min(0).default(7000),
   annualSippContribution: z.coerce.number().min(0).default(0),
   sippContributionStartAge: z.coerce.number().min(18).max(89).default(55),
   sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
@@ -856,3 +856,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
