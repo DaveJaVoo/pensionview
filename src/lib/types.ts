@@ -9,7 +9,7 @@ export interface PensionDataRow {
   'DC Pension Contribution': number;
   'DC AMC Charge': number;
   'DC Pension Growth': number;
-  'DC Pension Pre-Growth': number;
+  'DC Pension After Deductions': number;
   'DC Pension Balance': number;
 
   'Initial SIPP'?: number;

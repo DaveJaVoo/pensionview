@@ -33,7 +33,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
            lowerHeader.includes('fas') ||
-           lowerHeader.includes('minus amc');
+           lowerHeader.includes('minus amc') ||
+           lowerHeader.includes('after deductions');
   };
   
   const isNumericHeader = (header: string): boolean => {
@@ -47,7 +48,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
       'DC Pension Contribution': ['DC Pension', 'Contrib.'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Pension Growth': ['DC Pension', 'Growth'],
-      'DC Pension Pre-Growth': ['DC Pension', 'Pre-Growth'],
+      'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
       'DC Pension Balance': ['DC Pension', 'Balance'],
 
       'Initial SIPP': ['Initial SIPP'],

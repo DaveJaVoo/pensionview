@@ -34,7 +34,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       if (annualDcPensionContribution > 0) {
         dcHeaders.push('DC Pension Contribution');
       }
-      dcHeaders.push('DC AMC Charge', 'DC Pension Growth', 'DC Pension Pre-Growth', 'DC Pension Drawdown', 'DC Pension Balance');
+      dcHeaders.push('DC Pension Drawdown', 'DC Pension After Deductions', 'DC AMC Charge', 'DC Pension Growth', 'DC Pension Balance');
       headers.push(...dcHeaders);
   }
   if (showSipp) {
@@ -295,7 +295,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         'DC Pension Contribution': dcContributionThisYear,
         'DC AMC Charge': dcAmcCharge,
         'DC Pension Growth': dcGrowth,
-        'DC Pension Pre-Growth': dcPotForGrowth,
+        'DC Pension After Deductions': dcPotForGrowth,
         'DC Pension Drawdown': dcDrawdown,
         'DC Pension Balance': finalDcBalance
       });
