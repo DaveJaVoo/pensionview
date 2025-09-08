@@ -30,19 +30,20 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const showSipp = initialSippValue > 0 || annualSippContribution > 0;
 
   if (showDcPension) {
-      const dcHeaders = ['Initial DC Pension', 'DC Pension Drawdown'];
+      const dcHeaders = ['Initial DC Pension'];
       if (annualDcPensionContribution > 0) {
         dcHeaders.push('DC Pension Contribution');
       }
-      dcHeaders.push('DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Balance');
+      dcHeaders.push('DC Pension Drawdown', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Balance');
       headers.push(...dcHeaders);
   }
   if (showSipp) {
-      headers.push('Initial SIPP', 'SIPP Drawdown');
+      const sippHeaders = ['Initial SIPP'];
       if (annualSippContribution > 0) {
-        headers.push('SIPP Contribution');
+        sippHeaders.push('SIPP Contribution');
       }
-      headers.push('SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Balance');
+      sippHeaders.push('SIPP Drawdown', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Balance');
+      headers.push(...sippHeaders);
   }
   if (initialDbPensionAmount > 0) {
       headers.push('DB Pension');
@@ -191,26 +192,30 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             if (potBalance <= 0) continue;
             
             const ufplsTaxFreePortion = (potType === 'dc') ? dcUfplsTaxFreePortion : sippUfplsTaxFreePortion;
-            const taxablePortion = 1 - ufplsTaxFreePortion;
             
             let requiredGross = 0;
             const remainingPersonalAllowance = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
             
-            const taxableDrawNeeded = netShortfall - remainingPersonalAllowance;
-
-            if (taxableDrawNeeded <= 0) {
-              // We only need to draw enough to fill the personal allowance, which will be tax-free
-              requiredGross = netShortfall;
-            } else {
-               // We need to draw more than the remaining allowance, so tax will be due
-               const grossForTaxablePortion = taxableDrawNeeded / (1 - INCOME_TAX_RATE);
-               requiredGross = remainingPersonalAllowance + grossForTaxablePortion;
-            }
+            // Tax-free part of the potential withdrawal
+            const potentialTaxFreeDraw = netShortfall / (1 - INCOME_TAX_RATE * (1 - ufplsTaxFreePortion));
+            const grossToGetNet = (netShortfall - (remainingPersonalAllowance * (1 - INCOME_TAX_RATE))) / (1- INCOME_TAX_RATE);
             
+            const taxFreeAmountFromPension = netShortfall * ufplsTaxFreePortion;
+            const remainingNeeded = netShortfall - taxFreeAmountFromPension;
+            
+            const taxableDrawNeeded = remainingNeeded - remainingPersonalAllowance;
+            
+            if (taxableDrawNeeded <= 0) {
+                requiredGross = remainingNeeded;
+            } else {
+                const grossForTaxable = taxableDrawNeeded / (1 - INCOME_TAX_RATE);
+                requiredGross = remainingPersonalAllowance + grossForTaxable;
+            }
+
             const draw = Math.min(potBalance, requiredGross);
             
-            const taxablePartOfDraw = draw * taxablePortion;
-            const taxOnThisDraw = Math.max(0, taxablePartOfDraw - remainingPersonalAllowance) * INCOME_TAX_RATE;
+            const taxablePartOfDraw = draw * (1 - ufplsTaxFreePortion);
+            const taxOnThisDraw = Math.max(0, (fixedTaxableIncome + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - taxOnFixedIncome;
             const netFromThisDraw = draw - taxOnThisDraw;
 
             netShortfall -= netFromThisDraw;
@@ -287,8 +292,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (showDcPension) {
       Object.assign(row, {
         'Initial DC Pension': initialDcPension,
-        'DC Pension Drawdown': dcDrawdown,
         'DC Pension Contribution': dcContributionThisYear,
+        'DC Pension Drawdown': dcDrawdown,
         'DC AMC Charge': dcAmcCharge,
         'DC Pension After Deductions': dcPotAfterDeductions,
         'DC Pension Growth': dcGrowth,
@@ -299,8 +304,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (showSipp) {
         Object.assign(row, {
             'Initial SIPP': initialSipp,
-            'SIPP Drawdown': sippDrawdown,
             'SIPP Contribution': sippContributionThisYear,
+            'SIPP Drawdown': sippDrawdown,
             'SIPP AMC Charge': sippAmcCharge,
             'SIPP After Deductions': sippPotAfterDeductions,
             'SIPP Growth': sippGrowth,
