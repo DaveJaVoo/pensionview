@@ -38,10 +38,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('after deductions');
   };
   
-  const isNumericHeader = (header: string): boolean => {
-    return header === "Age";
-  }
-
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
@@ -129,6 +125,26 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
     return lowerHeader.includes('net income per year') || lowerHeader.includes('net income per month');
   };
 
+  const verticalLineHeaders = [
+    'Initial DC Pension',
+    'Initial SIPP',
+    'State Pension',
+    'FAS',
+    'Cash Savings Initial',
+    'ISA Initial',
+    'GIA Initial',
+    'Total Savings Withdrawn',
+    'Total Savings Balance',
+    'TOTAL INCOME',
+    'Income Subject to Tax',
+    'Income Tax Paid',
+    'Net Income Per Year'
+  ].map(h => h.toLowerCase());
+
+  const needsVerticalLine = (header: string): boolean => {
+      return verticalLineHeaders.includes(header.toLowerCase());
+  };
+
   return (
     <ScrollArea className="w-full whitespace-nowrap rounded-md border shadow-lg bg-card">
       <Table className="min-w-full">
@@ -137,7 +153,10 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
             {headers.map((header) => (
               <TableHead 
                 key={header} 
-                className="px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top"
+                className={cn(
+                  "px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top",
+                  needsVerticalLine(header) && "border-l-2 border-border"
+                )}
                 style={{ whiteSpace: 'normal' }}
               >
                 {formatHeaderForDisplay(header)}
@@ -147,7 +166,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
         </TableHeader>
         <TableBody>
           {data.map((row, rowIndex) => {
-            const isRetirementRow = row.Age === retirementAge;
             const isPreRetirementRow = row.Age === retirementAge - 1;
 
             return (
@@ -162,10 +180,14 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 const cellValue = row[header];
                 let displayValue: string | number | undefined = cellValue;
                 let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left align-top";
+                
+                if (needsVerticalLine(header)) {
+                    cellClasses = cn(cellClasses, "border-l-2 border-border");
+                }
 
-                if (isMonetaryHeader(header) || (typeof cellValue === 'string' && cellValue.includes('£'))) {
+                if (isMonetaryHeader(header)) {
                   const parsedNum = parseCurrency(String(cellValue));
-                  if (header.toLowerCase().includes('tax paid') && (parsedNum === 0 || parsedNum === undefined)) {
+                  if (header.toLowerCase() === 'income tax paid' && (parsedNum === 0 || parsedNum === undefined)) {
                      displayValue = "£0";
                   } else {
                      displayValue = formatCurrency(cellValue);
