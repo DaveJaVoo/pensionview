@@ -164,22 +164,22 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
                 if (header === 'Income Tax Paid') {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-destructive/20 text-gray-900 dark:text-destructive-foreground font-semibold");
+                    cellClasses = cn(cellClasses, "bg-destructive/20 font-semibold");
                   } else if (numericValueForStyling === 0) {
                      cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400"); 
                      displayValue = "£0"; 
                   }
                 } else if (isGreenStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium");
+                    cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40");
                   }
                 } else if (isPinkStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-pink-50 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 font-medium");
+                    cellClasses = cn(cellClasses, "bg-pink-50 dark:bg-pink-900/40");
                   }
                 } else if (isBlueStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 font-medium");
+                    cellClasses = cn(cellClasses, "bg-sky-100 dark:bg-sky-900/40");
                   }
                 }
                 
