@@ -573,15 +573,16 @@ export default function PensionPilotPage() {
               
               <div>
                 <FormSectionHeader>Core Parameters</FormSectionHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-4 gap-y-6 pt-4">
-                  {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
+                <div className="p-4 border rounded-lg bg-muted/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-4 gap-y-6">
+                    {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
+                  </div>
                 </div>
               </div>
 
               <div>
                 <FormSectionHeader>Savings & Investments</FormSectionHeader>
-                <div className="space-y-6 pt-4">
-                  {/* Cash Section */}
+                <div className="space-y-6">
                   <div className="p-4 border rounded-lg bg-muted/20">
                     <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">Cash Savings</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
@@ -589,7 +590,6 @@ export default function PensionPilotPage() {
                     </div>
                   </div>
                   
-                  {/* ISA Section */}
                   <div className="p-4 border rounded-lg bg-muted/20">
                     <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">ISA (Individual Savings Account)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
@@ -597,7 +597,6 @@ export default function PensionPilotPage() {
                     </div>
                   </div>
                   
-                  {/* GIA Section */}
                   <div className="p-4 border rounded-lg bg-muted/20">
                     <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">GIA (General Investment Account)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
@@ -609,189 +608,195 @@ export default function PensionPilotPage() {
 
               <div>
                 <FormSectionHeader>Defined Contribution (DC) Pension</FormSectionHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start pt-4">
-                  {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
-                  <div className="space-y-1"> 
-                      <div className="flex items-center gap-1">
-                          <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
-                              Take 25% Tax-Free Lump Sum?
-                          </Label>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                      <HelpCircleIcon className="h-4 w-4" />
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                  If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at your Retirement Age.
-                                  The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
-                                  If disabled, each UFPLS withdrawal will have a 25% tax-free element. This changes the withdrawal strategy to be 'pension-first' to maximise tax efficiency.
-                              </PopoverContent>
-                          </Popover>
-                      </div>
-                      <Controller
-                          name="takeTaxFreeLumpSum"
-                          control={control}
-                          render={({ field }) => (
-                              <div className="flex items-center space-x-2 pt-2">
-                                  <Switch
-                                      id="takeTaxFreeLumpSum"
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                      aria-labelledby="takeTaxFreeLumpSumLabel"
-                                  />
-                                  <span id="takeTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                      {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
-                                  </span>
-                              </div>
-                          )}
-                      />
-                      {takeTaxFreeLumpSumWatched && isFormInitialized && (
-                          <p className="text-xs text-muted-foreground pt-1">
-                              Calculated Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
-                          </p>
-                      )}
-                  </div>
-                  <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
-                      <div className="flex items-center gap-1">
-                          <Label htmlFor="applyDcWithdrawalRateInSurplus" className="text-sm font-medium">
-                              Apply Rate in Surplus Years?
-                          </Label>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                      <HelpCircleIcon className="h-4 w-4" />
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                If enabled, the 'DC Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
-                              </PopoverContent>
-                          </Popover>
-                      </div>
-                      <Controller
-                          name="applyDcWithdrawalRateInSurplus"
-                          control={control}
-                          render={({ field }) => (
-                              <div className="flex items-center space-x-2 pt-2">
-                                  <Switch
-                                      id="applyDcWithdrawalRateInSurplus"
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                  />
-                                  <span className="text-sm text-muted-foreground">
-                                      {field.value ? "Yes" : "No"}
-                                  </span>
-                              </div>
-                          )}
-                      />
-                  </div>
-                   <div className="w-full max-w-[160px]">
-                      <Label className="text-sm font-medium">
-                        DC Real Growth <span className="text-xs text-muted-foreground font-normal">(DC Growth - Infl.)</span>
-                      </Label>
-                      <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
-                          <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
-                          <span className="text-sm font-semibold">{realGrowthDC}% pa</span>
-                      </div>
+                <div className="p-4 border rounded-lg bg-muted/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
+                    {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
+                    <div className="space-y-1"> 
+                        <div className="flex items-center gap-1">
+                            <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
+                                Take 25% Tax-Free Lump Sum?
+                            </Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                        <HelpCircleIcon className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-60 text-sm" side="top" align="start">
+                                    If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at your Retirement Age.
+                                    The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
+                                    If disabled, each UFPLS withdrawal will have a 25% tax-free element. This changes the withdrawal strategy to be 'pension-first' to maximise tax efficiency.
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <Controller
+                            name="takeTaxFreeLumpSum"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="takeTaxFreeLumpSum"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        aria-labelledby="takeTaxFreeLumpSumLabel"
+                                    />
+                                    <span id="takeTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
+                                        {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
+                                    </span>
+                                </div>
+                            )}
+                        />
+                        {takeTaxFreeLumpSumWatched && isFormInitialized && (
+                            <p className="text-xs text-muted-foreground pt-1">
+                                Calculated Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
+                            </p>
+                        )}
+                    </div>
+                    <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
+                        <div className="flex items-center gap-1">
+                            <Label htmlFor="applyDcWithdrawalRateInSurplus" className="text-sm font-medium">
+                                Apply Rate in Surplus Years?
+                            </Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                        <HelpCircleIcon className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-60 text-sm" side="top" align="start">
+                                  If enabled, the 'DC Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <Controller
+                            name="applyDcWithdrawalRateInSurplus"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="applyDcWithdrawalRateInSurplus"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                    <span className="text-sm text-muted-foreground">
+                                        {field.value ? "Yes" : "No"}
+                                    </span>
+                                </div>
+                            )}
+                        />
+                    </div>
+                     <div className="w-full max-w-[160px]">
+                        <Label className="text-sm font-medium">
+                          DC Real Growth <span className="text-xs text-muted-foreground font-normal">(DC Growth - Infl.)</span>
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
+                            <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
+                            <span className="text-sm font-semibold">{realGrowthDC}% pa</span>
+                        </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div>
                 <FormSectionHeader>Self-Invested Personal Pension (SIPP)</FormSectionHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start pt-4">
-                  {sippFields.map(field => <FormInput key={field.name} {...field} />)}
-                  <div className="space-y-1"> 
-                      <div className="flex items-center gap-1">
-                          <Label htmlFor="takeSippTaxFreeLumpSum" className="text-sm font-medium">
-                              Take 25% SIPP Tax-Free Lump Sum?
-                          </Label>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                      <HelpCircleIcon className="h-4 w-4" />
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                  If enabled, 25% of your 'Current SIPP Value' is taken tax-free at your Retirement Age.
-                                  The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from SIPP are fully taxable.
-                                  If disabled, each UFPLS withdrawal from SIPP will have a 25% tax-free element.
-                              </PopoverContent>
-                          </Popover>
-                      </div>
-                      <Controller
-                          name="takeSippTaxFreeLumpSum"
-                          control={control}
-                          render={({ field }) => (
-                              <div className="flex items-center space-x-2 pt-2">
-                                  <Switch
-                                      id="takeSippTaxFreeLumpSum"
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                      aria-labelledby="takeSippTaxFreeLumpSumLabel"
-                                  />
-                                  <span id="takeSippTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                      {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
-                                  </span>
-                              </div>
-                          )}
-                      />
-                      {takeSippTaxFreeLumpSumWatched && isFormInitialized && (
-                          <p className="text-xs text-muted-foreground pt-1">
-                              Calculated SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
-                          </p>
-                      )}
-                  </div>
-                  <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
-                      <div className="flex items-center gap-1">
-                          <Label htmlFor="applySippWithdrawalRateInSurplus" className="text-sm font-medium">
-                              Apply Rate in Surplus Years?
-                          </Label>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                      <HelpCircleIcon className="h-4 w-4" />
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                If enabled, the 'SIPP Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
-                              </PopoverContent>
-                          </Popover>
-                      </div>
-                      <Controller
-                          name="applySippWithdrawalRateInSurplus"
-                          control={control}
-                          render={({ field }) => (
-                              <div className="flex items-center space-x-2 pt-2">
-                                  <Switch
-                                      id="applySippWithdrawalRateInSurplus"
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                  />
-                                  <span className="text-sm text-muted-foreground">
-                                      {field.value ? "Yes" : "No"}
-                                  </span>
-                              </div>
-                          )}
-                      />
-                  </div>
-                   <div className="w-full max-w-[160px]">
-                      <Label className="text-sm font-medium">
-                        SIPP Real Growth <span className="text-xs text-muted-foreground font-normal">(SIPP Growth - Infl.)</span>
-                      </Label>
-                      <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
-                          <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
-                          <span className="text-sm font-semibold">{realGrowthSIPP}% pa</span>
-                      </div>
+                <div className="p-4 border rounded-lg bg-muted/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
+                    {sippFields.map(field => <FormInput key={field.name} {...field} />)}
+                    <div className="space-y-1"> 
+                        <div className="flex items-center gap-1">
+                            <Label htmlFor="takeSippTaxFreeLumpSum" className="text-sm font-medium">
+                                Take 25% SIPP Tax-Free Lump Sum?
+                            </Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                        <HelpCircleIcon className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-60 text-sm" side="top" align="start">
+                                    If enabled, 25% of your 'Current SIPP Value' is taken tax-free at your Retirement Age.
+                                    The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from SIPP are fully taxable.
+                                    If disabled, each UFPLS withdrawal from SIPP will have a 25% tax-free element.
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <Controller
+                            name="takeSippTaxFreeLumpSum"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="takeSippTaxFreeLumpSum"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        aria-labelledby="takeSippTaxFreeLumpSumLabel"
+                                    />
+                                    <span id="takeSippTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
+                                        {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
+                                    </span>
+                                </div>
+                            )}
+                        />
+                        {takeSippTaxFreeLumpSumWatched && isFormInitialized && (
+                            <p className="text-xs text-muted-foreground pt-1">
+                                Calculated SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
+                            </p>
+                        )}
+                    </div>
+                    <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
+                        <div className="flex items-center gap-1">
+                            <Label htmlFor="applySippWithdrawalRateInSurplus" className="text-sm font-medium">
+                                Apply Rate in Surplus Years?
+                            </Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                        <HelpCircleIcon className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-60 text-sm" side="top" align="start">
+                                  If enabled, the 'SIPP Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <Controller
+                            name="applySippWithdrawalRateInSurplus"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="applySippWithdrawalRateInSurplus"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                    <span className="text-sm text-muted-foreground">
+                                        {field.value ? "Yes" : "No"}
+                                    </span>
+                                </div>
+                            )}
+                        />
+                    </div>
+                     <div className="w-full max-w-[160px]">
+                        <Label className="text-sm font-medium">
+                          SIPP Real Growth <span className="text-xs text-muted-foreground font-normal">(SIPP Growth - Infl.)</span>
+                        </Label>
+                        <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
+                            <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
+                            <span className="text-sm font-semibold">{realGrowthSIPP}% pa</span>
+                        </div>
+                    </div>
                   </div>
                 </div>
               </div>
               
               <div>
                 <FormSectionHeader>Other Income Sources</FormSectionHeader>
-                <p className="text-sm text-muted-foreground -mt-4 mb-4">(Leave values at 0 if not applicable)</p>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-6 pt-4">
-                  {otherIncomeFields.map(field => <FormInput key={field.name} {...field} />)}
+                <div className="p-4 border rounded-lg bg-muted/20">
+                  <p className="text-sm text-muted-foreground -mt-4 mb-4">(Leave values at 0 if not applicable)</p>
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-6">
+                    {otherIncomeFields.map(field => <FormInput key={field.name} {...field} />)}
+                  </div>
                 </div>
               </div>
               
@@ -921,9 +926,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
