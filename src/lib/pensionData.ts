@@ -151,10 +151,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const fasThisYear = (initialFasAmount > 0 && age >= fasStartAge) ? initialFasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
     
     let netShortfall = 0;
-    let fixedTaxableIncome = 0;
+    let fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear;
 
     if(isInRetirement) {
-        fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear;
         const taxOnFixedIncome = Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE;
         const netFromFixedIncome = fixedTaxableIncome - taxOnFixedIncome;
         netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
@@ -212,14 +211,30 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               const remainingAllowance = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
               
               let grossWithdrawalNeeded;
-              if (netShortfall <= remainingAllowance * taxablePortionRate) {
-                   grossWithdrawalNeeded = netShortfall / taxablePortionRate;
-              } else {
-                   const taxableIncomeNeeded = netShortfall - (remainingAllowance * taxablePortionRate);
-                   grossWithdrawalNeeded = remainingAllowance + taxableIncomeNeeded / (1 - INCOME_TAX_RATE);
+              // Taxable part of withdrawal is (gross * taxablePortionRate).
+              // We need netFromDraw = netShortfall
+              // netFromDraw = gross - tax
+              // tax = max(0, totalTaxableIncomeSoFar + (gross * taxablePortionRate) - currentPersonalAllowance) * taxRate - taxOnFixed
+              // This is complex. Let's simplify by grossing up.
+
+              const netIncomeRequiredFromTaxablePension = netShortfall;
+              let grossWithdrawalToMeetNet = netIncomeRequiredFromTaxablePension;
+
+              if (taxablePortionRate > 0) {
+                  const incomeTaxableThisDraw = (totalTaxableIncomeSoFar + (grossWithdrawalToMeetNet * taxablePortionRate)) - currentPersonalAllowance;
+                  if (incomeTaxableThisDraw > 0) {
+                      // We need to solve for `gross` where: `gross - taxOnGross = netShortfall`
+                      // `gross - ( (totalTaxableIncomeSoFar - PA) + gross*taxablePortionRate )*taxRate = netShortfall`
+                      // Let's use a simpler gross-up: net / (1 - marginal_tax_rate)
+                      // The taxable part of the withdrawal will be taxed at INCOME_TAX_RATE.
+                      // So, for the portion that is taxed, `net = gross_taxed_part * (1-INCOME_TAX_RATE)`
+                      // `gross_taxed_part = net / (1-INCOME_TAX_RATE)`.
+                      grossWithdrawalToMeetNet = netIncomeRequiredFromTaxablePension / (1 - (INCOME_TAX_RATE * taxablePortionRate));
+                  }
               }
-              
-              let draw = Math.min(potBalance, grossWithdrawalNeeded);
+
+              let draw = Math.min(potBalance, grossWithdrawalToMeetNet);
+              draw = Math.max(0, draw);
 
               const taxablePartOfDraw = draw * taxablePortionRate;
               const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE
@@ -230,6 +245,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               else sippDrawdown += draw;
               
               totalTaxableIncomeSoFar += taxablePartOfDraw;
+              // This update to netShortfall is for subsequent loops, though usually one pension pot will cover it.
               netShortfall -= netFromThisDraw;
           }
         }
@@ -250,7 +266,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     function isSurplusYear() {
         if (!isInRetirement) return false;
-        const netFromFixed = (dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear) - Math.max(0, (dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear) - currentPersonalAllowance) * INCOME_TAX_RATE;
+        const netFromFixed = fixedTaxableIncome - Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE;
         return netFromFixed >= inflatedTargetNetIncome;
     }
 
