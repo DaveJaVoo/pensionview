@@ -146,12 +146,16 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row, rowIndex) => (
+          {data.map((row, rowIndex) => {
+            const isRetirementRow = row.Age === retirementAge;
+            const isPreRetirementRow = row.Age === retirementAge - 1;
+
+            return (
             <TableRow 
               key={rowIndex} 
               className={cn(
                 "hover:bg-muted/50 transition-colors duration-150 even:bg-card odd:bg-background",
-                row.Age === retirementAge && "border-t-2 border-destructive"
+                isPreRetirementRow && "border-b-2 border-destructive"
               )}
             >
               {headers.map((header) => {
@@ -160,7 +164,12 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left align-top";
 
                 if (isMonetaryHeader(header) || (typeof cellValue === 'string' && cellValue.includes('£'))) {
-                  displayValue = formatCurrency(cellValue);
+                  const parsedNum = parseCurrency(String(cellValue));
+                  if (header.toLowerCase().includes('tax paid') && (parsedNum === 0 || parsedNum === undefined)) {
+                     displayValue = "£0";
+                  } else {
+                     displayValue = formatCurrency(cellValue);
+                  }
                 }
 
                 const numericValueForStyling = typeof cellValue === 'number' ? cellValue : parseCurrency(String(cellValue));
@@ -196,7 +205,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 );
               })}
             </TableRow>
-          ))}
+          );
+          })}
         </TableBody>
       </Table>
       <ScrollBar orientation="horizontal" />
