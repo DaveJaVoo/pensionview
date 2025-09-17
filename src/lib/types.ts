@@ -91,13 +91,15 @@ export interface PensionCalculationParameters {
 
   initialCashSavings: number;
   annualCashContribution: number;
+  cashContributionEndAge: number;
   initialIsaAmount: number;
   annualIsaContribution: number;
+  isaContributionEndAge: number;
   isaGrowthRate: number;
   initialGiaAmount: number;
   annualGiaContribution: number;
+  giaContributionEndAge: number;
   giaGrowthRate: number;
-  savingsContributionEndAge: number;
 }
 
 export interface CalculatedPensionData {

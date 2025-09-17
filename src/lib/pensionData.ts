@@ -20,10 +20,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     applySippWithdrawalRateInSurplus, sippWithdrawalRate,
     
     inflationRate,
-    initialCashSavings, annualCashContribution, 
-    initialIsaAmount, annualIsaContribution, isaGrowthRate, 
-    initialGiaAmount, annualGiaContribution, giaGrowthRate,
-    savingsContributionEndAge
+    initialCashSavings, annualCashContribution, cashContributionEndAge,
+    initialIsaAmount, annualIsaContribution, isaContributionEndAge, isaGrowthRate, 
+    initialGiaAmount, annualGiaContribution, giaContributionEndAge, giaGrowthRate,
   } = params;
   
   const headers: string[] = ['Age', 'Year'];
@@ -118,10 +117,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const row: PensionDataRow = { Age: age, Year: String(currentYear) };
     
     // --- Contributions ---
-    const applySavingsContribution = age < savingsContributionEndAge;
-    const cashContributionThisYear = applySavingsContribution && annualCashContribution > 0 ? annualCashContribution : 0;
-    const isaContributionThisYear = applySavingsContribution && annualIsaContribution > 0 ? annualIsaContribution : 0;
-    const giaContributionThisYear = applySavingsContribution && annualGiaContribution > 0 ? annualGiaContribution : 0;
+    const cashContributionThisYear = (age < cashContributionEndAge && annualCashContribution > 0) ? annualCashContribution : 0;
+    const isaContributionThisYear = (age < isaContributionEndAge && annualIsaContribution > 0) ? annualIsaContribution : 0;
+    const giaContributionThisYear = (age < giaContributionEndAge && annualGiaContribution > 0) ? annualGiaContribution : 0;
     
     // --- SAVINGS VALUES AT START OF YEAR ---
     const initialCash = showCash ? (previousRow ? (previousRow['Cash Savings Balance'] || 0) : initialCashSavings) : 0;

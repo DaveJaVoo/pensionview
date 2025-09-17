@@ -31,13 +31,15 @@ const formSchema = z.object({
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   annualCashContribution: z.coerce.number().min(0).default(0),
+  cashContributionEndAge: z.coerce.number().min(19).max(90).default(65),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
   annualIsaContribution: z.coerce.number().min(0).default(0),
+  isaContributionEndAge: z.coerce.number().min(19).max(90).default(65),
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
   initialGiaAmount: z.coerce.number().min(0).default(20000),
   annualGiaContribution: z.coerce.number().min(0).default(0),
+  giaContributionEndAge: z.coerce.number().min(19).max(90).default(65),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
-  savingsContributionEndAge: z.coerce.number().min(19).max(90).default(65),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
@@ -225,7 +227,10 @@ export default function PensionPilotPage() {
     
     const currentDcContributionEndAge = getValues("dcContributionEndAge");
     const currentSippContributionEndAge = getValues("sippContributionEndAge");
-    const currentSavingsContributionEndAge = getValues("savingsContributionEndAge");
+    
+    const currentCashContribEndAge = getValues("cashContributionEndAge");
+    const currentIsaContribEndAge = getValues("isaContributionEndAge");
+    const currentGiaContribEndAge = getValues("giaContributionEndAge");
 
 
     if (currentStatePensionAgeVal !== currentDcContributionEndAge) {
@@ -234,9 +239,16 @@ export default function PensionPilotPage() {
     if (currentStatePensionAgeVal !== currentSippContributionEndAge) {
         setValue("sippContributionEndAge", currentStatePensionAgeVal, { shouldValidate: true });
     }
-    if (retirementAgeVal !== currentSavingsContributionEndAge) {
-        setValue("savingsContributionEndAge", retirementAgeVal, { shouldValidate: true });
+    if (retirementAgeVal !== currentCashContribEndAge) {
+      setValue("cashContributionEndAge", retirementAgeVal, { shouldValidate: true });
     }
+    if (retirementAgeVal !== currentIsaContribEndAge) {
+      setValue("isaContributionEndAge", retirementAgeVal, { shouldValidate: true });
+    }
+    if (retirementAgeVal !== currentGiaContribEndAge) {
+      setValue("giaContributionEndAge", retirementAgeVal, { shouldValidate: true });
+    }
+
 
     if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
       const newSpa = Math.min(currentAgeVal, 80); 
@@ -256,9 +268,18 @@ export default function PensionPilotPage() {
   useEffect(() => {
     if (!isFormInitialized) return;
     const retAgeVal = getValues("retirementAge");
-    const currentSavingsEndAge = getValues("savingsContributionEndAge");
-     if (retAgeVal !== currentSavingsEndAge) {
-        setValue("savingsContributionEndAge", retAgeVal, {shouldValidate: true});
+    const currentCashEndAge = getValues("cashContributionEndAge");
+    const currentIsaEndAge = getValues("isaContributionEndAge");
+    const currentGiaEndAge = getValues("giaContributionEndAge");
+
+     if (retAgeVal !== currentCashEndAge) {
+        setValue("cashContributionEndAge", retAgeVal, {shouldValidate: true});
+    }
+     if (retAgeVal !== currentIsaEndAge) {
+        setValue("isaContributionEndAge", retAgeVal, {shouldValidate: true});
+    }
+     if (retAgeVal !== currentGiaEndAge) {
+        setValue("giaContributionEndAge", retAgeVal, {shouldValidate: true});
     }
   }, [retirementAgeWatched, isFormInitialized, setValue, getValues]);
 
@@ -474,13 +495,15 @@ export default function PensionPilotPage() {
   const savingsFields: FormFieldProps[] = [
     { name: "initialCashSavings", label: "Cash Savings", control: control, placeholder: "Enter amount in £", description: "Current value of your cash savings (e.g., bank accounts). Assumed to have no growth.", icon: PiggyBank},
     { name: "annualCashContribution", label: "Annual Cash Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to save in cash.", icon: Landmark },
+    { name: "cashContributionEndAge", label: "Cash Contrib. End Age", control: control, description: "Age when your annual Cash contributions stop. Defaults to your Retirement Age." },
     { name: "initialIsaAmount", label: "ISA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your ISAs.", icon: Briefcase },
     { name: "annualIsaContribution", label: "Annual ISA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs.", icon: Landmark },
+    { name: "isaContributionEndAge", label: "ISA Contrib. End Age", control: control, description: "Age when your annual ISA contributions stop. Defaults to your Retirement Age." },
     { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
     { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
     { name: "annualGiaContribution", label: "Annual GIA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs.", icon: Landmark },
+    { name: "giaContributionEndAge", label: "GIA Contrib. End Age", control: control, description: "Age when your annual GIA contributions stop. Defaults to your Retirement Age." },
     { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
-    { name: "savingsContributionEndAge", label: "Savings Contrib. End Age", control: control, description: "Age when your annual Cash, ISA, and GIA contributions stop. Defaults to your Retirement Age." },
   ];
 
   const dcPensionFields: FormFieldProps[] = [
@@ -550,7 +573,7 @@ export default function PensionPilotPage() {
 
               <div>
                 <FormSectionHeader>Savings & Investments</FormSectionHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-6 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-6 pt-4">
                   {savingsFields.map(field => <FormInput key={field.name} {...field} />)}
                 </div>
               </div>
@@ -869,5 +892,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
