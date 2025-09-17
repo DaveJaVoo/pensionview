@@ -26,8 +26,8 @@ import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(63),
+  retirementAge: z.coerce.number().min(55).max(90).default(65),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
-  projectionStartYear: z.coerce.number().min(2000).max(2100).default(new Date().getFullYear()),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
@@ -81,6 +81,12 @@ const formSchema = z.object({
 }, {
   message: "SIPP Contribution End Age must be after Start Age.",
   path: ["sippContributionEndAge"],
+}).refine(data => data.retirementAge > data.currentAge, {
+    message: "Retirement Age must be after Current Age.",
+    path: ["retirementAge"],
+}).refine(data => data.projectionEndAge > data.retirementAge, {
+    message: "Projection End Age must be after Retirement Age.",
+    path: ["projectionEndAge"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -193,12 +199,8 @@ export default function PensionPilotPage() {
   
   useEffect(() => {
     if (!isFormInitialized) {
-      const clientCurrentYear = new Date().getFullYear();
       const defaultValues = formSchema.parse({});
-      reset({
-        ...defaultValues,
-        projectionStartYear: clientCurrentYear,
-      });
+      reset(defaultValues);
       setIsFormInitialized(true);
     }
   }, [reset, isFormInitialized]);
@@ -239,6 +241,11 @@ export default function PensionPilotPage() {
         setValue("sippContributionEndAge", newSpa, {shouldValidate: true});
       }
     }
+    const retirementAgeVal = getValues("retirementAge");
+    if (currentAgeVal >= retirementAgeVal) {
+        setValue("retirementAge", currentAgeVal + 1, { shouldValidate: true });
+    }
+
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
 
   const statePensionAgeWatched = watch("statePensionAge");
@@ -322,17 +329,19 @@ export default function PensionPilotPage() {
     setSummaryText(null);
     setYearInBrief('');
 
-    const triggerYear = new Date().getFullYear();
-    const ageAtProjectionStart = data.currentAge + (data.projectionStartYear - triggerYear);
-
-    if (data.projectionEndAge <= ageAtProjectionStart) {
-        setCalculationError("Projection End Age must be after the calculated age at the start of the projection. Please adjust the Projection End Age or other parameters.");
+    if (data.projectionEndAge <= data.retirementAge) {
+        setCalculationError("Projection End Age must be after Retirement Age. Please adjust the Projection End Age or Retirement Age.");
+        setIsLoading(false);
+        return;
+    }
+     if (data.retirementAge <= data.currentAge) {
+        setCalculationError("Retirement Age must be after Current Age. Please adjust the Retirement Age or Current Age.");
         setIsLoading(false);
         return;
     }
 
     try {
-      const parameters: PensionCalculationParameters = { ...data, calculationTriggerYear: triggerYear };
+      const parameters: PensionCalculationParameters = { ...data, calculationTriggerYear: new Date().getFullYear() };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
       if (result.rows.length > 0) {
@@ -403,7 +412,7 @@ export default function PensionPilotPage() {
         }, [] as React.ReactNode[]);
         incomeText = <>you will draw income of{...joinedSources}</>;
     } else {
-        incomeText = 'you will not need to draw any income';
+        incomeText = 'you will not draw any income as you are not yet retired';
     }
 
     const taxPaid = rowData['Income Tax Paid'] > 0 ? formatBoldCurrency(rowData['Income Tax Paid']) : <strong>£0</strong>;
@@ -420,14 +429,8 @@ export default function PensionPilotPage() {
 
 
   const handleResetForm = () => {
-    const clientCurrentYear = new Date().getFullYear();
-    const defaultValues = formSchema.parse({
-        projectionStartYear: clientCurrentYear,
-    });
-    reset({
-      ...defaultValues,
-      projectionStartYear: clientCurrentYear,
-    });
+    const defaultValues = formSchema.parse({});
+    reset(defaultValues);
     setCalculatedData(null);
     setCalculationError(null);
     setYearInBrief('');
@@ -436,7 +439,7 @@ export default function PensionPilotPage() {
 
   const coreParamsFields: FormFieldProps[] = [
     { name: "currentAge", label: "Current Age", control: control, description: "Your current age. DC & SIPP Pension Contributions will default to start from this age." },
-    { name: "projectionStartYear", label: "Projection Start Year", control: control, description: "The year the projection should begin from. The projection will calculate your starting age based on your Current Age and this year." },
+    { name: "retirementAge", label: "Retirement Age", control: control, description: "The age at which you plan to retire and start drawing down your funds. No withdrawals will be made before this age." },
     { name: "projectionEndAge", label: "Project to Age", control: control, description: "The age at which you want the projection to end (e.g., your life expectancy)." },
     { name: "targetAnnualNetIncome", label: <>Required Income <span className="text-xs text-muted-foreground font-normal">(After Tax)</span></>, control: control, placeholder: "Enter amount in £ pa", description: "Your desired total income per year AFTER tax. The system attempts to meet this using simplified UK basic rate income tax calculations (20% on income above Personal Allowance). It does not account for National Insurance, different UK tax bands (e.g., higher/additional rates, Scottish rates), dividend tax, or capital gains tax." },
   ];
@@ -547,7 +550,7 @@ export default function PensionPilotPage() {
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at the start of the projection.
+                                If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at your Retirement Age.
                                 The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
                                 If disabled, each UFPLS withdrawal will have a 25% tax-free element. This changes the withdrawal strategy to be 'pension-first' to maximise tax efficiency.
                             </PopoverContent>
@@ -627,7 +630,7 @@ export default function PensionPilotPage() {
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                If enabled, 25% of your 'Current SIPP Value' is taken tax-free at the start of the projection.
+                                If enabled, 25% of your 'Current SIPP Value' is taken tax-free at your Retirement Age.
                                 The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from SIPP are fully taxable.
                                 If disabled, each UFPLS withdrawal from SIPP will have a 25% tax-free element.
                             </PopoverContent>
@@ -792,7 +795,7 @@ export default function PensionPilotPage() {
                   <InfoIcon className="h-5 w-5 text-primary" />
                   <AlertTitle className="font-semibold text-primary">DC Pension Tax-Free Lump Sum Taken</AlertTitle>
                   <AlertDescription className="text-primary/80">
-                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.taxFreeLumpSumTaken)}</span> was taken from the DC pension.
+                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.taxFreeLumpSumTaken)}</span> was taken from the DC pension at retirement.
                     The DC pension projection starts with the remaining balance. Subsequent UFPLS withdrawals are fully taxable.
                   </AlertDescription>
                 </Alert>
@@ -802,7 +805,7 @@ export default function PensionPilotPage() {
                   <InfoIcon className="h-5 w-5 text-primary" />
                   <AlertTitle className="font-semibold text-primary">SIPP Tax-Free Lump Sum Taken</AlertTitle>
                   <AlertDescription className="text-primary/80">
-                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.sippTaxFreeLumpSumTaken)}</span> was taken from the SIPP.
+                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.sippTaxFreeLumpSumTaken)}</span> was taken from the SIPP at retirement.
                     The SIPP projection starts with the remaining balance. Subsequent UFPLS withdrawals from SIPP are fully taxable.
                   </AlertDescription>
                 </Alert>
@@ -856,5 +859,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    

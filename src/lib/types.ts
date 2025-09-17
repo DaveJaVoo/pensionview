@@ -53,7 +53,7 @@ export interface PensionDataRow {
 
 export interface PensionCalculationParameters {
   currentAge: number;
-  projectionStartYear: number;
+  retirementAge: number; // Changed from projectionStartYear
   calculationTriggerYear: number;
   projectionEndAge: number;
   targetAnnualNetIncome: number;
@@ -86,7 +86,7 @@ export interface PensionCalculationParameters {
   sippAnnualChargeAMC: number;
   sippWithdrawalRate: number;
   takeSippTaxFreeLumpSum: boolean;
-  applySippWithdrawalRateInSurplus: boolean;
+  applySippTaxFreeLumpSum: boolean;
 
   initialCashSavings: number;
   initialIsaAmount: number;
