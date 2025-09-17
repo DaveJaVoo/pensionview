@@ -138,7 +138,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
     'TOTAL INCOME',
     'Income Subject to Tax',
     'Income Tax Paid',
-    'Net Income Per Year'
+    'Net Income Per Year',
+    'Net Income Per Month'
   ].map(h => h.toLowerCase());
 
   const needsVerticalLine = (header: string): boolean => {
