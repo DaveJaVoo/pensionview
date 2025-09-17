@@ -10,12 +10,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     initialOtherIncome, initialFasAmount, fasStartAge,
     
     initialDcPensionValue,
-    annualDcPensionContribution, dcContributionStartAge, dcContributionEndAge,
+    annualDcPensionContribution, dcContributionEndAge,
     investmentPercentageGrowth, dcWithdrawalRate, annualChargeAMC, takeTaxFreeLumpSum,
     applyDcWithdrawalRateInSurplus,
 
     initialSippValue,
-    annualSippContribution, sippContributionStartAge, sippContributionEndAge,
+    annualSippContribution, sippContributionEndAge,
     sippInvestmentPercentageGrowth, sippAnnualChargeAMC, takeSippTaxFreeLumpSum,
     applySippWithdrawalRateInSurplus, sippWithdrawalRate,
     
@@ -211,24 +211,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               const remainingAllowance = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
               
               let grossWithdrawalNeeded;
-              // Taxable part of withdrawal is (gross * taxablePortionRate).
-              // We need netFromDraw = netShortfall
-              // netFromDraw = gross - tax
-              // tax = max(0, totalTaxableIncomeSoFar + (gross * taxablePortionRate) - currentPersonalAllowance) * taxRate - taxOnFixed
-              // This is complex. Let's simplify by grossing up.
-
               const netIncomeRequiredFromTaxablePension = netShortfall;
               let grossWithdrawalToMeetNet = netIncomeRequiredFromTaxablePension;
 
               if (taxablePortionRate > 0) {
                   const incomeTaxableThisDraw = (totalTaxableIncomeSoFar + (grossWithdrawalToMeetNet * taxablePortionRate)) - currentPersonalAllowance;
                   if (incomeTaxableThisDraw > 0) {
-                      // We need to solve for `gross` where: `gross - taxOnGross = netShortfall`
-                      // `gross - ( (totalTaxableIncomeSoFar - PA) + gross*taxablePortionRate )*taxRate = netShortfall`
-                      // Let's use a simpler gross-up: net / (1 - marginal_tax_rate)
-                      // The taxable part of the withdrawal will be taxed at INCOME_TAX_RATE.
-                      // So, for the portion that is taxed, `net = gross_taxed_part * (1-INCOME_TAX_RATE)`
-                      // `gross_taxed_part = net / (1-INCOME_TAX_RATE)`.
                       grossWithdrawalToMeetNet = netIncomeRequiredFromTaxablePension / (1 - (INCOME_TAX_RATE * taxablePortionRate));
                   }
               }
@@ -245,7 +233,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               else sippDrawdown += draw;
               
               totalTaxableIncomeSoFar += taxablePartOfDraw;
-              // This update to netShortfall is for subsequent loops, though usually one pension pot will cover it.
               netShortfall -= netFromThisDraw;
           }
         }
@@ -275,8 +262,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
 
     // --- POT CALCULATIONS ---
-    const dcContributionThisYear = (age >= dcContributionStartAge && age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-    const sippContributionThisYear = (age >= sippContributionStartAge && age < sippContributionEndAge && annualSippContribution > 0) ? annualSippContribution : 0;
+    const dcContributionThisYear = (age >= currentAge && age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
+    const sippContributionThisYear = (age >= currentAge && age < sippContributionEndAge && annualSippContribution > 0) ? annualSippContribution : 0;
     
     const dcPotWithContrib = initialDcPension + dcContributionThisYear;
     const sippPotWithContrib = initialSipp + sippContributionThisYear;
@@ -388,3 +375,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
+
+    

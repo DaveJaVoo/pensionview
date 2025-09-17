@@ -53,7 +53,7 @@ export interface PensionDataRow {
 
 export interface PensionCalculationParameters {
   currentAge: number;
-  retirementAge: number; // Changed from projectionStartYear
+  retirementAge: number;
   calculationTriggerYear: number;
   projectionEndAge: number;
   targetAnnualNetIncome: number;
@@ -69,7 +69,6 @@ export interface PensionCalculationParameters {
 
   initialDcPensionValue: number;
   annualDcPensionContribution: number;
-  dcContributionStartAge: number;
   dcContributionEndAge: number;
   investmentPercentageGrowth: number;
   inflationRate: number;
@@ -80,7 +79,6 @@ export interface PensionCalculationParameters {
 
   initialSippValue: number;
   annualSippContribution: number;
-  sippContributionStartAge: number;
   sippContributionEndAge: number;
   sippInvestmentPercentageGrowth: number;
   sippAnnualChargeAMC: number;
@@ -108,3 +106,5 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
+
+    

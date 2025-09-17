@@ -46,7 +46,6 @@ const formSchema = z.object({
   
   initialDcPensionValue: z.coerce.number().min(0).default(250000),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
-  dcContributionStartAge: z.coerce.number().min(18).max(89).default(55),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
@@ -57,7 +56,6 @@ const formSchema = z.object({
 
   initialSippValue: z.coerce.number().min(0).default(7000),
   annualSippContribution: z.coerce.number().min(0).default(0),
-  sippContributionStartAge: z.coerce.number().min(18).max(89).default(55),
   sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeSippTaxFreeLumpSum: z.boolean().default(false),
   sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
@@ -67,19 +65,19 @@ const formSchema = z.object({
 
 }).refine(data => {
   if (data.annualDcPensionContribution > 0) {
-    return data.dcContributionEndAge > data.dcContributionStartAge;
+    return data.dcContributionEndAge > data.currentAge;
   }
   return true;
 }, {
-  message: "DC Contribution End Age must be after Start Age.",
+  message: "DC Contribution End Age must be after Current Age.",
   path: ["dcContributionEndAge"],
 }).refine(data => {
   if (data.annualSippContribution > 0) {
-    return data.sippContributionEndAge > data.sippContributionStartAge;
+    return data.sippContributionEndAge > data.currentAge;
   }
   return true;
 }, {
-  message: "SIPP Contribution End Age must be after Start Age.",
+  message: "SIPP Contribution End Age must be after Current Age.",
   path: ["sippContributionEndAge"],
 }).refine(data => data.retirementAge > data.currentAge, {
     message: "Retirement Age must be after Current Age.",
@@ -214,18 +212,10 @@ export default function PensionPilotPage() {
     const currentAgeVal = getValues("currentAge");
     const currentStatePensionAgeVal = getValues("statePensionAge");
     
-    const currentDcContributionStartAge = getValues("dcContributionStartAge");
     const currentDcContributionEndAge = getValues("dcContributionEndAge");
-    const currentSippContributionStartAge = getValues("sippContributionStartAge");
     const currentSippContributionEndAge = getValues("sippContributionEndAge");
 
 
-    if (currentAgeVal !== currentDcContributionStartAge) {
-      setValue("dcContributionStartAge", currentAgeVal, { shouldValidate: true });
-    }
-    if (currentAgeVal !== currentSippContributionStartAge) {
-      setValue("sippContributionStartAge", currentAgeVal, { shouldValidate: true });
-    }
     if (currentStatePensionAgeVal !== currentDcContributionEndAge) {
         setValue("dcContributionEndAge", currentStatePensionAgeVal, { shouldValidate: true });
     }
@@ -457,8 +447,7 @@ export default function PensionPilotPage() {
 
   const dcPensionFields: FormFieldProps[] = [
     { name: "initialDcPensionValue", label: "Current DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution pension pot value." },
-    { name: "annualDcPensionContribution", label: "Annual Gross Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your DC pension. Enter the amount including assumed basic rate tax relief (e.g., if you pay in £80, enter £100). Tax relief beyond basic rate is not modeled." , icon: Landmark},
-    { name: "dcContributionStartAge", label: "Contribution Start Age", control: control, description: "Age when your annual DC contributions begin. Defaults to your Current Age." },
+    { name: "annualDcPensionContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your DC pension. Enter the amount including assumed basic rate tax relief (e.g., if you pay in £80, enter £100). Tax relief beyond basic rate is not modeled." , icon: Landmark},
     { name: "dcContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual DC contributions stop (contributions are made up to, but not including, this age). Defaults to your State Pension Age." },
     { name: "investmentPercentageGrowth", label: "DC Inv. Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your DC pension investments." },
     { name: "annualChargeAMC", label: "Annual Management Charge", control: control, suffix: "%", description: "Annual Management Charge on your DC pension pot. Please refer to your Fund Fact Sheet supplied by your Pension Provider" },
@@ -467,8 +456,7 @@ export default function PensionPilotPage() {
 
   const sippFields: FormFieldProps[] = [
     { name: "initialSippValue", label: "Current SIPP Value", control: control, placeholder: "Enter amount in £", description: "Your current total SIPP value. Leave at 0 if none." , icon: Banknote},
-    { name: "annualSippContribution", label: "Annual Gross Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your SIPP. Tax relief rules similar to DC pension apply." , icon: Landmark},
-    { name: "sippContributionStartAge", label: "Contribution Start Age", control: control, description: "Age when your annual SIPP contributions begin. Defaults to Current Age." },
+    { name: "annualSippContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your SIPP. Tax relief rules similar to DC pension apply." , icon: Landmark},
     { name: "sippContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual SIPP contributions stop. Defaults to State Pension Age." },
     { name: "sippInvestmentPercentageGrowth", label: "SIPP Inv. Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your SIPP investments." },
     { name: "sippAnnualChargeAMC", label: "SIPP Annual Mgt. Charge", control: control, suffix: "%", description: "Annual Management Charge (AMC) on your SIPP pot." },
@@ -866,3 +854,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
