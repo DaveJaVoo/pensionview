@@ -97,6 +97,7 @@ export interface PensionCalculationParameters {
   initialGiaAmount: number;
   annualGiaContribution: number;
   giaGrowthRate: number;
+  savingsContributionEndAge: number;
 }
 
 export interface CalculatedPensionData {
