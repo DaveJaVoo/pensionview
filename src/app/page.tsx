@@ -492,19 +492,26 @@ export default function PensionPilotPage() {
      },
   ];
 
-  const savingsFields: FormFieldProps[] = [
-    { name: "initialCashSavings", label: "Cash Savings", control: control, placeholder: "Enter amount in £", description: "Current value of your cash savings (e.g., bank accounts). Assumed to have no growth.", icon: PiggyBank},
-    { name: "annualCashContribution", label: "Annual Cash Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to save in cash.", icon: Landmark },
-    { name: "cashContributionEndAge", label: "Cash Contrib. End Age", control: control, description: "Age when your annual Cash contributions stop. Defaults to your Retirement Age." },
-    { name: "initialIsaAmount", label: "ISA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your ISAs.", icon: Briefcase },
-    { name: "annualIsaContribution", label: "Annual ISA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs.", icon: Landmark },
-    { name: "isaContributionEndAge", label: "ISA Contrib. End Age", control: control, description: "Age when your annual ISA contributions stop. Defaults to your Retirement Age." },
-    { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
-    { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
-    { name: "annualGiaContribution", label: "Annual GIA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs.", icon: Landmark },
-    { name: "giaContributionEndAge", label: "GIA Contrib. End Age", control: control, description: "Age when your annual GIA contributions stop. Defaults to your Retirement Age." },
-    { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
+  const cashFields: FormFieldProps[] = [
+      { name: "initialCashSavings", label: "Cash Savings", control: control, placeholder: "Enter amount in £", description: "Current value of your cash savings (e.g., bank accounts). Assumed to have no growth.", icon: PiggyBank},
+      { name: "annualCashContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to save in cash.", icon: Landmark },
+      { name: "cashContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual Cash contributions stop. Defaults to your Retirement Age." },
   ];
+
+  const isaFields: FormFieldProps[] = [
+      { name: "initialIsaAmount", label: "ISA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your ISAs.", icon: Briefcase },
+      { name: "annualIsaContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs.", icon: Landmark },
+      { name: "isaContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual ISA contributions stop. Defaults to your Retirement Age." },
+      { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
+  ];
+  
+  const giaFields: FormFieldProps[] = [
+      { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
+      { name: "annualGiaContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs.", icon: Landmark },
+      { name: "giaContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual GIA contributions stop. Defaults to your Retirement Age." },
+      { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
+  ];
+
 
   const dcPensionFields: FormFieldProps[] = [
     { name: "initialDcPensionValue", label: "Current DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution pension pot value." },
@@ -573,8 +580,30 @@ export default function PensionPilotPage() {
 
               <div>
                 <FormSectionHeader>Savings & Investments</FormSectionHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-6 pt-4">
-                  {savingsFields.map(field => <FormInput key={field.name} {...field} />)}
+                <div className="space-y-6 pt-4">
+                  {/* Cash Section */}
+                  <div className="p-4 border rounded-lg bg-muted/20">
+                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">Cash Savings</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                      {cashFields.map(field => <FormInput key={field.name} {...field} />)}
+                    </div>
+                  </div>
+                  
+                  {/* ISA Section */}
+                  <div className="p-4 border rounded-lg bg-muted/20">
+                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">ISA (Individual Savings Account)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                      {isaFields.map(field => <FormInput key={field.name} {...field} />)}
+                    </div>
+                  </div>
+                  
+                  {/* GIA Section */}
+                  <div className="p-4 border rounded-lg bg-muted/20">
+                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">GIA (General Investment Account)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                      {giaFields.map(field => <FormInput key={field.name} {...field} />)}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -892,6 +921,8 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
 
