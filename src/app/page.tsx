@@ -458,12 +458,12 @@ export default function PensionPilotPage() {
 
   const savingsFields: FormFieldProps[] = [
     { name: "initialCashSavings", label: "Cash Savings", control: control, placeholder: "Enter amount in £", description: "Current value of your cash savings (e.g., bank accounts). Assumed to have no growth.", icon: PiggyBank},
-    { name: "annualCashContribution", label: "Annual Cash Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to save in cash. Contributions stop at retirement age.", icon: Landmark },
+    { name: "annualCashContribution", label: "Annual Cash Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to save in cash.", icon: Landmark },
     { name: "initialIsaAmount", label: "ISA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your ISAs.", icon: Briefcase },
-    { name: "annualIsaContribution", label: "Annual ISA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs. Contributions stop at retirement age.", icon: Landmark },
+    { name: "annualIsaContribution", label: "Annual ISA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs.", icon: Landmark },
     { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
     { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
-    { name: "annualGiaContribution", label: "Annual GIA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs. Contributions stop at retirement age.", icon: Landmark },
+    { name: "annualGiaContribution", label: "Annual GIA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs.", icon: Landmark },
     { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
   ];
 
@@ -853,5 +853,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     

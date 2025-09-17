@@ -110,17 +110,16 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const yearOffset = age - currentAge;
     const currentYear = projectionStartYear + yearOffset;
     const isInRetirement = age >= retirementAge;
-    const isInPreRetirement = age < retirementAge;
 
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
 
     const row: PensionDataRow = { Age: age, Year: String(currentYear) };
     
-    // --- Contributions for pre-retirement years ---
-    const cashContributionThisYear = isInPreRetirement && annualCashContribution > 0 ? annualCashContribution : 0;
-    const isaContributionThisYear = isInPreRetirement && annualIsaContribution > 0 ? annualIsaContribution : 0;
-    const giaContributionThisYear = isInPreRetirement && annualGiaContribution > 0 ? annualGiaContribution : 0;
+    // --- Contributions ---
+    const cashContributionThisYear = annualCashContribution > 0 ? annualCashContribution : 0;
+    const isaContributionThisYear = annualIsaContribution > 0 ? annualIsaContribution : 0;
+    const giaContributionThisYear = annualGiaContribution > 0 ? annualGiaContribution : 0;
     
     // --- SAVINGS VALUES AT START OF YEAR ---
     const initialCash = showCash ? (previousRow ? (previousRow['Cash Savings Balance'] || 0) : initialCashSavings) : 0;
@@ -362,4 +361,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   return { rows, headers, parameters: outputParameters, csvString };
 }
 
+    
     
