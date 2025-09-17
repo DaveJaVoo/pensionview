@@ -341,7 +341,7 @@ export default function PensionPilotPage() {
     }
 
     try {
-      const parameters: PensionCalculationParameters = { ...data, calculationTriggerYear: new Date().getFullYear() };
+      const parameters: PensionCalculationParameters = { ...data };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
       if (result.rows.length > 0) {
@@ -806,13 +806,17 @@ export default function PensionPilotPage() {
                   <AlertTitle className="font-semibold text-primary">SIPP Tax-Free Lump Sum Taken</AlertTitle>
                   <AlertDescription className="text-primary/80">
                     An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.sippTaxFreeLumpSumTaken)}</span> was taken from the SIPP at retirement.
-                    The SIPP projection starts with the remaining balance. Subsequent UFPLS withdrawals from SIPP are fully taxable.
+                    The SIPP projection starts with the.assign(row, remaining balance. Subsequent UFPLS withdrawals from SIPP are fully taxable.
                   </AlertDescription>
                 </Alert>
               )}
               <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
               {viewMode === 'table' ? (
-                <PensionDataTable data={calculatedData.rows} headers={calculatedData.headers} />
+                <PensionDataTable 
+                  data={calculatedData.rows} 
+                  headers={calculatedData.headers} 
+                  retirementAge={calculatedData.parameters.retirementAge} 
+                />
               ) : (
                 <PensionCharts data={calculatedData.rows} />
               )}

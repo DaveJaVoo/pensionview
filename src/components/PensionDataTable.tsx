@@ -10,10 +10,11 @@ import { cn } from '@/lib/utils';
 
 interface PensionDataTableProps {
   data: PensionDataRow[];
-  headers: string[]; 
+  headers: string[];
+  retirementAge: number;
 }
 
-const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
+const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirementAge }) => {
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('pension') ||
@@ -139,7 +140,13 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers }) => {
         </TableHeader>
         <TableBody>
           {data.map((row, rowIndex) => (
-            <TableRow key={rowIndex} className="hover:bg-muted/50 transition-colors duration-150 even:bg-card odd:bg-background">
+            <TableRow 
+              key={rowIndex} 
+              className={cn(
+                "hover:bg-muted/50 transition-colors duration-150 even:bg-card odd:bg-background",
+                row.Age === retirementAge && "border-t-2 border-destructive"
+              )}
+            >
               {headers.map((header) => {
                 const cellValue = row[header];
                 let displayValue: string | number | undefined = cellValue;
