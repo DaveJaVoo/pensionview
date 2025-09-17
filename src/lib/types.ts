@@ -38,6 +38,7 @@ export interface PensionDataRow {
   'ISA Balance'?: number;
 
   'GIA Initial'?: number;
+  'GIA Contribution'?: number;
   'GIA Growth'?: number;
   'GIA Value Before Withdrawal'?: number;
   'Withdraw from GIA'?: number;
@@ -94,6 +95,7 @@ export interface PensionCalculationParameters {
   annualIsaContribution: number;
   isaGrowthRate: number;
   initialGiaAmount: number;
+  annualGiaContribution: number;
   giaGrowthRate: number;
 }
 
@@ -110,3 +112,5 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
+
+    

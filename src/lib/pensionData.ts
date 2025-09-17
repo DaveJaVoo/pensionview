@@ -22,7 +22,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     inflationRate,
     initialCashSavings, annualCashContribution, 
     initialIsaAmount, annualIsaContribution, isaGrowthRate, 
-    initialGiaAmount, giaGrowthRate
+    initialGiaAmount, annualGiaContribution, giaGrowthRate
   } = params;
   
   const headers: string[] = ['Age', 'Year'];
@@ -55,7 +55,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   const showCash = initialCashSavings > 0 || annualCashContribution > 0;
   const showIsa = initialIsaAmount > 0 || annualIsaContribution > 0;
-  const showGia = initialGiaAmount > 0;
+  const showGia = initialGiaAmount > 0 || annualGiaContribution > 0;
 
   if (showCash) {
     headers.push('Cash Savings Initial');
@@ -67,7 +67,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (annualIsaContribution > 0) headers.push('ISA Contribution');
     headers.push('ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance');
   }
-  if (showGia) headers.push('GIA Initial', 'GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance');
+  if (showGia) {
+    headers.push('GIA Initial');
+    if (annualGiaContribution > 0) headers.push('GIA Contribution');
+    headers.push('GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance');
+  }
+
   if (showCash || showIsa || showGia) headers.push('Total Savings Withdrawn', 'Total Savings Balance');
   
   headers.push('TOTAL INCOME', 'Income Subject to Tax', 'Income Tax Paid', 'Net Income Per Year', 'Net Income Per Month');
@@ -115,12 +120,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // --- Contributions for pre-retirement years ---
     const cashContributionThisYear = isInPreRetirement && annualCashContribution > 0 ? annualCashContribution : 0;
     const isaContributionThisYear = isInPreRetirement && annualIsaContribution > 0 ? annualIsaContribution : 0;
+    const giaContributionThisYear = isInPreRetirement && annualGiaContribution > 0 ? annualGiaContribution : 0;
     
     // --- SAVINGS VALUES AT START OF YEAR ---
     const initialCash = showCash ? (previousRow ? (previousRow['Cash Savings Balance'] || 0) : initialCashSavings) : 0;
     const giaStartOfYear = (previousRow ? (previousRow['GIA Balance'] || 0) : initialGiaAmount);
-    const giaGrowth = giaStartOfYear * giaGrowthDecimal;
-    const giaValueBeforeWithdrawal = giaStartOfYear + giaGrowth;
+    const giaValueAfterContribution = giaStartOfYear + giaContributionThisYear;
+    const giaGrowth = giaValueAfterContribution * giaGrowthDecimal;
+    const giaValueBeforeWithdrawal = giaValueAfterContribution + giaGrowth;
     const isaStartOfYear = (previousRow ? (previousRow['ISA Balance'] || 0) : initialIsaAmount);
     const isaValueAfterContribution = isaStartOfYear + isaContributionThisYear;
     const isaGrowth = isaValueAfterContribution * isaGrowthDecimal;
@@ -318,7 +325,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       Object.assign(row, { 'ISA Initial': isaStartOfYear, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': isaValueBeforeWithdrawal, 'Withdraw from ISA': isaWithdrawal, 'ISA Balance': finalIsaBalance });
       if (annualIsaContribution > 0) row['ISA Contribution'] = isaContributionThisYear;
     }
-    if (showGia) Object.assign(row, { 'GIA Initial': giaStartOfYear, 'GIA Growth': giaGrowth, 'GIA Value Before Withdrawal': giaValueBeforeWithdrawal, 'Withdraw from GIA': giaWithdrawal, 'GIA Balance': finalGiaBalance });
+    if (showGia) {
+      Object.assign(row, { 'GIA Initial': giaStartOfYear, 'GIA Growth': giaGrowth, 'GIA Value Before Withdrawal': giaValueBeforeWithdrawal, 'Withdraw from GIA': giaWithdrawal, 'GIA Balance': finalGiaBalance });
+      if (annualGiaContribution > 0) row['GIA Contribution'] = giaContributionThisYear;
+    }
     
     if (showCash || showIsa || showGia) Object.assign(row, { 'Total Savings Withdrawn': finalTotalSavingsWithdrawn, 'Total Savings Balance': finalCashBalance + finalIsaBalance + finalGiaBalance });
 
@@ -351,3 +361,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
+
+    

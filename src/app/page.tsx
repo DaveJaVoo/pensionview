@@ -35,6 +35,7 @@ const formSchema = z.object({
   annualIsaContribution: z.coerce.number().min(0).default(0),
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
   initialGiaAmount: z.coerce.number().min(0).default(20000),
+  annualGiaContribution: z.coerce.number().min(0).default(0),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
@@ -462,6 +463,7 @@ export default function PensionPilotPage() {
     { name: "annualIsaContribution", label: "Annual ISA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs. Contributions stop at retirement age.", icon: Landmark },
     { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
     { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
+    { name: "annualGiaContribution", label: "Annual GIA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs. Contributions stop at retirement age.", icon: Landmark },
     { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
   ];
 
@@ -851,3 +853,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    

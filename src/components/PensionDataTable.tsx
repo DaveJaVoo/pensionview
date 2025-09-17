@@ -71,6 +71,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
       'Withdraw from ISA': ['Withdraw', 'ISA'],
       'ISA Balance': ['ISA Balance'],
       'GIA Initial': ['GIA Initial'],
+      'GIA Contribution': ['GIA', 'Contrib.'],
       'GIA Growth': ['GIA Growth'],
       'GIA Value Before Withdrawal': ['GIA Value', 'Pre-Withdraw'],
       'Withdraw from GIA': ['Withdraw', 'GIA'],
@@ -108,6 +109,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('dc pension contribution') || 
            lowerHeader.includes('sipp contribution') ||
            lowerHeader.includes('cash savings contribution') ||
+           lowerHeader.includes('gia contribution') ||
            lowerHeader.includes('isa contribution');
   };
 
@@ -201,12 +203,14 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
                 const numericValueForStyling = typeof cellValue === 'number' ? cellValue : parseCurrency(String(cellValue));
 
-                if (header === 'Income Tax Paid') {
-                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "font-semibold");
-                  }
-                } 
-                
+                if (header.toLowerCase() === 'income tax paid' && numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                  cellClasses = cn(cellClasses, "font-semibold");
+                } else if (header.toLowerCase() !== 'income tax paid') {
+                  // Normal styling for non-tax columns
+                } else {
+                  // This is for tax paid being zero, it won't be bold.
+                }
+
                 if (isBlueStyledHeader(header)) {
                     cellClasses = cn(cellClasses, "font-semibold");
                 }
@@ -242,3 +246,5 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 };
 
 export default PensionDataTable;
+
+    
