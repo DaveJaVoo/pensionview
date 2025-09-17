@@ -26,10 +26,12 @@ export interface PensionDataRow {
   'FAS'?: number;
 
   'Cash Savings Initial'?: number;
+  'Cash Savings Contribution'?: number;
   'Withdraw from Cash'?: number;
   'Cash Savings Balance'?: number;
 
   'ISA Initial'?: number;
+  'ISA Contribution'?: number;
   'ISA Growth'?: number;
   'ISA Value Before Withdrawal'?: number;
   'Withdraw from ISA'?: number;
@@ -84,10 +86,12 @@ export interface PensionCalculationParameters {
   sippAnnualChargeAMC: number;
   sippWithdrawalRate: number;
   takeSippTaxFreeLumpSum: boolean;
-  applySippTaxFreeLumpSum: boolean;
+  applySippWithdrawalRateInSurplus: boolean;
 
   initialCashSavings: number;
+  annualCashContribution: number;
   initialIsaAmount: number;
+  annualIsaContribution: number;
   isaGrowthRate: number;
   initialGiaAmount: number;
   giaGrowthRate: number;
@@ -106,5 +110,3 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
-
-    

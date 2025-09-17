@@ -61,9 +61,11 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
       'Other Income': ['Other Income'],
       'FAS': ['FAS'],
       'Cash Savings Initial': ['Cash Sav.', 'Initial'],
+      'Cash Savings Contribution': ['Cash Sav.', 'Contrib.'],
       'Withdraw from Cash': ['Withdraw', 'Cash'],
       'Cash Savings Balance': ['Cash Sav.', 'Balance'],
       'ISA Initial': ['ISA Initial'],
+      'ISA Contribution': ['ISA', 'Contrib.'],
       'ISA Growth': ['ISA Growth'],
       'ISA Value Before Withdrawal': ['ISA Value', 'Pre-Withdraw'],
       'Withdraw from ISA': ['Withdraw', 'ISA'],
@@ -104,7 +106,9 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('other income') ||
            lowerHeader.includes('fas') ||
            lowerHeader.includes('dc pension contribution') || 
-           lowerHeader.includes('sipp contribution');
+           lowerHeader.includes('sipp contribution') ||
+           lowerHeader.includes('cash savings contribution') ||
+           lowerHeader.includes('isa contribution');
   };
 
   const isPinkStyledHeader = (header: string): boolean => {

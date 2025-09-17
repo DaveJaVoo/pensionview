@@ -20,7 +20,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     applySippWithdrawalRateInSurplus, sippWithdrawalRate,
     
     inflationRate,
-    initialCashSavings, initialIsaAmount, isaGrowthRate, initialGiaAmount, giaGrowthRate
+    initialCashSavings, annualCashContribution, 
+    initialIsaAmount, annualIsaContribution, isaGrowthRate, 
+    initialGiaAmount, giaGrowthRate
   } = params;
   
   const headers: string[] = ['Age', 'Year'];
@@ -51,12 +53,20 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (source.amount > 0) headers.push(source.header);
   });
 
-  const showCash = initialCashSavings > 0;
-  const showIsa = initialIsaAmount > 0;
+  const showCash = initialCashSavings > 0 || annualCashContribution > 0;
+  const showIsa = initialIsaAmount > 0 || annualIsaContribution > 0;
   const showGia = initialGiaAmount > 0;
 
-  if (showCash) headers.push('Cash Savings Initial', 'Withdraw from Cash', 'Cash Savings Balance');
-  if (showIsa) headers.push('ISA Initial', 'ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance');
+  if (showCash) {
+    headers.push('Cash Savings Initial');
+    if (annualCashContribution > 0) headers.push('Cash Savings Contribution');
+    headers.push('Withdraw from Cash', 'Cash Savings Balance');
+  }
+  if (showIsa) {
+    headers.push('ISA Initial');
+    if (annualIsaContribution > 0) headers.push('ISA Contribution');
+    headers.push('ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance');
+  }
   if (showGia) headers.push('GIA Initial', 'GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance');
   if (showCash || showIsa || showGia) headers.push('Total Savings Withdrawn', 'Total Savings Balance');
   
@@ -94,20 +104,27 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   for (let age = currentAge; age <= projectionEndAge; age++) {
     const yearOffset = age - currentAge;
     const currentYear = projectionStartYear + yearOffset;
+    const isInRetirement = age >= retirementAge;
+    const isInPreRetirement = age < retirementAge;
 
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
 
     const row: PensionDataRow = { Age: age, Year: String(currentYear) };
-
+    
+    // --- Contributions for pre-retirement years ---
+    const cashContributionThisYear = isInPreRetirement && annualCashContribution > 0 ? annualCashContribution : 0;
+    const isaContributionThisYear = isInPreRetirement && annualIsaContribution > 0 ? annualIsaContribution : 0;
+    
     // --- SAVINGS VALUES AT START OF YEAR ---
     const initialCash = showCash ? (previousRow ? (previousRow['Cash Savings Balance'] || 0) : initialCashSavings) : 0;
     const giaStartOfYear = (previousRow ? (previousRow['GIA Balance'] || 0) : initialGiaAmount);
     const giaGrowth = giaStartOfYear * giaGrowthDecimal;
     const giaValueBeforeWithdrawal = giaStartOfYear + giaGrowth;
     const isaStartOfYear = (previousRow ? (previousRow['ISA Balance'] || 0) : initialIsaAmount);
-    const isaGrowth = isaStartOfYear * isaGrowthDecimal;
-    const isaValueBeforeWithdrawal = isaStartOfYear + isaGrowth;
+    const isaValueAfterContribution = isaStartOfYear + isaContributionThisYear;
+    const isaGrowth = isaValueAfterContribution * isaGrowthDecimal;
+    const isaValueBeforeWithdrawal = isaValueAfterContribution + isaGrowth;
 
     // --- PENSION POTS ---
     const processPensionPot = (potType: 'DC' | 'SIPP') => {
@@ -134,8 +151,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     let cashWithdrawal = 0;
     let isaWithdrawal = 0;
     let giaWithdrawal = 0;
-
-    const isInRetirement = age >= retirementAge;
 
     // --- Non-Discretionary Income First ---
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
@@ -283,7 +298,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     row['Net Income Per Year'] = finalNetIncome;
     row['Net Income Per Month'] = finalNetIncome / 12;
 
-    const finalCashBalance = initialCash - cashWithdrawal;
+    const finalCashBalance = initialCash + cashContributionThisYear - cashWithdrawal;
     const finalIsaBalance = isaValueBeforeWithdrawal - isaWithdrawal;
     const finalGiaBalance = giaValueBeforeWithdrawal - giaWithdrawal;
     
@@ -295,8 +310,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (initialOtherIncome > 0) row['Other Income'] = otherIncomeThisYear;
     if (initialFasAmount > 0) row['FAS'] = fasThisYear;
     
-    if (showCash) Object.assign(row, { 'Cash Savings Initial': initialCash, 'Withdraw from Cash': cashWithdrawal, 'Cash Savings Balance': finalCashBalance });
-    if (showIsa) Object.assign(row, { 'ISA Initial': isaStartOfYear, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': isaValueBeforeWithdrawal, 'Withdraw from ISA': isaWithdrawal, 'ISA Balance': finalIsaBalance });
+    if (showCash) {
+      Object.assign(row, { 'Cash Savings Initial': initialCash, 'Withdraw from Cash': cashWithdrawal, 'Cash Savings Balance': finalCashBalance });
+      if (annualCashContribution > 0) row['Cash Savings Contribution'] = cashContributionThisYear;
+    }
+    if (showIsa) {
+      Object.assign(row, { 'ISA Initial': isaStartOfYear, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': isaValueBeforeWithdrawal, 'Withdraw from ISA': isaWithdrawal, 'ISA Balance': finalIsaBalance });
+      if (annualIsaContribution > 0) row['ISA Contribution'] = isaContributionThisYear;
+    }
     if (showGia) Object.assign(row, { 'GIA Initial': giaStartOfYear, 'GIA Growth': giaGrowth, 'GIA Value Before Withdrawal': giaValueBeforeWithdrawal, 'Withdraw from GIA': giaWithdrawal, 'GIA Balance': finalGiaBalance });
     
     if (showCash || showIsa || showGia) Object.assign(row, { 'Total Savings Withdrawn': finalTotalSavingsWithdrawn, 'Total Savings Balance': finalCashBalance + finalIsaBalance + finalGiaBalance });
@@ -330,5 +351,3 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
-
-    

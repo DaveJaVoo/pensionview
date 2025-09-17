@@ -30,7 +30,9 @@ const formSchema = z.object({
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   
   initialCashSavings: z.coerce.number().min(0).default(10000),
+  annualCashContribution: z.coerce.number().min(0).default(0),
   initialIsaAmount: z.coerce.number().min(0).default(20000),
+  annualIsaContribution: z.coerce.number().min(0).default(0),
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
   initialGiaAmount: z.coerce.number().min(0).default(20000),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
@@ -455,7 +457,9 @@ export default function PensionPilotPage() {
 
   const savingsFields: FormFieldProps[] = [
     { name: "initialCashSavings", label: "Cash Savings", control: control, placeholder: "Enter amount in £", description: "Current value of your cash savings (e.g., bank accounts). Assumed to have no growth.", icon: PiggyBank},
+    { name: "annualCashContribution", label: "Annual Cash Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to save in cash. Contributions stop at retirement age.", icon: Landmark },
     { name: "initialIsaAmount", label: "ISA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your ISAs.", icon: Briefcase },
+    { name: "annualIsaContribution", label: "Annual ISA Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your ISAs. Contributions stop at retirement age.", icon: Landmark },
     { name: "isaGrowthRate", label: "ISA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your ISAs. Growth is tax-free.", icon: TrendingUpIcon },
     { name: "initialGiaAmount", label: "GIA Value", control: control, placeholder: "Enter amount in £", description: "Current total value of your General Investment Accounts (GIAs). Tax on GIA growth/withdrawals is NOT modeled in this projection.", icon: Briefcase },
     { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
@@ -528,7 +532,7 @@ export default function PensionPilotPage() {
 
               <div>
                 <FormSectionHeader>Savings & Investments</FormSectionHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 pt-4">
                   {savingsFields.map(field => <FormInput key={field.name} {...field} />)}
                 </div>
               </div>
@@ -847,9 +851,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
