@@ -168,11 +168,12 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 if (header === 'Income Tax Paid') {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
                     cellClasses = cn(cellClasses, "font-semibold");
-                  } else if (numericValueForStyling === 0) {
-                     cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400"); 
-                     displayValue = "£0"; 
                   }
                 } 
+                
+                if (isBlueStyledHeader(header)) {
+                    cellClasses = cn(cellClasses, "font-semibold");
+                }
                 
                 if (isGreenStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
