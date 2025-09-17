@@ -45,19 +45,19 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
-      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC Pension Contribution': ['DC Pension', 'Contrib.'],
+      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
-      'DC Pension Growth': ['DC Pension', 'Growth'],
       'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
+      'DC Pension Growth': ['DC Pension', 'Growth'],
       'DC Pension Balance': ['DC Pension', 'Balance'],
 
       'Initial SIPP': ['Initial SIPP'],
-      'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP Contribution': ['SIPP', 'Contrib.'],
+      'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
-      'SIPP Growth': ['SIPP', 'Growth'],
       'SIPP After Deductions': ['SIPP', 'After Deductions'],
+      'SIPP Growth': ['SIPP', 'Growth'],
       'SIPP Balance': ['SIPP', 'Balance'],
 
       'DB Pension': ['DB Pension'],
@@ -103,14 +103,18 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
   const isGreenStyledHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
-    return lowerHeader.includes('dc pension drawdown') || 
-           lowerHeader.includes('sipp drawdown') ||
-           lowerHeader.includes('state pension') || 
+    return lowerHeader.includes('state pension') || 
            lowerHeader.includes('db pension') ||
            lowerHeader.includes('other income') ||
            lowerHeader.includes('fas') ||
            lowerHeader.includes('dc pension contribution') || 
-           lowerHeader.includes('sipp contribution') ||
+           lowerHeader.includes('sipp contribution');
+  };
+
+  const isPinkStyledHeader = (header: string): boolean => {
+    const lowerHeader = header.toLowerCase();
+    return lowerHeader.includes('dc pension drawdown') || 
+           lowerHeader.includes('sipp drawdown') ||
            lowerHeader.includes('withdraw from cash') ||
            lowerHeader.includes('withdraw from isa') ||
            lowerHeader.includes('withdraw from gia') ||
@@ -168,6 +172,10 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 } else if (isGreenStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
                     cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium");
+                  }
+                } else if (isPinkStyledHeader(header)) {
+                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                    cellClasses = cn(cellClasses, "bg-pink-50 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 font-medium");
                   }
                 } else if (isBlueStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
