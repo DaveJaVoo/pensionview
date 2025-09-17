@@ -118,7 +118,10 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('withdraw from cash') ||
            lowerHeader.includes('withdraw from isa') ||
            lowerHeader.includes('withdraw from gia') ||
-           lowerHeader.includes('total savings withdrawn');
+           lowerHeader.includes('total savings withdrawn') ||
+           lowerHeader.includes('dc amc charge') ||
+           lowerHeader.includes('sipp amc charge') ||
+           lowerHeader.includes('income tax paid');
   };
 
   const isBlueStyledHeader = (header: string): boolean => {
@@ -164,12 +167,14 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
                 if (header === 'Income Tax Paid') {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-destructive/20 font-semibold");
+                    cellClasses = cn(cellClasses, "font-semibold");
                   } else if (numericValueForStyling === 0) {
                      cellClasses = cn(cellClasses, "text-green-700 dark:text-green-400"); 
                      displayValue = "£0"; 
                   }
-                } else if (isGreenStyledHeader(header)) {
+                } 
+                
+                if (isGreenStyledHeader(header)) {
                   if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
                     cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40");
                   }
