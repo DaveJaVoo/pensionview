@@ -230,14 +230,14 @@ export default function PensionPilotPage() {
     const retirementAgeVal = getValues("retirementAge");
     const currentStatePensionAgeVal = getValues("statePensionAge");
     
-    if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
+    if (currentAgeVal > retirementAgeVal) {
+        setValue("retirementAge", currentAgeVal + 1, { shouldValidate: true });
+    }
+    if (currentAgeVal > currentStatePensionAgeVal) {
       const newSpa = Math.min(currentAgeVal, 80); 
-      if (newSpa !== currentStatePensionAgeVal) {
+      if (newSpa > currentStatePensionAgeVal) {
         setValue("statePensionAge", newSpa, { shouldValidate: true });
       }
-    }
-    if (currentAgeVal >= retirementAgeVal) {
-        setValue("retirementAge", currentAgeVal + 1, { shouldValidate: true });
     }
 
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
@@ -245,44 +245,32 @@ export default function PensionPilotPage() {
 
   const initialDcPensionValueWatched = watch("initialDcPensionValue");
   const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
-
-  const updateDcLumpSum = useCallback(() => {
-    const takeLumpSum = getValues("takeTaxFreeLumpSum");
-    const dcValue = getValues("initialDcPensionValue") || 0;
-    if (takeLumpSum) {
-      const pcls = dcValue * 0.25;
-      setCalculatedLumpSumDisplay(pcls);
-    } else {
-      setCalculatedLumpSumDisplay(0);
-    }
-  }, [getValues]);
-
-  useEffect(() => {
-    if (isFormInitialized) {
-      updateDcLumpSum();
-    }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, updateDcLumpSum]);
-
-
   const initialSippValueWatched = watch("initialSippValue");
   const takeSippTaxFreeLumpSumWatched = watch("takeSippTaxFreeLumpSum");
-  
-  const updateSippLumpSum = useCallback(() => {
-    const takeLumpSum = getValues("takeSippTaxFreeLumpSum");
-    const sippValue = getValues("initialSippValue") || 0;
-    if (takeLumpSum) {
-      const pcls = sippValue * 0.25;
-      setCalculatedSippLumpSumDisplay(pcls);
-    } else {
-      setCalculatedSippLumpSumDisplay(0);
-    }
+
+  const updateLumpSumDisplay = useCallback((potType: 'DC' | 'SIPP') => {
+      const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
+      const potValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
+      const pcls = takeLumpSum ? potValue * 0.25 : 0;
+      
+      if (potType === 'DC') {
+          setCalculatedLumpSumDisplay(pcls);
+      } else {
+          setCalculatedSippLumpSumDisplay(pcls);
+      }
   }, [getValues]);
 
   useEffect(() => {
-    if (isFormInitialized) {
-      updateSippLumpSum();
-    }
-  }, [isFormInitialized, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateSippLumpSum]);
+      if (isFormInitialized) {
+          updateLumpSumDisplay('DC');
+      }
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, updateLumpSumDisplay]);
+
+  useEffect(() => {
+      if (isFormInitialized) {
+          updateLumpSumDisplay('SIPP');
+      }
+  }, [isFormInitialized, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -871,3 +859,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    

@@ -22,6 +22,18 @@ const processSavingsPot = (
   };
 };
 
+// Helper function to process the final balance calculation for a pension pot
+const calculateFinalPensionBalance = (pot: { balance: number; contribution: number; growthRate: number; amc: number; } | null, drawdown: number) => {
+  if (!pot) return { amcCharge: 0, afterDeductions: 0, growth: 0, finalBalance: 0 };
+  const potAfterContribution = pot.balance + pot.contribution;
+  const potAfterDrawdown = potAfterContribution - drawdown;
+  const amcCharge = potAfterDrawdown * pot.amc;
+  const afterDeductions = potAfterDrawdown - amcCharge;
+  const growth = afterDeductions * pot.growthRate;
+  const finalBalance = Math.max(0, afterDeductions + growth);
+  return { amcCharge, afterDeductions, growth, finalBalance };
+};
+
 export function calculatePensionProjection(params: PensionCalculationParameters): CalculatedPensionData {
   const {
     currentAge, retirementAge, projectionEndAge, targetAnnualNetIncome, calculationTriggerYear,
@@ -182,17 +194,19 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     if (isInRetirement && netShortfall > 0) {
         // --- Discretionary Withdrawals (TAX OPTIMIZED) ---
-        // 1. Cash, 2. GIA, 3. ISA (Tax-Free sources)
+        // 1. Cash (no growth, no tax)
         const cashToDraw = Math.min(cashPot.valueBeforeWithdrawal, netShortfall);
         cashWithdrawal += cashToDraw;
         netShortfall -= cashToDraw;
 
+        // 2. GIA (tax on growth not modeled, so treated as post-tax)
         if (netShortfall > 0) {
           const giaToDraw = Math.min(giaPot.valueBeforeWithdrawal, netShortfall);
           giaWithdrawal += giaToDraw;
           netShortfall -= giaToDraw;
         }
 
+        // 3. ISA (tax-free wrapper, preserve as long as possible)
         if (netShortfall > 0) {
           const isaToDraw = Math.min(isaPot.valueBeforeWithdrawal, netShortfall);
           isaWithdrawal += isaToDraw;
@@ -204,6 +218,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
           const pensionDrawdownOrder = () => {
             if (!dcPot) return sippPot ? ['SIPP'] : [];
             if (!sippPot) return ['DC'];
+            // Prioritize by highest cost, then lowest growth, then smallest pot
             if (dcPot.amc > sippPot.amc) return ['DC', 'SIPP'];
             if (sippPot.amc > dcPot.amc) return ['SIPP', 'DC'];
             if (dcPot.growthRate < sippPot.growthRate) return ['DC', 'SIPP'];
@@ -224,16 +239,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               const ufplsTaxFreePortion = takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
               const taxablePortionRate = 1 - ufplsTaxFreePortion;
               
-              let grossWithdrawalNeeded: number;
-              
-              if(taxablePortionRate === 0) { // Fully tax-free withdrawals (not possible with current UFPLS rules but good for safety)
-                  grossWithdrawalNeeded = netShortfall;
-              } else { // Mixed tax-free and taxable withdrawals
-                  const effectiveTaxRateOnGross = taxablePortionRate * INCOME_TAX_RATE;
-                  grossWithdrawalNeeded = netShortfall / (1 - effectiveTaxRateOnGross);
-              }
+              // This is the gross amount needed to satisfy the net shortfall from this pot.
+              const grossWithdrawalNeededForNet = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
 
-              let draw = Math.min(potBalance, grossWithdrawalNeeded);
+              let draw = Math.min(potBalance, grossWithdrawalNeededForNet);
               draw = Math.max(0, draw);
 
               const taxablePartOfDraw = draw * taxablePortionRate;
@@ -271,19 +280,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (sippPot) sippDrawdown = Math.min(sippPot.balance + sippPot.contribution, sippDrawdown);
 
     // --- PENSION FINAL CALCULATIONS ---
-    const calculateFinalBalance = (pot: { balance: number; contribution: number; growthRate: number; amc: number; } | null, drawdown: number) => {
-      if (!pot) return { amcCharge: 0, afterDeductions: 0, growth: 0, finalBalance: 0 };
-      const potAfterContribution = pot.balance + pot.contribution;
-      const potAfterDrawdown = potAfterContribution - drawdown;
-      const amcCharge = potAfterDrawdown * pot.amc;
-      const afterDeductions = potAfterDrawdown - amcCharge;
-      const growth = afterDeductions * pot.growthRate;
-      const finalBalance = Math.max(0, afterDeductions + growth);
-      return { amcCharge, afterDeductions, growth, finalBalance };
-    };
-
-    const dcFinals = calculateFinalBalance(dcPot, dcDrawdown);
-    const sippFinals = calculateFinalBalance(sippPot, sippDrawdown);
+    const dcFinals = calculateFinalPensionBalance(dcPot, dcDrawdown);
+    const sippFinals = calculateFinalPensionBalance(sippPot, sippDrawdown);
 
     // --- FINAL TALLY ---
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
@@ -362,3 +360,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
+
+    
