@@ -224,23 +224,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               const ufplsTaxFreePortion = takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
               const taxablePortionRate = 1 - ufplsTaxFreePortion;
               
-              // Calculate the gross withdrawal needed from this pension to satisfy the remaining net shortfall.
-              const paRemainingForTaxableDraws = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
-              
               let grossWithdrawalNeeded: number;
-              // How much of the shortfall can be covered by the tax-free part of a pension withdrawal?
-              const canBeCoveredByTaxFree = netShortfall * ufplsTaxFreePortion;
-
-              // Gross up the remaining shortfall to find the taxable part of the withdrawal
-              const netShortfallForTaxablePart = netShortfall;
-              const grossTaxablePortionNeeded = netShortfallForTaxablePart / (1-INCOME_TAX_RATE);
               
-              let taxableDrawToMeetNeed = (netShortfall / taxablePortionRate) / (1-INCOME_TAX_RATE);
-              
-              const requiredTaxableIncome = netShortfall / (1 - INCOME_TAX_RATE);
-              grossWithdrawalNeeded = requiredTaxableIncome / taxablePortionRate;
-              
-              if(taxablePortionRate === 0) { // Fully tax-free withdrawals
+              if(taxablePortionRate === 0) { // Fully tax-free withdrawals (not possible with current UFPLS rules but good for safety)
                   grossWithdrawalNeeded = netShortfall;
               } else { // Mixed tax-free and taxable withdrawals
                   const effectiveTaxRateOnGross = taxablePortionRate * INCOME_TAX_RATE;
@@ -311,14 +297,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const incomeSubjectToTaxForTable = Math.max(0, finalTotalTaxableIncome - currentPersonalAllowance);
     const finalTaxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
     
-    const finalTotalGrossIncome = fixedTaxableIncome + finalGrossPensionDrawdown + finalTotalSavingsWithdrawn;
+    const finalTotalGrossIncome = fixedTaxableIncome + finalGrossPensionDrawdown;
     const finalNetIncome = finalTotalGrossIncome - finalTaxPaid;
     
     row['TOTAL INCOME'] = finalTotalGrossIncome;
     row['Income Subject to Tax'] = incomeSubjectToTaxForTable;
     row['Income Tax Paid'] = finalTaxPaid;
-    row['Net Income Per Year'] = finalNetIncome;
-    row['Net Income Per Month'] = finalNetIncome / 12;
+    row['Net Income Per Year'] = finalNetIncome + finalTotalSavingsWithdrawn;
+    row['Net Income Per Month'] = (finalNetIncome + finalTotalSavingsWithdrawn) / 12;
 
     const finalCashBalance = cashPot.valueBeforeWithdrawal - cashWithdrawal;
     const finalIsaBalance = isaPot.valueBeforeWithdrawal - isaWithdrawal;
