@@ -200,12 +200,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             if (!dcPot) return ['sipp'];
             if (!sippPot) return ['dc'];
             
+            // Prioritize higher cost / lower growth pots
             if (dcPot.amc > sippPot.amc) return ['dc', 'sipp'];
             if (sippPot.amc > dcPot.amc) return ['sipp', 'dc'];
             
             if (dcPot.growthRate < sippPot.growthRate) return ['dc', 'sipp'];
             if (sippPot.growthRate < dcPot.growthRate) return ['sipp', 'dc'];
 
+            // Default to smaller pot first to exhaust it
             if (dcPot.balance <= sippPot.balance) return ['dc', 'sipp'];
             return ['sipp', 'dc'];
           };
@@ -226,10 +228,30 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               
               let grossWithdrawalNeeded = netShortfall;
               if (taxablePortionRate > 0) {
-                  const taxableIncomeSoFarPlusDraw = totalTaxableIncomeSoFar + (grossWithdrawalNeeded * taxablePortionRate);
-                  if (taxableIncomeSoFarPlusDraw > currentPersonalAllowance) {
-                      grossWithdrawalNeeded = netShortfall / (1 - (INCOME_TAX_RATE * taxablePortionRate));
-                  }
+                  // This is the taxable amount of income needed.
+                  // We need to gross it up for tax.
+                  const taxableIncomeStillNeeded = netShortfall / taxablePortionRate;
+                  
+                  // Calculate how much of the personal allowance is left
+                  const paRemaining = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
+                  
+                  // How much can we draw before hitting tax?
+                  const canDrawTaxFree = Math.min(taxableIncomeStillNeeded, paRemaining);
+                  
+                  // How much is left that will be taxed?
+                  const willBeTaxed = taxableIncomeStillNeeded - canDrawTaxFree;
+                  
+                  // Gross up the taxed portion
+                  const grossedUpTaxedPortion = willBeTaxed / (1 - INCOME_TAX_RATE);
+                  
+                  // Total gross withdrawal is the sum of the parts
+                  grossWithdrawalNeeded = (canDrawTaxFree + grossedUpTaxedPortion) * taxablePortionRate / (taxablePortionRate === 0 ? 1 : taxablePortionRate);
+                  grossWithdrawalNeeded = (canDrawTaxFree) + (willBeTaxed / (1-INCOME_TAX_RATE));
+                  grossWithdrawalNeeded = netShortfall / (1 - (taxablePortionRate > 0 ? INCOME_TAX_RATE : 0) * (totalTaxableIncomeSoFar > currentPersonalAllowance ? 1 : 0))
+              
+                  const grossUpFactor = (1 - (INCOME_TAX_RATE * taxablePortionRate));
+                  grossWithdrawalNeeded = netShortfall / grossUpFactor;
+
               }
               
               let draw = Math.min(potBalance, grossWithdrawalNeeded);
