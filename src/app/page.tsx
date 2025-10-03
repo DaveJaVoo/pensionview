@@ -210,6 +210,12 @@ export default function PensionPilotPage() {
   useEffect(() => {
     if (!isFormInitialized) {
       const defaultValues = formSchema.parse({});
+      // This logic ensures that if the form is re-initialized, the default end ages align with retirement/state pension age.
+      defaultValues.cashContributionEndAge = defaultValues.cashContributionEndAge || defaultValues.retirementAge;
+      defaultValues.isaContributionEndAge = defaultValues.isaContributionEndAge || defaultValues.retirementAge;
+      defaultValues.giaContributionEndAge = defaultValues.giaContributionEndAge || defaultValues.retirementAge;
+      defaultValues.dcContributionEndAge = defaultValues.dcContributionEndAge || defaultValues.statePensionAge;
+      defaultValues.sippContributionEndAge = defaultValues.sippContributionEndAge || defaultValues.statePensionAge;
       reset(defaultValues);
       setIsFormInitialized(true);
     }
@@ -224,14 +230,6 @@ export default function PensionPilotPage() {
     const retirementAgeVal = getValues("retirementAge");
     const currentStatePensionAgeVal = getValues("statePensionAge");
     
-    // Set default contribution end ages if they haven't been touched or are invalid
-    setValue("cashContributionEndAge", getValues("cashContributionEndAge") || retirementAgeVal, { shouldValidate: true });
-    setValue("isaContributionEndAge", getValues("isaContributionEndAge") || retirementAgeVal, { shouldValidate: true });
-    setValue("giaContributionEndAge", getValues("giaContributionEndAge") || retirementAgeVal, { shouldValidate: true });
-    setValue("dcContributionEndAge", getValues("dcContributionEndAge") || currentStatePensionAgeVal, { shouldValidate: true });
-    setValue("sippContributionEndAge", getValues("sippContributionEndAge") || currentStatePensionAgeVal, { shouldValidate: true });
-
-
     if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
       const newSpa = Math.min(currentAgeVal, 80); 
       if (newSpa !== currentStatePensionAgeVal) {
@@ -873,5 +871,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    

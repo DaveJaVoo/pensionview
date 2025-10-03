@@ -181,7 +181,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     }
     
     if (isInRetirement && netShortfall > 0) {
-        // --- Discretionary Withdrawals (Cash -> GIA -> ISA -> Pensions) ---
+        // --- Discretionary Withdrawals (TAX OPTIMIZED) ---
         // 1. Cash, 2. GIA, 3. ISA (Tax-Free sources)
         const cashToDraw = Math.min(cashPot.valueBeforeWithdrawal, netShortfall);
         cashWithdrawal += cashToDraw;
@@ -202,7 +202,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         // 4. Pensions (if still a shortfall) - Tax-Optimized
         if (netShortfall > 0.01) {
           const pensionDrawdownOrder = () => {
-            if (!dcPot) return ['SIPP'];
+            if (!dcPot) return sippPot ? ['SIPP'] : [];
             if (!sippPot) return ['DC'];
             if (dcPot.amc > sippPot.amc) return ['DC', 'SIPP'];
             if (sippPot.amc > dcPot.amc) return ['SIPP', 'DC'];
@@ -225,18 +225,26 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
               const taxablePortionRate = 1 - ufplsTaxFreePortion;
               
               // Calculate the gross withdrawal needed from this pension to satisfy the remaining net shortfall.
-              const paRemaining = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
-              const grossNeededForTaxablePart = (netShortfall) / (1-INCOME_TAX_RATE);
-              let grossWithdrawalNeeded = grossNeededForTaxablePart; // Assume all is taxable first
+              const paRemainingForTaxableDraws = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
               
-              if(taxablePortionRate > 0) {
-                  // This calculation determines the gross amount needed to achieve a certain net amount, considering a specific tax rate.
-                  // It's a "grossing up" calculation.
-                  const requiredTaxableIncome = netShortfall / (1 - INCOME_TAX_RATE);
-                  grossWithdrawalNeeded = requiredTaxableIncome / taxablePortionRate;
-              } else {
-                  // if 100% tax free, gross = net
+              let grossWithdrawalNeeded: number;
+              // How much of the shortfall can be covered by the tax-free part of a pension withdrawal?
+              const canBeCoveredByTaxFree = netShortfall * ufplsTaxFreePortion;
+
+              // Gross up the remaining shortfall to find the taxable part of the withdrawal
+              const netShortfallForTaxablePart = netShortfall;
+              const grossTaxablePortionNeeded = netShortfallForTaxablePart / (1-INCOME_TAX_RATE);
+              
+              let taxableDrawToMeetNeed = (netShortfall / taxablePortionRate) / (1-INCOME_TAX_RATE);
+              
+              const requiredTaxableIncome = netShortfall / (1 - INCOME_TAX_RATE);
+              grossWithdrawalNeeded = requiredTaxableIncome / taxablePortionRate;
+              
+              if(taxablePortionRate === 0) { // Fully tax-free withdrawals
                   grossWithdrawalNeeded = netShortfall;
+              } else { // Mixed tax-free and taxable withdrawals
+                  const effectiveTaxRateOnGross = taxablePortionRate * INCOME_TAX_RATE;
+                  grossWithdrawalNeeded = netShortfall / (1 - effectiveTaxRateOnGross);
               }
 
               let draw = Math.min(potBalance, grossWithdrawalNeeded);
@@ -368,5 +376,3 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
-
-    
