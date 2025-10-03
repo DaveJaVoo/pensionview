@@ -215,7 +215,6 @@ export default function PensionPilotPage() {
     }
   }, [reset, isFormInitialized]);
 
-
   const currentAgeWatched = watch("currentAge");
 
   useEffect(() => {
@@ -225,24 +224,18 @@ export default function PensionPilotPage() {
     const retirementAgeVal = getValues("retirementAge");
     const currentStatePensionAgeVal = getValues("statePensionAge");
     
-    // This effect is complex, consider simplifying if defaults are handled in schema
-    const syncEndAges = () => {
-      setValue("dcContributionEndAge", currentStatePensionAgeVal, { shouldValidate: true });
-      setValue("sippContributionEndAge", currentStatePensionAgeVal, { shouldValidate: true });
-      setValue("cashContributionEndAge", retirementAgeVal, { shouldValidate: true });
-      setValue("isaContributionEndAge", retirementAgeVal, { shouldValidate: true });
-      setValue("giaContributionEndAge", retirementAgeVal, { shouldValidate: true });
-    };
+    // Set default contribution end ages if they haven't been touched or are invalid
+    setValue("cashContributionEndAge", getValues("cashContributionEndAge") || retirementAgeVal, { shouldValidate: true });
+    setValue("isaContributionEndAge", getValues("isaContributionEndAge") || retirementAgeVal, { shouldValidate: true });
+    setValue("giaContributionEndAge", getValues("giaContributionEndAge") || retirementAgeVal, { shouldValidate: true });
+    setValue("dcContributionEndAge", getValues("dcContributionEndAge") || currentStatePensionAgeVal, { shouldValidate: true });
+    setValue("sippContributionEndAge", getValues("sippContributionEndAge") || currentStatePensionAgeVal, { shouldValidate: true });
 
-    // Example of a one-time sync or based on a specific trigger
-    // syncEndAges();
 
     if (currentAgeVal > 67 && currentAgeVal > currentStatePensionAgeVal) {
       const newSpa = Math.min(currentAgeVal, 80); 
       if (newSpa !== currentStatePensionAgeVal) {
         setValue("statePensionAge", newSpa, { shouldValidate: true });
-        setValue("dcContributionEndAge", newSpa, {shouldValidate: true});
-        setValue("sippContributionEndAge", newSpa, {shouldValidate: true});
       }
     }
     if (currentAgeVal >= retirementAgeVal) {
@@ -250,23 +243,6 @@ export default function PensionPilotPage() {
     }
 
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
-
-  const retirementAgeWatched = watch("retirementAge");
-  useEffect(() => {
-    if (!isFormInitialized) return;
-    const retAgeVal = getValues("retirementAge");
-    setValue("cashContributionEndAge", retAgeVal, {shouldValidate: true});
-    setValue("isaContributionEndAge", retAgeVal, {shouldValidate: true});
-    setValue("giaContributionEndAge", retAgeVal, {shouldValidate: true});
-  }, [retirementAgeWatched, isFormInitialized, setValue, getValues]);
-
-  const statePensionAgeWatched = watch("statePensionAge");
-  useEffect(() => {
-    if (!isFormInitialized) return;
-    const spaVal = getValues("statePensionAge");
-    setValue("dcContributionEndAge", spaVal, {shouldValidate: true});
-    setValue("sippContributionEndAge", spaVal, {shouldValidate: true});
-  }, [statePensionAgeWatched, isFormInitialized, setValue, getValues]);
 
 
   const initialDcPensionValueWatched = watch("initialDcPensionValue");
@@ -897,7 +873,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
 
     
