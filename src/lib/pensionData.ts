@@ -153,8 +153,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // --- Process Pension Pots (DC, SIPP) ---
     const processPensionPot = (potType: 'DC' | 'SIPP') => {
-      const initialValue = potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
-      const balance = previousRow ? (previousRow[`${potType} Pension Balance`] || 0) : initialValue;
+      const isFirstYear = !previousRow;
+      const initialValueForProjection = potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
+      
+      const balance = isFirstYear 
+        ? initialValueForProjection 
+        : (previousRow?.[`${potType} Pension Balance`] ?? 0);
+      
       const contribution = (age < (potType === 'DC' ? dcContributionEndAge : sippContributionEndAge)) ? (potType === 'DC' ? annualDcPensionContribution : annualSippContribution) : 0;
       const growthRate = (potType === 'DC' ? investmentPercentageGrowth : sippInvestmentPercentageGrowth) / 100;
       const amc = (potType === 'DC' ? annualChargeAMC : sippAnnualChargeAMC) / 100;
