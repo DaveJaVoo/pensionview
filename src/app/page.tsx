@@ -228,18 +228,11 @@ export default function PensionPilotPage() {
 
     const currentAgeVal = getValues("currentAge");
     const retirementAgeVal = getValues("retirementAge");
-    const currentStatePensionAgeVal = getValues("statePensionAge");
     
     if (currentAgeVal > retirementAgeVal) {
         setValue("retirementAge", currentAgeVal + 1, { shouldValidate: true });
     }
-    if (currentAgeVal > currentStatePensionAgeVal) {
-      const newSpa = Math.min(currentAgeVal, 80); 
-      if (newSpa > currentStatePensionAgeVal) {
-        setValue("statePensionAge", newSpa, { shouldValidate: true });
-      }
-    }
-
+    
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
 
 
@@ -263,14 +256,9 @@ export default function PensionPilotPage() {
   useEffect(() => {
       if (isFormInitialized) {
           updateLumpSumDisplay('DC');
-      }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, updateLumpSumDisplay]);
-
-  useEffect(() => {
-      if (isFormInitialized) {
           updateLumpSumDisplay('SIPP');
       }
-  }, [isFormInitialized, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay]);
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");

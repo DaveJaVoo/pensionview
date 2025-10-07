@@ -23,16 +23,22 @@ const processSavingsPot = (
 };
 
 // Helper function to process the final balance calculation for a pension pot
-const calculateFinalPensionBalance = (pot: { balance: number; contribution: number; growthRate: number; amc: number; } | null, drawdown: number) => {
-  if (!pot) return { amcCharge: 0, afterDeductions: 0, growth: 0, finalBalance: 0 };
-  const potAfterContribution = pot.balance + pot.contribution;
-  const potAfterDrawdown = potAfterContribution - drawdown;
-  const amcCharge = potAfterDrawdown * pot.amc;
-  const afterDeductions = potAfterDrawdown - amcCharge;
-  const growth = afterDeductions * pot.growthRate;
-  const finalBalance = Math.max(0, afterDeductions + growth);
-  return { amcCharge, afterDeductions, growth, finalBalance };
+const calculateFinalPensionBalance = (
+  initialBalance: number,
+  contribution: number,
+  drawdown: number,
+  amc: number,
+  growthRate: number
+) => {
+    const potAfterContribution = initialBalance + contribution;
+    const potAfterDrawdown = potAfterContribution - drawdown;
+    const amcCharge = potAfterDrawdown * amc;
+    const afterDeductions = potAfterDrawdown - amcCharge;
+    const growth = afterDeductions * growthRate;
+    const finalBalance = Math.max(0, afterDeductions + growth);
+    return { amcCharge, afterDeductions, growth, finalBalance };
 };
+
 
 export function calculatePensionProjection(params: PensionCalculationParameters): CalculatedPensionData {
   const {
@@ -152,28 +158,32 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const giaPot = processSavingsPot(age, previousRow?.['GIA Balance'] ?? initialGiaAmount, annualGiaContribution, giaContributionEndAge, giaGrowthDecimal);
 
     // --- Process Pension Pots (DC, SIPP) ---
-    const processPensionPot = (potType: 'DC' | 'SIPP') => {
-      const isFirstYear = !previousRow;
-      const initialValueForProjection = potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
-      
-      const balance = isFirstYear 
-        ? initialValueForProjection 
-        : (previousRow?.[potType === 'DC' ? 'DC Pension Balance' : 'SIPP Balance'] ?? 0);
-      
-      const contribution = (age < (potType === 'DC' ? dcContributionEndAge : sippContributionEndAge)) ? (potType === 'DC' ? annualDcPensionContribution : annualSippContribution) : 0;
-      const growthRate = (potType === 'DC' ? investmentPercentageGrowth : sippInvestmentPercentageGrowth) / 100;
-      const amc = (potType === 'DC' ? annualChargeAMC : sippAnnualChargeAMC) / 100;
-
-      return { balance, contribution, growthRate, amc };
+    const getPensionPotStartValue = (potType: 'DC' | 'SIPP'): number => {
+        if (previousRow) {
+            return potType === 'DC' 
+                ? (previousRow['DC Pension Balance'] ?? 0)
+                : (previousRow['SIPP Balance'] ?? 0);
+        }
+        return potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
     };
-
-    const dcPot = showDcPension ? processPensionPot('DC') : null;
-    const sippPot = showSipp ? processPensionPot('SIPP') : null;
     
-    row['Initial DC Pension'] = dcPot?.balance ?? 0;
-    row['DC Pension Contribution'] = dcPot?.contribution ?? 0;
-    row['Initial SIPP'] = sippPot?.balance ?? 0;
-    row['SIPP Contribution'] = sippPot?.contribution ?? 0;
+    const dcPotStartValue = getPensionPotStartValue('DC');
+    const sippPotStartValue = getPensionPotStartValue('SIPP');
+    const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
+    const sippContributionThisYear = (age < sippContributionEndAge && annualSippContribution > 0) ? annualSippContribution : 0;
+
+    row['Initial DC Pension'] = dcPotStartValue;
+    row['DC Pension Contribution'] = dcContributionThisYear;
+    row['Initial SIPP'] = sippPotStartValue;
+    row['SIPP Contribution'] = sippContributionThisYear;
+
+    // --- Non-Discretionary Income First ---
+    const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
+    const statePensionThisYear = (initialStatePensionAmount > 0 && age >= statePensionAge) ? initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge) : 0;
+    const otherIncomeThisYear = initialOtherIncome > 0 ? initialOtherIncome * Math.pow(1 + inflationDecimal, yearOffset) : 0;
+    const fasThisYear = (initialFasAmount > 0 && age >= fasStartAge) ? initialFasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
+    
+    const fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear;
 
     // --- WITHDRAWAL WATERFALL ---
     let dcDrawdown = 0;
@@ -182,23 +192,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     let isaWithdrawal = 0;
     let giaWithdrawal = 0;
 
-    // --- Non-Discretionary Income First ---
-    const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
-    const statePensionThisYear = (initialStatePensionAmount > 0 && age >= statePensionAge) ? initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge) : 0;
-    const otherIncomeThisYear = initialOtherIncome > 0 ? initialOtherIncome * Math.pow(1 + inflationDecimal, yearOffset) : 0;
-    const fasThisYear = (initialFasAmount > 0 && age >= fasStartAge) ? initialFasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
-    
-    let netShortfall = 0;
-    let fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear;
-
     if (isInRetirement) {
         const taxOnFixedIncome = Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE;
         const netFromFixedIncome = fixedTaxableIncome - taxOnFixedIncome;
-        netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
-    }
+        let netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
     
-    if (isInRetirement && netShortfall > 0) {
-        // --- Discretionary Withdrawals (TAX OPTIMIZED) ---
         // 1. Cash (no growth, no tax)
         const cashToDraw = Math.min(cashPot.valueBeforeWithdrawal, netShortfall);
         cashWithdrawal += cashToDraw;
@@ -220,73 +218,56 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
         // 4. Pensions (if still a shortfall) - Tax-Optimized
         if (netShortfall > 0.01) {
-          const pensionDrawdownOrder = () => {
-            if (!dcPot) return sippPot ? ['SIPP'] : [];
-            if (!sippPot) return ['DC'];
-            // Prioritize by highest cost, then lowest growth, then smallest pot
-            if (dcPot.amc > sippPot.amc) return ['DC', 'SIPP'];
-            if (sippPot.amc > dcPot.amc) return ['SIPP', 'DC'];
-            if (dcPot.growthRate < sippPot.growthRate) return ['DC', 'SIPP'];
-            if (sippPot.growthRate < dcPot.growthRate) return ['SIPP', 'DC'];
-            return (dcPot.balance <= sippPot.balance) ? ['DC', 'SIPP'] : ['SIPP', 'DC'];
-          };
+            const dcPot = { balance: dcPotStartValue, contribution: dcContributionThisYear, amc: annualChargeAMC/100, growthRate: investmentPercentageGrowth/100, type: 'DC' };
+            const sippPot = { balance: sippPotStartValue, contribution: sippContributionThisYear, amc: sippAnnualChargeAMC/100, growthRate: sippInvestmentPercentageGrowth/100, type: 'SIPP' };
+
+            const pensionDrawdownOrder = [dcPot, sippPot]
+              .filter(p => p.balance > 0 || p.contribution > 0)
+              .sort((a, b) => b.amc - a.amc || a.growthRate - b.growthRate || a.balance - b.balance);
           
-          let totalTaxableIncomeSoFar = fixedTaxableIncome;
+            let totalTaxableIncomeSoFar = fixedTaxableIncome;
 
-          for (const potType of pensionDrawdownOrder()) {
-              if (netShortfall <= 0.01) break;
+            for (const pot of pensionDrawdownOrder) {
+                if (netShortfall <= 0.01) break;
               
-              const currentPot = potType === 'DC' ? dcPot : sippPot;
-              if (!currentPot || currentPot.balance <= 0) continue;
-
-              const potBalance = currentPot.balance + currentPot.contribution;
-              const takeLumpSum = potType === 'DC' ? takeTaxFreeLumpSum : takeSippTaxFreeLumpSum;
-              const ufplsTaxFreePortion = takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
-              const taxablePortionRate = 1 - ufplsTaxFreePortion;
+                const potBalance = pot.balance + pot.contribution;
+                const takeLumpSum = pot.type === 'DC' ? takeTaxFreeLumpSum : takeSippTaxFreeLumpSum;
+                const ufplsTaxFreePortion = takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
+                const taxablePortionRate = 1 - ufplsTaxFreePortion;
               
-              // This is the gross amount needed to satisfy the net shortfall from this pot.
-              const grossWithdrawalNeededForNet = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
+                const grossWithdrawalNeededForNet = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
 
-              let draw = Math.min(potBalance, grossWithdrawalNeededForNet);
-              draw = Math.max(0, draw);
+                let draw = Math.min(potBalance, grossWithdrawalNeededForNet);
+                draw = Math.max(0, draw);
 
-              const taxablePartOfDraw = draw * taxablePortionRate;
-              const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE
-                                    - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
-              const netFromThisDraw = draw - taxOnThisDraw;
+                const taxablePartOfDraw = draw * taxablePortionRate;
+                const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
+                const netFromThisDraw = draw - taxOnThisDraw;
 
-              if (potType === 'DC') dcDrawdown += draw;
-              else sippDrawdown += draw;
-              
-              totalTaxableIncomeSoFar += taxablePartOfDraw;
-              netShortfall -= netFromThisDraw;
-          }
+                if (pot.type === 'DC') dcDrawdown += draw;
+                else sippDrawdown += draw;
+                
+                totalTaxableIncomeSoFar += taxablePartOfDraw;
+                netShortfall -= netFromThisDraw;
+            }
+        }
+
+        const isSurplusYear = netShortfall <= 0;
+        if (isSurplusYear) {
+            if (applyDcWithdrawalRateInSurplus && showDcPension) {
+                const dcStandardWithdrawal = (dcPotStartValue + dcContributionThisYear - dcDrawdown) * (dcWithdrawalRate / 100);
+                dcDrawdown += Math.max(0, dcStandardWithdrawal);
+            }
+            if (applySippWithdrawalRateInSurplus && showSipp) {
+                const sippStandardWithdrawal = (sippPotStartValue + sippContributionThisYear - sippDrawdown) * (sippWithdrawalRate / 100);
+                sippDrawdown += Math.max(0, sippStandardWithdrawal);
+            }
         }
     }
-
-    const isSurplusYear = () => {
-      if (!isInRetirement) return false;
-      const netFromFixed = fixedTaxableIncome - Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE;
-      return netFromFixed >= inflatedTargetNetIncome;
-    };
-
-    if (isInRetirement && isSurplusYear()) {
-      if (applyDcWithdrawalRateInSurplus && dcPot) {
-          const dcStandardWithdrawal = (dcPot.balance + dcPot.contribution - dcDrawdown) * (dcWithdrawalRate / 100);
-          dcDrawdown += Math.max(0, dcStandardWithdrawal);
-      }
-      if (applySippWithdrawalRateInSurplus && sippPot) {
-          const sippStandardWithdrawal = (sippPot.balance + sippPot.contribution - sippDrawdown) * (sippWithdrawalRate / 100);
-          sippDrawdown += Math.max(0, sippStandardWithdrawal);
-      }
-    }
     
-    if (dcPot) dcDrawdown = Math.min(dcPot.balance + dcPot.contribution, dcDrawdown);
-    if (sippPot) sippDrawdown = Math.min(sippPot.balance + sippPot.contribution, sippDrawdown);
-
     // --- PENSION FINAL CALCULATIONS ---
-    const dcFinals = calculateFinalPensionBalance(dcPot, dcDrawdown);
-    const sippFinals = calculateFinalPensionBalance(sippPot, sippDrawdown);
+    const dcFinals = calculateFinalPensionBalance(dcPotStartValue, dcContributionThisYear, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
+    const sippFinals = calculateFinalPensionBalance(sippPotStartValue, sippContributionThisYear, sippDrawdown, sippAnnualChargeAMC / 100, sippInvestmentPercentageGrowth / 100);
 
     // --- FINAL TALLY ---
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
@@ -365,3 +346,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
+
+    
