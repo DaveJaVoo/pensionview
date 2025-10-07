@@ -158,7 +158,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       
       const balance = isFirstYear 
         ? initialValueForProjection 
-        : (previousRow?.[`${potType} Pension Balance`] ?? 0);
+        : (previousRow?.[potType === 'DC' ? 'DC Pension Balance' : 'SIPP Balance'] ?? 0);
       
       const contribution = (age < (potType === 'DC' ? dcContributionEndAge : sippContributionEndAge)) ? (potType === 'DC' ? annualDcPensionContribution : annualSippContribution) : 0;
       const growthRate = (potType === 'DC' ? investmentPercentageGrowth : sippInvestmentPercentageGrowth) / 100;
