@@ -147,9 +147,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const row: PensionDataRow = { Age: age, Year: String(currentYear) };
     
     // --- Process Savings Pots (Cash, ISA, GIA) ---
-    const cashPot = processSavingsPot(age, previousRow?.['Cash Savings Balance'] || initialCashSavings, annualCashContribution, cashContributionEndAge, 0);
-    const isaPot = processSavingsPot(age, previousRow?.['ISA Balance'] || initialIsaAmount, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
-    const giaPot = processSavingsPot(age, previousRow?.['GIA Balance'] || initialGiaAmount, annualGiaContribution, giaContributionEndAge, giaGrowthDecimal);
+    const cashPot = processSavingsPot(age, previousRow?.['Cash Savings Balance'] ?? initialCashSavings, annualCashContribution, cashContributionEndAge, 0);
+    const isaPot = processSavingsPot(age, previousRow?.['ISA Balance'] ?? initialIsaAmount, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
+    const giaPot = processSavingsPot(age, previousRow?.['GIA Balance'] ?? initialGiaAmount, annualGiaContribution, giaContributionEndAge, giaGrowthDecimal);
 
     // --- Process Pension Pots (DC, SIPP) ---
     const processPensionPot = (potType: 'DC' | 'SIPP') => {
@@ -360,5 +360,3 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
-
-    
