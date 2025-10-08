@@ -11,7 +11,7 @@ const AppHeader: FC<AppHeaderProps> = ({ title }) => {
       <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary-foreground text-center">
         PensionView+
       </h1>
-      <p className="text-xs text-primary-foreground/80 mt-1">
+      <p className="text-sm text-primary-foreground/80 mt-1">
         © Le Money Marchand Inc.
       </p>
     </header>
