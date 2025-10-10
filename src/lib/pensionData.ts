@@ -159,13 +159,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // --- Process Pension Pots (DC, SIPP) ---
     const getPensionPotStartValue = (potType: 'DC' | 'SIPP'): number => {
-        if (previousRow) {
-            return potType === 'DC' 
-                ? (previousRow['DC Pension Balance'] ?? 0)
-                : (previousRow['SIPP Balance'] ?? 0);
-        }
-        return potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
-    };
+      if (previousRow) {
+          return potType === 'DC' 
+              ? (previousRow['DC Pension Balance'] ?? 0)
+              : (previousRow['SIPP Balance'] ?? 0);
+      }
+      return potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
+  };
     
     const dcPotStartValue = getPensionPotStartValue('DC');
     const sippPotStartValue = getPensionPotStartValue('SIPP');
@@ -221,6 +221,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             const dcPot = { balance: dcPotStartValue, contribution: dcContributionThisYear, amc: annualChargeAMC/100, growthRate: investmentPercentageGrowth/100, type: 'DC' };
             const sippPot = { balance: sippPotStartValue, contribution: sippContributionThisYear, amc: sippAnnualChargeAMC/100, growthRate: sippInvestmentPercentageGrowth/100, type: 'SIPP' };
 
+            // Drawdown from the most expensive/worst performing pension first to preserve the best assets
             const pensionDrawdownOrder = [dcPot, sippPot]
               .filter(p => p.balance > 0 || p.contribution > 0)
               .sort((a, b) => b.amc - a.amc || a.growthRate - b.growthRate || a.balance - b.balance);
@@ -235,6 +236,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 const ufplsTaxFreePortion = takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
                 const taxablePortionRate = 1 - ufplsTaxFreePortion;
               
+                // This is the key tax calculation: we need to find the gross withdrawal (X)
+                // such that X - (TaxablePortion(X) * TaxRate) = NetShortfall.
+                // X - (X * taxablePortionRate * INCOME_TAX_RATE) = NetShortfall
+                // X * (1 - taxablePortionRate * INCOME_TAX_RATE) = NetShortfall
+                // X = NetShortfall / (1 - taxablePortionRate * INCOME_TAX_RATE)
+                // This calculation is slightly simplified as it doesn't account for the personal allowance being used up by this withdrawal itself,
+                // but it's a very close approximation for basic rate tax scenarios.
                 const grossWithdrawalNeededForNet = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
 
                 let draw = Math.min(potBalance, grossWithdrawalNeededForNet);
