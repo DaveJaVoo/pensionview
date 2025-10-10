@@ -131,27 +131,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
     return lowerHeader.includes('net income per year') || lowerHeader.includes('net income per month');
   };
 
-  const verticalLineHeaders = [
-    'Initial DC Pension',
-    'Initial SIPP',
-    'State Pension',
-    'FAS',
-    'Cash Savings Initial',
-    'ISA Initial',
-    'GIA Initial',
-    'Total Savings Withdrawn',
-    'Total Savings Balance',
-    'TOTAL INCOME',
-    'Income Subject to Tax',
-    'Income Tax Paid',
-    'Net Income Per Year',
-    'Net Income Per Month'
-  ].map(h => h.toLowerCase());
-
-  const needsVerticalLine = (header: string): boolean => {
-      return verticalLineHeaders.includes(header.toLowerCase());
-  };
-
   return (
     <ScrollArea className="w-full whitespace-nowrap rounded-md border shadow-lg bg-card">
       <Table className="min-w-full">
@@ -160,10 +139,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
             {headers.map((header) => (
               <TableHead 
                 key={header} 
-                className={cn(
-                  "px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top",
-                  needsVerticalLine(header) && "border-l-2 border-border"
-                )}
+                className="px-3 py-3 text-left text-xs font-medium text-card-foreground uppercase tracking-wider font-headline align-top border-l-2 border-border first:border-l-0"
                 style={{ whiteSpace: 'normal' }}
               >
                 {formatHeaderForDisplay(header)}
@@ -186,11 +162,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
               {headers.map((header) => {
                 const cellValue = row[header];
                 let displayValue: string | number | undefined = cellValue;
-                let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left align-top";
-                
-                if (needsVerticalLine(header)) {
-                    cellClasses = cn(cellClasses, "border-l-2 border-border");
-                }
+                let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left align-top border-l-2 border-border first:border-l-0";
 
                 if (isMonetaryHeader(header)) {
                   const parsedNum = parseCurrency(String(cellValue));
@@ -246,5 +218,3 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 };
 
 export default PensionDataTable;
-
-    
