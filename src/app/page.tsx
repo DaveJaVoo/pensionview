@@ -47,6 +47,8 @@ const formSchema = z.object({
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
   initialStatePensionAmount: z.coerce.number().min(0).default(12570),
   initialOtherIncome: z.coerce.number().min(0).default(0),
+  fasAmount: z.coerce.number().min(0).default(0),
+  fasStartAge: z.coerce.number().min(50).max(80).default(65),
   
   initialDcPensionValue: z.coerce.number().min(0).default(0),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
@@ -335,6 +337,9 @@ export default function PensionPilotPage() {
     if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
     }
+    if (rowData['FAS Pension'] && rowData['FAS Pension'] > 0) {
+        incomeSources.push(<> {formatBoldCurrency(rowData['FAS Pension'])} from your FAS Pension</>);
+    }
     if (rowData['State Pension'] && rowData['State Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['State Pension'])} from State Pension</>);
     }
@@ -450,6 +455,8 @@ export default function PensionPilotPage() {
   const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
+    { name: "fasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount from the Financial Assistance Scheme if applicable. Leave at 0 if none." },
+    { name: "fasStartAge", label: "FAS Start Age", control: control, description: "Age at which FAS payments begin." },
     { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £12,570 for 2025/26." },
     { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC & SIPP Pension Contributions will default to end at this age." },
     { name: "initialOtherIncome", label: "Other Annual Income", control: control, placeholder: "Enter amount in £ pa", icon: Building2, description: "Any other regular, taxable annual income you expect (e.g., from rental properties, side-hustles). This will be assumed to grow with inflation. Leave at 0 if none." },
@@ -840,7 +847,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    

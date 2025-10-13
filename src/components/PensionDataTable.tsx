@@ -56,6 +56,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
       'SIPP Balance': ['SIPP', 'Balance'],
 
       'DB Pension': ['DB Pension'],
+      'FAS Pension': ['FAS Pension'],
       'State Pension': ['State Pension'],
       'Other Income': ['Other Income'],
       'Cash Savings Initial': ['Cash Sav.', 'Initial'],
@@ -102,6 +103,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('state pension') || 
            lowerHeader.includes('db pension') ||
+           lowerHeader.includes('fas pension') ||
            lowerHeader.includes('other income') ||
            lowerHeader.includes('dc pension contribution') || 
            lowerHeader.includes('sipp contribution') ||

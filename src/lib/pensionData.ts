@@ -44,6 +44,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const {
     currentAge, retirementAge, projectionEndAge, targetAnnualNetIncome, calculationTriggerYear,
     initialDbPensionAmount, dbPensionStartAge,
+    fasAmount, fasStartAge,
     statePensionAge, initialStatePensionAmount,
     initialOtherIncome,
     
@@ -83,6 +84,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   const otherIncomeSources = [
     { amount: initialDbPensionAmount, header: 'DB Pension' },
+    { amount: fasAmount, header: 'FAS Pension' },
     { amount: initialStatePensionAmount, header: 'State Pension' },
     { amount: initialOtherIncome, header: 'Other Income' },
   ];
@@ -174,10 +176,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // --- Non-Discretionary Income First ---
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
+    const fasThisYear = (fasAmount > 0 && age >= fasStartAge) ? fasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
     const statePensionThisYear = (initialStatePensionAmount > 0 && age >= statePensionAge) ? initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge) : 0;
     const otherIncomeThisYear = initialOtherIncome > 0 ? initialOtherIncome * Math.pow(1 + inflationDecimal, yearOffset) : 0;
     
-    const fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear;
+    const fixedTaxableIncome = dbPensionThisYear + fasThisYear + statePensionThisYear + otherIncomeThisYear;
 
     // --- WITHDRAWAL WATERFALL ---
     let dcDrawdown = 0;
@@ -300,6 +303,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (showSipp) Object.assign(row, { 'SIPP Drawdown': sippDrawdown, 'SIPP AMC Charge': sippFinals.amcCharge, 'SIPP After Deductions': sippFinals.afterDeductions, 'SIPP Growth': sippFinals.growth, 'SIPP Balance': sippFinals.finalBalance });
     
     if (initialDbPensionAmount > 0) row['DB Pension'] = dbPensionThisYear;
+    if (fasAmount > 0) row['FAS Pension'] = fasThisYear;
     if (initialStatePensionAmount > 0) row['State Pension'] = statePensionThisYear;
     if (initialOtherIncome > 0) row['Other Income'] = otherIncomeThisYear;
     
@@ -347,5 +351,3 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
-
-    
