@@ -25,7 +25,7 @@ import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
 const formSchema = z.object({
-  currentAge: z.coerce.number().min(18).max(89).default(63),
+  currentAge: z.coerce.number().min(18).max(89).default(60),
   retirementAge: z.coerce.number().min(55).max(90).default(67),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   
@@ -35,13 +35,13 @@ const formSchema = z.object({
   initialIsaAmount: z.coerce.number().min(0).default(0),
   annualIsaContribution: z.coerce.number().min(0).default(0),
   isaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
+  isaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
 giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
+  giaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   
-  targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
+  targetAnnualNetIncome: z.coerce.number().min(0).default(0),
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
   initialFasAmount: z.coerce.number().min(0).default(0),
@@ -55,7 +55,7 @@ giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
-  inflationRate: z.coerce.number().min(-10).max(20).default(2),
+  inflationRate: z.coerce.number().min(-10).max(20).default(3),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   applyDcWithdrawalRateInSurplus: z.boolean().default(false),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
