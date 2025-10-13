@@ -38,16 +38,14 @@ const formSchema = z.object({
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
-giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+  giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(0),
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
-  initialFasAmount: z.coerce.number().min(0).default(0),
-  fasStartAge: z.coerce.number().min(50).max(80).default(65),
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
-  initialStatePensionAmount: z.coerce.number().min(0).default(11973),
+  initialStatePensionAmount: z.coerce.number().min(0).default(12570),
   initialOtherIncome: z.coerce.number().min(0).default(0),
   
   initialDcPensionValue: z.coerce.number().min(0).default(0),
@@ -334,9 +332,6 @@ export default function PensionPilotPage() {
     
     const incomeSources: React.ReactNode[] = [];
     
-    if (rowData['FAS'] && rowData['FAS'] > 0) {
-        incomeSources.push(<> {formatBoldCurrency(rowData['FAS'])} from FAS</>);
-    }
     if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
     }
@@ -455,9 +450,7 @@ export default function PensionPilotPage() {
   const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
-    { name: "initialFasAmount", label: "FAS Amount", control: control, placeholder: "Enter amount in £ pa", icon: LifeBuoy, description: "Annual amount from the Financial Assistance Scheme (FAS). This is treated as taxable income and the result shown in the projection will reflect this" },
-    { name: "fasStartAge", label: "FAS Start Age", control: control, description: "Age at which FAS payments begin." },
-    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £11,973 for 2024/25." },
+    { name: "initialStatePensionAmount", label: "Initial State Pension", control: control, placeholder: "Enter amount in £ pa", description: "Expected initial annual amount of State Pension. Current full new State Pension is approx. £12,570 for 2025/26." },
     { name: "statePensionAge", label: "State Pension Age", control: control, description: "Age at which State Pension payments begin. DC & SIPP Pension Contributions will default to end at this age." },
     { name: "initialOtherIncome", label: "Other Annual Income", control: control, placeholder: "Enter amount in £ pa", icon: Building2, description: "Any other regular, taxable annual income you expect (e.g., from rental properties, side-hustles). This will be assumed to grow with inflation. Leave at 0 if none." },
   ];

@@ -45,7 +45,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     currentAge, retirementAge, projectionEndAge, targetAnnualNetIncome, calculationTriggerYear,
     initialDbPensionAmount, dbPensionStartAge,
     statePensionAge, initialStatePensionAmount,
-    initialOtherIncome, initialFasAmount, fasStartAge,
+    initialOtherIncome,
     
     initialDcPensionValue,
     annualDcPensionContribution, dcContributionEndAge,
@@ -85,7 +85,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     { amount: initialDbPensionAmount, header: 'DB Pension' },
     { amount: initialStatePensionAmount, header: 'State Pension' },
     { amount: initialOtherIncome, header: 'Other Income' },
-    { amount: initialFasAmount, header: 'FAS' }
   ];
   otherIncomeSources.forEach(source => {
     if (source.amount > 0) headers.push(source.header);
@@ -152,23 +151,19 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const row: PensionDataRow = { Age: age, Year: String(currentYear) };
     
-    // --- Process Savings Pots (Cash, ISA, GIA) ---
-    const cashPot = processSavingsPot(age, previousRow?.['Cash Savings Balance'] ?? initialCashSavings, annualCashContribution, cashContributionEndAge, 0);
-    const isaPot = processSavingsPot(age, previousRow?.['ISA Balance'] ?? initialIsaAmount, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
-    const giaPot = processSavingsPot(age, previousRow?.['GIA Balance'] ?? initialGiaAmount, annualGiaContribution, giaContributionEndAge, giaGrowthDecimal);
-
-    // --- Process Pension Pots (DC, SIPP) ---
-    const getPensionPotStartValue = (potType: 'DC' | 'SIPP'): number => {
-      if (previousRow) {
-          return potType === 'DC' 
-              ? (previousRow['DC Pension Balance'] ?? 0)
-              : (previousRow['SIPP Balance'] ?? 0);
-      }
-      return potType === 'DC' ? actualInitialDcPensionForProjection : actualInitialSippForProjection;
-  };
+    // --- Get Starting Balances ---
+    const dcPotStartValue = previousRow?.['DC Pension Balance'] ?? actualInitialDcPensionForProjection;
+    const sippPotStartValue = previousRow?.['SIPP Balance'] ?? actualInitialSippForProjection;
+    const cashStartValue = previousRow?.['Cash Savings Balance'] ?? initialCashSavings;
+    const isaStartValue = previousRow?.['ISA Balance'] ?? initialIsaAmount;
+    const giaStartValue = previousRow?.['GIA Balance'] ?? initialGiaAmount;
     
-    const dcPotStartValue = getPensionPotStartValue('DC');
-    const sippPotStartValue = getPensionPotStartValue('SIPP');
+    // --- Process Savings Pots (Cash, ISA, GIA) ---
+    const cashPot = processSavingsPot(age, cashStartValue, annualCashContribution, cashContributionEndAge, 0);
+    const isaPot = processSavingsPot(age, isaStartValue, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
+    const giaPot = processSavingsPot(age, giaStartValue, annualGiaContribution, giaContributionEndAge, giaGrowthDecimal);
+
+    // --- Process Pension Contributions ---
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     const sippContributionThisYear = (age < sippContributionEndAge && annualSippContribution > 0) ? annualSippContribution : 0;
 
@@ -181,9 +176,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
     const statePensionThisYear = (initialStatePensionAmount > 0 && age >= statePensionAge) ? initialStatePensionAmount * Math.pow(1 + inflationDecimal, age - statePensionAge) : 0;
     const otherIncomeThisYear = initialOtherIncome > 0 ? initialOtherIncome * Math.pow(1 + inflationDecimal, yearOffset) : 0;
-    const fasThisYear = (initialFasAmount > 0 && age >= fasStartAge) ? initialFasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
     
-    const fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear + fasThisYear;
+    const fixedTaxableIncome = dbPensionThisYear + statePensionThisYear + otherIncomeThisYear;
 
     // --- WITHDRAWAL WATERFALL ---
     let dcDrawdown = 0;
@@ -308,7 +302,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (initialDbPensionAmount > 0) row['DB Pension'] = dbPensionThisYear;
     if (initialStatePensionAmount > 0) row['State Pension'] = statePensionThisYear;
     if (initialOtherIncome > 0) row['Other Income'] = otherIncomeThisYear;
-    if (initialFasAmount > 0) row['FAS'] = fasThisYear;
     
     if (showCash) {
       Object.assign(row, { 'Cash Savings Initial': cashPot.startOfYear, 'Withdraw from Cash': cashWithdrawal, 'Cash Savings Balance': finalCashBalance });

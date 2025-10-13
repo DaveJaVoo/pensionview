@@ -33,7 +33,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('initial') ||
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
-           lowerHeader.includes('fas') ||
            lowerHeader.includes('minus amc') ||
            lowerHeader.includes('after deductions');
   };
@@ -59,7 +58,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
       'DB Pension': ['DB Pension'],
       'State Pension': ['State Pension'],
       'Other Income': ['Other Income'],
-      'FAS': ['FAS'],
       'Cash Savings Initial': ['Cash Sav.', 'Initial'],
       'Cash Savings Contribution': ['Cash Sav.', 'Contrib.'],
       'Withdraw from Cash': ['Withdraw', 'Cash'],
@@ -105,7 +103,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
     return lowerHeader.includes('state pension') || 
            lowerHeader.includes('db pension') ||
            lowerHeader.includes('other income') ||
-           lowerHeader.includes('fas') ||
            lowerHeader.includes('dc pension contribution') || 
            lowerHeader.includes('sipp contribution') ||
            lowerHeader.includes('cash savings contribution') ||
