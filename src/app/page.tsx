@@ -29,14 +29,14 @@ const formSchema = z.object({
   retirementAge: z.coerce.number().min(55).max(90).default(65),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   
-  initialCashSavings: z.coerce.number().min(0).default(10000),
+  initialCashSavings: z.coerce.number().min(0).default(0),
   annualCashContribution: z.coerce.number().min(0).default(0),
   cashContributionEndAge: z.coerce.number().min(19).max(90).default(65),
-  initialIsaAmount: z.coerce.number().min(0).default(20000),
+  initialIsaAmount: z.coerce.number().min(0).default(0),
   annualIsaContribution: z.coerce.number().min(0).default(0),
   isaContributionEndAge: z.coerce.number().min(19).max(90).default(65),
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
-  initialGiaAmount: z.coerce.number().min(0).default(20000),
+  initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
   giaContributionEndAge: z.coerce.number().min(19).max(90).default(65),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
@@ -50,7 +50,7 @@ const formSchema = z.object({
   initialStatePensionAmount: z.coerce.number().min(0).default(11973),
   initialOtherIncome: z.coerce.number().min(0).default(0),
   
-  initialDcPensionValue: z.coerce.number().min(0).default(250000),
+  initialDcPensionValue: z.coerce.number().min(0).default(0),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
@@ -60,7 +60,7 @@ const formSchema = z.object({
   applyDcWithdrawalRateInSurplus: z.boolean().default(false),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
 
-  initialSippValue: z.coerce.number().min(0).default(7000),
+  initialSippValue: z.coerce.number().min(0).default(0),
   annualSippContribution: z.coerce.number().min(0).default(0),
   sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeSippTaxFreeLumpSum: z.boolean().default(false),
@@ -847,7 +847,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
 
     
