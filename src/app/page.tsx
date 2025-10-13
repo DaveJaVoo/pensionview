@@ -26,19 +26,19 @@ import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/
 
 const formSchema = z.object({
   currentAge: z.coerce.number().min(18).max(89).default(63),
-  retirementAge: z.coerce.number().min(55).max(90).default(65),
+  retirementAge: z.coerce.number().min(55).max(90).default(67),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   
   initialCashSavings: z.coerce.number().min(0).default(0),
   annualCashContribution: z.coerce.number().min(0).default(0),
-  cashContributionEndAge: z.coerce.number().min(19).max(90).default(65),
+  cashContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   initialIsaAmount: z.coerce.number().min(0).default(0),
   annualIsaContribution: z.coerce.number().min(0).default(0),
-  isaContributionEndAge: z.coerce.number().min(19).max(90).default(65),
+  isaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
-  giaContributionEndAge: z.coerce.number().min(19).max(90).default(65),
+giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(3),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(20000),
@@ -847,5 +847,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
