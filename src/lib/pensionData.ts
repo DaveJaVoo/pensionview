@@ -210,13 +210,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
 
         if (netShortfall > 0.01) {
-            // Re-calculate DC and SIPP balances for this year if lump sum was taken
-            const dcBalanceForDrawdown = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : dcPotStartValue + dcContributionThisYear;
-            const sippBalanceForDrawdown = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : sippPotStartValue + sippContributionThisYear;
-            
+            const dcPotAfterContribution = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : dcPotStartValue + dcContributionThisYear;
+            const sippPotAfterContribution = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : sippPotStartValue + sippContributionThisYear;
+
             const pensionPotsInOrder = [
-                { potType: 'DC', balance: dcBalanceForDrawdown, amc: annualChargeAMC / 100, growth: investmentPercentageGrowth / 100, drawdown: 0, takeLumpSum: takeTaxFreeLumpSum },
-                { potType: 'SIPP', balance: sippBalanceForDrawdown, amc: sippAnnualChargeAMC / 100, growth: sippInvestmentPercentageGrowth / 100, drawdown: 0, takeLumpSum: takeSippTaxFreeLumpSum }
+              { potType: 'DC', balance: dcPotAfterContribution, amc: annualChargeAMC / 100, growth: investmentPercentageGrowth / 100, drawdown: 0, takeLumpSum: takeTaxFreeLumpSum },
+              { potType: 'SIPP', balance: sippPotAfterContribution, amc: sippAnnualChargeAMC / 100, growth: sippInvestmentPercentageGrowth / 100, drawdown: 0, takeLumpSum: takeSippTaxFreeLumpSum }
             ].filter(p => p.balance > 0).sort((a, b) => b.amc - a.amc || a.growth - b.growth || a.balance - b.balance);
 
             let totalTaxableIncomeSoFar = fixedTaxableIncome;
@@ -227,14 +226,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 const ufplsTaxFreePortion = pot.takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
                 const taxablePortionRate = 1 - ufplsTaxFreePortion;
                 
-                let taxRateForThisDraw = 0;
-                if (totalTaxableIncomeSoFar > currentPersonalAllowance) {
-                    taxRateForThisDraw = INCOME_TAX_RATE;
-                } else {
-                    // This is a simplification. It doesn't handle the case where the withdrawal itself crosses the PA threshold.
-                    // A more accurate model would calculate this iteratively.
-                    taxRateForThisDraw = INCOME_TAX_RATE;
-                }
+                let taxRateForThisDraw = INCOME_TAX_RATE; // Simplified assumption
                 
                 const requiredGross = netShortfall / (1 - (taxablePortionRate * taxRateForThisDraw));
                 let draw = Math.min(pot.balance, requiredGross);
@@ -277,8 +269,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     }
     
     // Use the potentially reduced start value if a lump sum was taken this year
-    const dcStartForFinalCalc = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : previousRow?.['DC Pension Balance'] ?? initialDcPensionValue;
-    const sippStartForFinalCalc = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : previousRow?.['SIPP Balance'] ?? initialSippValue;
+    const dcStartForFinalCalc = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : (previousRow?.['DC Pension Balance'] ?? initialDcPensionValue);
+    const sippStartForFinalCalc = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : (previousRow?.['SIPP Balance'] ?? initialSippValue);
 
     const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContributionThisYear, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
     const sippFinals = calculateFinalPensionBalance(sippStartForFinalCalc, sippContributionThisYear, sippDrawdown, sippAnnualChargeAMC / 100, sippInvestmentPercentageGrowth / 100);
