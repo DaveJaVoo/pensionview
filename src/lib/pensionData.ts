@@ -212,14 +212,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
         if (netShortfall > 0.01) {
             const pensionPotsInOrder = [
-                { potType: 'DC', balance: dcPotStartValue + dcContributionThisYear, amc: annualChargeAMC / 100, growth: investmentPercentageGrowth / 100 },
-                { potType: 'SIPP', balance: sippPotStartValue + sippContributionThisYear, amc: sippAnnualChargeAMC / 100, growth: sippInvestmentPercentageGrowth / 100 }
+                { potType: 'DC', balance: dcPotStartValue + dcContributionThisYear, amc: annualChargeAMC / 100, growth: investmentPercentageGrowth / 100, drawdown: 0 },
+                { potType: 'SIPP', balance: sippPotStartValue + sippContributionThisYear, amc: sippAnnualChargeAMC / 100, growth: sippInvestmentPercentageGrowth / 100, drawdown: 0 }
             ].filter(p => p.balance > 0).sort((a, b) => b.amc - a.amc || a.growth - b.growth || a.balance - b.balance);
 
             let totalTaxableIncomeSoFar = fixedTaxableIncome;
 
             for (const pot of pensionPotsInOrder) {
-                if (netShortfall <= 0.01) break; // Stop if shortfall is met
+                if (netShortfall <= 0.01) break;
 
                 const takeLumpSumForThisPot = pot.potType === 'DC' ? takeTaxFreeLumpSum : takeSippTaxFreeLumpSum;
                 const ufplsTaxFreePortion = takeLumpSumForThisPot ? 0 : UFPLS_TAX_FREE_PORTION;
@@ -233,17 +233,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
                 const netFromThisDraw = draw - taxOnThisDraw;
 
-                if (pot.potType === 'DC') {
-                  dcDrawdown += draw;
-                  pot.balance -= draw;
-                } else {
-                  sippDrawdown += draw;
-                  pot.balance -= draw;
-                }
+                pot.drawdown += draw;
+                pot.balance -= draw;
                 
                 totalTaxableIncomeSoFar += taxablePartOfDraw;
                 netShortfall -= netFromThisDraw;
             }
+            dcDrawdown = pensionPotsInOrder.find(p => p.potType === 'DC')?.drawdown ?? 0;
+            sippDrawdown = pensionPotsInOrder.find(p => p.potType === 'SIPP')?.drawdown ?? 0;
         }
 
         const isSurplusYear = netShortfall <= 0;
