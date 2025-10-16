@@ -193,9 +193,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const netFromFixedIncome = fixedTaxableIncome - taxOnFixedIncome;
         let netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
     
-        const cashToDraw = Math.min(cashPot.valueBeforeWithdrawal, netShortfall);
-        cashWithdrawal += cashToDraw;
-        netShortfall -= cashToDraw;
+        if (netShortfall > 0) {
+            const cashToDraw = Math.min(cashPot.valueBeforeWithdrawal, netShortfall);
+            cashWithdrawal += cashToDraw;
+            netShortfall -= cashToDraw;
+        }
 
         if (netShortfall > 0) {
           const giaToDraw = Math.min(giaPot.valueBeforeWithdrawal, netShortfall);
@@ -228,11 +230,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 
                 let taxRateForThisDraw = INCOME_TAX_RATE; // Simplified assumption
                 
-                const requiredGross = netShortfall / (1 - (taxablePortionRate * taxRateForThisDraw));
-                let draw = Math.min(pot.balance, requiredGross);
+                const grossDrawdownRequired = netShortfall / (1 - (taxablePortionRate * taxRateForThisDraw));
+                
+                let draw = Math.min(pot.balance, grossDrawdownRequired);
                 
                 const taxablePartOfDraw = draw * taxablePortionRate;
-                const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
+                const availablePersonalAllowance = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
+                const taxableAmountForThisDraw = Math.max(0, taxablePartOfDraw - availablePersonalAllowance);
+                const taxOnThisDraw = taxableAmountForThisDraw * taxRateForThisDraw;
                 const netFromThisDraw = draw - taxOnThisDraw;
                 
                 if (netFromThisDraw > netShortfall * 1.005) { // Allow tiny overshoot
@@ -244,9 +249,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 pot.balance -= draw;
                 
                 const finalTaxablePartOfDraw = draw * taxablePortionRate;
-                const finalTaxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + finalTaxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
-                
                 totalTaxableIncomeSoFar += finalTaxablePartOfDraw;
+                
+                const finalAvailablePersonalAllowance = Math.max(0, currentPersonalAllowance - (totalTaxableIncomeSoFar - finalTaxablePartOfDraw));
+                const finalTaxableAmount = Math.max(0, finalTaxablePartOfDraw - finalAvailablePersonalAllowance);
+                const finalTaxOnThisDraw = finalTaxableAmount * taxRateForThisDraw;
+
                 netShortfall -= (draw - finalTaxOnThisDraw);
             }
             dcDrawdown = pensionPotsInOrder.find(p => p.potType === 'DC')?.drawdown ?? 0;
@@ -268,12 +276,16 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
     }
     
-    // Use the potentially reduced start value if a lump sum was taken this year
     const dcStartForFinalCalc = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : (previousRow?.['DC Pension Balance'] ?? initialDcPensionValue);
     const sippStartForFinalCalc = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : (previousRow?.['SIPP Balance'] ?? initialSippValue);
+    
+    // For years before the lump sum, contributions are added to the main pot
+    // For the year of the lump sum, the contribution is already accounted for in dc/sippPotStartValue
+    const dcContribForFinals = age === retirementAge && takeTaxFreeLumpSum ? 0 : dcContributionThisYear;
+    const sippContribForFinals = age === retirementAge && takeSippTaxFreeLumpSum ? 0 : sippContributionThisYear;
 
-    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContributionThisYear, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
-    const sippFinals = calculateFinalPensionBalance(sippStartForFinalCalc, sippContributionThisYear, sippDrawdown, sippAnnualChargeAMC / 100, sippInvestmentPercentageGrowth / 100);
+    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContribForFinals, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
+    const sippFinals = calculateFinalPensionBalance(sippStartForFinalCalc, sippContribForFinals, sippDrawdown, sippAnnualChargeAMC / 100, sippInvestmentPercentageGrowth / 100);
 
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
     const finalGrossPensionDrawdown = dcDrawdown + sippDrawdown;
