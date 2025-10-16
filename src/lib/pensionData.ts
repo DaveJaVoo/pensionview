@@ -232,10 +232,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
                 const netFromThisDraw = draw - taxOnThisDraw;
                 
-                // Adjust draw if it overshoots the target
-                if (netFromThisDraw > netShortfall) {
-                    // This is a simplification; a more precise calculation would involve solving for the exact draw amount.
-                    // For now, we reduce the draw proportionally.
+                if (netFromThisDraw > netShortfall * 1.005) { // Allow tiny overshoot
                     const overshootFactor = netShortfall / netFromThisDraw;
                     draw *= overshootFactor;
                 }
@@ -243,8 +240,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 pot.drawdown += draw;
                 pot.balance -= draw;
                 
-                totalTaxableIncomeSoFar += draw * taxablePortionRate;
-                netShortfall -= (draw - taxOnThisDraw);
+                const finalTaxablePartOfDraw = draw * taxablePortionRate;
+                const finalTaxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + finalTaxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
+                
+                totalTaxableIncomeSoFar += finalTaxablePartOfDraw;
+                netShortfall -= (draw - finalTaxOnThisDraw);
             }
             dcDrawdown = pensionPotsInOrder.find(p => p.potType === 'DC')?.drawdown ?? 0;
             sippDrawdown = pensionPotsInOrder.find(p => p.potType === 'SIPP')?.drawdown ?? 0;
