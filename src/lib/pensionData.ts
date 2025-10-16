@@ -224,27 +224,47 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                 const ufplsTaxFreePortion = pot.takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
                 const taxablePortionRate = 1 - ufplsTaxFreePortion;
                 
-                const grossWithdrawalNeededForNet = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
-                let draw = Math.min(pot.balance, grossWithdrawalNeededForNet);
-                draw = Math.max(0, draw);
+                const taxableIncomeUpToPA = Math.max(0, currentPersonalAllowance - totalTaxableIncomeSoFar);
+                const grossNeededForTaxableUpToPA = taxableIncomeUpToPA / taxablePortionRate;
 
-                const taxablePartOfDraw = draw * taxablePortionRate;
-                const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
-                const netFromThisDraw = draw - taxOnThisDraw;
+                const netFromDrawingUpToPA = taxableIncomeUpToPA / taxablePortionRate;
                 
-                if (netFromThisDraw > netShortfall * 1.005) { // Allow tiny overshoot
-                    const overshootFactor = netShortfall / netFromThisDraw;
-                    draw *= overshootFactor;
+                if (netShortfall <= netFromDrawingUpToPA) {
+                    const grossNeeded = (netShortfall * taxablePortionRate > 0) ? (netShortfall / (1 - (taxablePortionRate * 0))) / (1 - ufplsTaxFreePortion) : netShortfall;
+                     let draw = Math.min(pot.balance, grossNeeded * (1-ufplsTaxFreePortion) / (1 - taxablePortionRate * INCOME_TAX_RATE - ufplsTaxFreePortion) );
+                     draw = netShortfall / (1- (taxablePortionRate * ((totalTaxableIncomeSoFar + draw*taxablePortionRate > currentPersonalAllowance) ? INCOME_TAX_RATE : 0) ) );
+
+                     const requiredGross = netShortfall / (1 - (taxablePortionRate * ( (totalTaxableIncomeSoFar + (netShortfall * taxablePortionRate) < currentPersonalAllowance) ? 0 : INCOME_TAX_RATE)));
+                     let finalDraw = Math.min(pot.balance, requiredGross);
+                     pot.drawdown += finalDraw;
+                     pot.balance -= finalDraw;
+                     const taxablePart = finalDraw * taxablePortionRate;
+                     const taxOnDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePart - currentPersonalAllowance) * INCOME_TAX_RATE);
+                     netShortfall -= (finalDraw - taxOnDraw);
+                } else {
+                    const grossWithdrawalNeededForNet = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
+                    let draw = Math.min(pot.balance, grossWithdrawalNeededForNet);
+
+                    draw = Math.max(0, draw);
+
+                    const taxablePartOfDraw = draw * taxablePortionRate;
+                    const taxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + taxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
+                    const netFromThisDraw = draw - taxOnThisDraw;
+                    
+                    if (netFromThisDraw > netShortfall * 1.005) { // Allow tiny overshoot
+                        const overshootFactor = netShortfall / netFromThisDraw;
+                        draw *= overshootFactor;
+                    }
+
+                    pot.drawdown += draw;
+                    pot.balance -= draw;
+                    
+                    const finalTaxablePartOfDraw = draw * taxablePortionRate;
+                    const finalTaxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + finalTaxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
+                    
+                    totalTaxableIncomeSoFar += finalTaxablePartOfDraw;
+                    netShortfall -= (draw - finalTaxOnThisDraw);
                 }
-
-                pot.drawdown += draw;
-                pot.balance -= draw;
-                
-                const finalTaxablePartOfDraw = draw * taxablePortionRate;
-                const finalTaxOnThisDraw = Math.max(0, (totalTaxableIncomeSoFar + finalTaxablePartOfDraw) - currentPersonalAllowance) * INCOME_TAX_RATE - Math.max(0, totalTaxableIncomeSoFar - currentPersonalAllowance) * INCOME_TAX_RATE;
-                
-                totalTaxableIncomeSoFar += finalTaxablePartOfDraw;
-                netShortfall -= (draw - finalTaxOnThisDraw);
             }
             dcDrawdown = pensionPotsInOrder.find(p => p.potType === 'DC')?.drawdown ?? 0;
             sippDrawdown = pensionPotsInOrder.find(p => p.potType === 'SIPP')?.drawdown ?? 0;
