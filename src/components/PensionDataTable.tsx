@@ -12,9 +12,10 @@ interface PensionDataTableProps {
   data: PensionDataRow[];
   headers: string[];
   retirementAge: number;
+  statePensionAge: number;
 }
 
-const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirementAge }) => {
+const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirementAge, statePensionAge }) => {
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('pension') ||
@@ -149,13 +150,15 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
         <TableBody>
           {data.map((row, rowIndex) => {
             const isPreRetirementRow = row.Age === retirementAge - 1;
+            const isPreStatePensionRow = row.Age === statePensionAge - 1;
 
             return (
             <TableRow 
               key={rowIndex} 
               className={cn(
                 "hover:bg-muted/50 transition-colors duration-150 even:bg-card odd:bg-background",
-                isPreRetirementRow && "border-b-2 border-destructive"
+                isPreRetirementRow && "border-b-2 border-destructive",
+                isPreStatePensionRow && "border-b-2 border-emerald-500"
               )}
             >
               {headers.map((header) => {
@@ -217,3 +220,5 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 };
 
 export default PensionDataTable;
+
+    

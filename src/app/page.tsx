@@ -243,8 +243,27 @@ export default function PensionPilotPage() {
 
   const updateLumpSumDisplay = useCallback((potType: 'DC' | 'SIPP') => {
       const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
-      const potValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
-      const pcls = takeLumpSum ? potValue * 0.25 : 0;
+      const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
+      const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
+      
+      const retirementAge = getValues("retirementAge");
+      const currentAge = getValues("currentAge");
+      const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
+      const growthRate = getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") / 100;
+      const amc = getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") / 100;
+
+      let potAtRetirement = initialValue;
+      for (let age = currentAge; age < retirementAge; age++) {
+        const hasContribution = age < contributionEndAge;
+        potAtRetirement += hasContribution ? contribution : 0;
+        potAtRetirement -= potAtRetirement * amc;
+        potAtRetirement *= (1 + growthRate);
+      }
+      
+      const hasFinalContribution = retirementAge < contributionEndAge;
+      const finalValueForLumpSum = potAtRetirement + (hasFinalContribution ? contribution : 0);
+
+      const pcls = takeLumpSum ? finalValueForLumpSum * 0.25 : 0;
       
       if (potType === 'DC') {
           setCalculatedLumpSumDisplay(pcls);
@@ -258,7 +277,7 @@ export default function PensionPilotPage() {
           updateLumpSumDisplay('DC');
           updateLumpSumDisplay('SIPP');
       }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay]);
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay, watch("annualDcPensionContribution"), watch("annualSippContribution"), watch("retirementAge")]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -799,7 +818,8 @@ export default function PensionPilotPage() {
                 <PensionDataTable 
                   data={calculatedData.rows} 
                   headers={calculatedData.headers} 
-                  retirementAge={calculatedData.parameters.retirementAge} 
+                  retirementAge={calculatedData.parameters.retirementAge}
+                  statePensionAge={calculatedData.parameters.statePensionAge}
                 />
               ) : (
                 <PensionCharts data={calculatedData.rows} />
@@ -847,5 +867,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
