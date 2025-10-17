@@ -25,7 +25,7 @@ import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
 
 const formSchema = z.object({
-  currentAge: z.coerce.number().min(18).max(89).default(60),
+  currentAge: z.coerce.number().min(18).max(89).default(55),
   retirementAge: z.coerce.number().min(55).max(90).default(67),
   projectionEndAge: z.coerce.number().min(60).max(120).default(90),
   
