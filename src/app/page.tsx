@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -237,11 +238,11 @@ export default function PensionPilotPage() {
   const updateLumpSumDisplay = useCallback((potType: 'DC' | 'SIPP') => {
     const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
     if (!takeLumpSum) {
-      if (potType === 'DC') setCalculatedLumpSumDisplay(0);
-      else setCalculatedSippLumpSumDisplay(0);
-      return;
+        if (potType === 'DC') setCalculatedLumpSumDisplay(0);
+        else setCalculatedSippLumpSumDisplay(0);
+        return;
     }
-  
+
     const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
     const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
     const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
@@ -249,30 +250,23 @@ export default function PensionPilotPage() {
     const amcRate = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
     const currentAge = getValues("currentAge");
     const retirementAge = getValues("retirementAge");
-  
+
     let potAtRetirement = initialValue;
-  
+    const netGrowthRate = 1 + growthRate - amcRate;
+
     for (let age = currentAge; age < retirementAge; age++) {
-      const makesContribution = age < contributionEndAge;
-      
-      // 1. Add contribution at start of the year
-      const potAfterContribution = potAtRetirement + (makesContribution ? contribution : 0);
-      
-      // 2. Apply growth and charges
-      // Growth is applied to the pot value after contributions.
-      // Charges are also applied to the pot value after contributions.
-      const growthAmount = potAfterContribution * growthRate;
-      const chargeAmount = potAfterContribution * amcRate;
-      
-      potAtRetirement = potAfterContribution + growthAmount - chargeAmount;
+        const makesContribution = age < contributionEndAge;
+        const currentContribution = makesContribution ? contribution : 0;
+        
+        potAtRetirement = (potAtRetirement + currentContribution) * netGrowthRate;
     }
-  
+
     const pcls = potAtRetirement * 0.25;
           
     if (potType === 'DC') {
-      setCalculatedLumpSumDisplay(pcls);
+        setCalculatedLumpSumDisplay(pcls);
     } else {
-      setCalculatedSippLumpSumDisplay(pcls);
+        setCalculatedSippLumpSumDisplay(pcls);
     }
   }, [getValues]);
 
@@ -877,3 +871,4 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
