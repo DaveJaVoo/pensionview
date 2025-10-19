@@ -254,14 +254,14 @@ export default function PensionPilotPage() {
     let potAtRetirement = initialValue;
 
     for (let age = currentAge; age < retirementAge; age++) {
-      const currentYearContribution = age < contributionEndAge ? contribution : 0;
-      
-      const valueAfterContribution = potAtRetirement + currentYearContribution;
-      const amcCharge = valueAfterContribution * amcDecimal;
-      const valueAfterAmc = valueAfterContribution - amcCharge;
-      const growthAmount = valueAfterAmc * growthRateDecimal;
+        const currentYearContribution = age < contributionEndAge ? contribution : 0;
+        
+        let valueAfterContribution = potAtRetirement + currentYearContribution;
+        let amcCharge = valueAfterContribution * amcDecimal;
+        let valueAfterAmc = valueAfterContribution - amcCharge;
+        let growthAmount = valueAfterAmc * growthRateDecimal;
 
-      potAtRetirement = valueAfterAmc + growthAmount;
+        potAtRetirement = valueAfterAmc + growthAmount;
     }
 
     const pcls = potAtRetirement * 0.25;
@@ -874,5 +874,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
