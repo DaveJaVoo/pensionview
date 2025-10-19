@@ -77,7 +77,6 @@ export interface PensionCalculationParameters {
   inflationRate: number;
   dcWithdrawalRate: number;
   annualChargeAMC: number;
-  takeTaxFreeLumpSum: boolean;
   applyDcWithdrawalRateInSurplus: boolean;
 
   initialSippValue: number;
@@ -86,8 +85,7 @@ export interface PensionCalculationParameters {
   sippInvestmentPercentageGrowth: number;
   sippAnnualChargeAMC: number;
   sippWithdrawalRate: number;
-  takeSippTaxFreeLumpSum: boolean;
-  applySippRateInSurplus: boolean;
+  applySippWithdrawalRateInSurplus: boolean;
 
   initialCashSavings: number;
   annualCashContribution: number;
@@ -105,10 +103,7 @@ export interface PensionCalculationParameters {
 export interface CalculatedPensionData {
   rows: PensionDataRow[];
   headers: string[];
-  parameters: PensionCalculationParameters & { 
-    taxFreeLumpSumTaken?: number;
-    sippTaxFreeLumpSumTaken?: number;
-  };
+  parameters: PensionCalculationParameters;
   csvString: string;
 }
 

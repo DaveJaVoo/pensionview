@@ -220,5 +220,3 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 };
 
 export default PensionDataTable;
-
-    

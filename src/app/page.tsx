@@ -53,7 +53,6 @@ const formSchema = z.object({
   initialDcPensionValue: z.coerce.number().min(0).default(0),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  takeTaxFreeLumpSum: z.boolean().default(false),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   inflationRate: z.coerce.number().min(-10).max(20).default(3),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
@@ -63,7 +62,6 @@ const formSchema = z.object({
   initialSippValue: z.coerce.number().min(0).default(0),
   annualSippContribution: z.coerce.number().min(0).default(0),
   sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  takeSippTaxFreeLumpSum: z.boolean().default(false),
   sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
   sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
@@ -192,8 +190,6 @@ export default function PensionPilotPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
   const [isFormInitialized, setIsFormInitialized] = useState(false);
-  const [calculatedLumpSumDisplay, setCalculatedLumpSumDisplay] = useState<number>(0);
-  const [calculatedSippLumpSumDisplay, setCalculatedSippLumpSumDisplay] = useState<number>(0);
   const [footerYear, setFooterYear] = useState<number | null>(null);
   const [yearInBrief, setYearInBrief] = useState<string>('');
   const [summaryText, setSummaryText] = useState<React.ReactNode | null>(null);
@@ -234,60 +230,6 @@ export default function PensionPilotPage() {
     }
     
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
-
-  const updateLumpSumDisplay = useCallback((potType: 'DC' | 'SIPP') => {
-    const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
-    if (!takeLumpSum) {
-        if (potType === 'DC') setCalculatedLumpSumDisplay(0);
-        else setCalculatedSippLumpSumDisplay(0);
-        return;
-    }
-
-    const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
-    const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
-    const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
-    const growthRate = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
-    const amcRate = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
-    const currentAge = getValues("currentAge");
-    const retirementAge = getValues("retirementAge");
-
-    let potAtRetirement = initialValue;
-    const netGrowthRate = 1 + growthRate - amcRate;
-
-    for (let age = currentAge; age < retirementAge; age++) {
-        const makesContribution = age < contributionEndAge;
-        const currentContribution = makesContribution ? contribution : 0;
-        
-        potAtRetirement = (potAtRetirement + currentContribution) * netGrowthRate;
-    }
-
-    const pcls = potAtRetirement * 0.25;
-          
-    if (potType === 'DC') {
-        setCalculatedLumpSumDisplay(pcls);
-    } else {
-        setCalculatedSippLumpSumDisplay(pcls);
-    }
-  }, [getValues]);
-
-
-  const watchedFieldsForLumpSum = [
-    "initialDcPensionValue", "takeTaxFreeLumpSum", "annualDcPensionContribution", 
-    "investmentPercentageGrowth", "annualChargeAMC", "dcContributionEndAge", 
-    "initialSippValue", "takeSippTaxFreeLumpSum", "annualSippContribution",
-    "sippInvestmentPercentageGrowth", "sippAnnualChargeAMC", "sippContributionEndAge",
-    "currentAge", "retirementAge"
-  ];
-  
-  const watchedValues = watch(watchedFieldsForLumpSum as any);
-
-  useEffect(() => {
-      if (isFormInitialized) {
-          updateLumpSumDisplay('DC');
-          updateLumpSumDisplay('SIPP');
-      }
-  }, [isFormInitialized, updateLumpSumDisplay, ...watchedValues]);
-
 
   const investmentGrowth = watch("investmentPercentageGrowth");
   const sippInvestmentGrowth = watch("sippInvestmentPercentageGrowth");
@@ -560,47 +502,6 @@ export default function PensionPilotPage() {
                 <div className="p-4 border rounded-lg bg-muted/20">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
                     {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
-                    <div className="space-y-1"> 
-                        <div className="flex items-center gap-1">
-                            <Label htmlFor="takeTaxFreeLumpSum" className="text-sm font-medium">
-                                Take 25% Tax-Free Lump Sum?
-                            </Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                        <HelpCircleIcon className="h-4 w-4" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                    If enabled, 25% of your projected pension pot value at retirement is taken tax-free.
-                                    The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
-                                    If disabled, each UFPLS withdrawal will have a 25% tax-free element.
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <Controller
-                            name="takeTaxFreeLumpSum"
-                            control={control}
-                            render={({ field }) => (
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Switch
-                                        id="takeTaxFreeLumpSum"
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        aria-labelledby="takeTaxFreeLumpSumLabel"
-                                    />
-                                    <span id="takeTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                        {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
-                                    </span>
-                                </div>
-                            )}
-                        />
-                        {watch("takeTaxFreeLumpSum") && isFormInitialized && (
-                            <p className="text-xs text-muted-foreground pt-1">
-                                Est. Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
-                            </p>
-                        )}
-                    </div>
                     <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
                         <div className="flex items-center gap-1">
                             <Label htmlFor="applyDcWithdrawalRateInSurplus" className="text-sm font-medium">
@@ -652,47 +553,6 @@ export default function PensionPilotPage() {
                 <div className="p-4 border rounded-lg bg-muted/20">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
                     {sippFields.map(field => <FormInput key={field.name} {...field} />)}
-                    <div className="space-y-1"> 
-                        <div className="flex items-center gap-1">
-                            <Label htmlFor="takeSippTaxFreeLumpSum" className="text-sm font-medium">
-                                Take 25% SIPP Tax-Free Lump Sum?
-                            </Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                        <HelpCircleIcon className="h-4 w-4" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                    If enabled, 25% of your projected SIPP pot value at retirement is taken tax-free.
-                                    The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from SIPP are fully taxable.
-                                    If disabled, each UFPLS withdrawal from SIPP will have a 25% tax-free element.
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <Controller
-                            name="takeSippTaxFreeLumpSum"
-                            control={control}
-                            render={({ field }) => (
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Switch
-                                        id="takeSippTaxFreeLumpSum"
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        aria-labelledby="takeSippTaxFreeLumpSumLabel"
-                                    />
-                                    <span id="takeSippTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                        {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
-                                    </span>
-                                </div>
-                            )}
-                        />
-                        {watch("takeSippTaxFreeLumpSum") && isFormInitialized && (
-                            <p className="text-xs text-muted-foreground pt-1">
-                                Est. SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
-                            </p>
-                        )}
-                    </div>
                     <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
                         <div className="flex items-center gap-1">
                             <Label htmlFor="applySippWithdrawalRateInSurplus" className="text-sm font-medium">
@@ -802,26 +662,6 @@ export default function PensionPilotPage() {
               <h2 id="data-visualization-heading" className="text-2xl font-headline font-semibold mb-6 text-center text-primary">
                 Your Pension Projection Results (up to Age {calculatedData.parameters.projectionEndAge})
               </h2>
-               {calculatedData.parameters.takeTaxFreeLumpSum && calculatedData.parameters.taxFreeLumpSumTaken !== undefined && calculatedData.parameters.taxFreeLumpSumTaken > 0 && (
-                <Alert variant="default" className="mb-4 bg-primary/10 border-primary/30">
-                  <InfoIcon className="h-5 w-5 text-primary" />
-                  <AlertTitle className="font-semibold text-primary">DC Pension Tax-Free Lump Sum Taken</AlertTitle>
-                  <AlertDescription className="text-primary/80">
-                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.taxFreeLumpSumTaken)}</span> was taken from the DC pension at retirement.
-                    The DC pension projection starts with the remaining balance. Subsequent UFPLS withdrawals are fully taxable.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {calculatedData.parameters.takeSippTaxFreeLumpSum && calculatedData.parameters.sippTaxFreeLumpSumTaken !== undefined && calculatedData.parameters.sippTaxFreeLumpSumTaken > 0 && (
-                <Alert variant="default" className="mb-4 bg-primary/10 border-primary/30">
-                  <InfoIcon className="h-5 w-5 text-primary" />
-                  <AlertTitle className="font-semibold text-primary">SIPP Tax-Free Lump Sum Taken</AlertTitle>
-                  <AlertDescription className="text-primary/80">
-                    An initial tax-free lump sum of <span className="font-bold">{formatCurrency(calculatedData.parameters.sippTaxFreeLumpSumTaken)}</span> was taken from the SIPP at retirement.
-                    The SIPP projection starts with the remaining balance. Subsequent UFPLS withdrawals from SIPP are fully taxable.
-                  </AlertDescription>
-                </Alert>
-              )}
               <div className="flex flex-col gap-4 items-center">
                  <div className="max-w-4xl w-full flex flex-col md:flex-row gap-4 items-center justify-center p-4 border rounded-lg bg-muted/30">
                     <div className="flex-grow">
@@ -871,4 +711,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-

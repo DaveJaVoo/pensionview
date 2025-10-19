@@ -50,12 +50,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     initialDcPensionValue,
     annualDcPensionContribution, dcContributionEndAge,
-    investmentPercentageGrowth, dcWithdrawalRate, annualChargeAMC, takeTaxFreeLumpSum,
+    investmentPercentageGrowth, dcWithdrawalRate, annualChargeAMC,
     applyDcWithdrawalRateInSurplus,
 
     initialSippValue,
     annualSippContribution, sippContributionEndAge,
-    sippInvestmentPercentageGrowth, sippAnnualChargeAMC, takeSippTaxFreeLumpSum,
+    sippInvestmentPercentageGrowth, sippAnnualChargeAMC,
     applySippWithdrawalRateInSurplus, sippWithdrawalRate,
     
     inflationRate,
@@ -96,7 +96,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (source.amount > 0) headers.push(source.header);
   });
 
-  const showCash = initialCashSavings > 0 || annualCashContribution > 0 || takeTaxFreeLumpSum || takeSippTaxFreeLumpSum;
+  const showCash = initialCashSavings > 0 || annualCashContribution > 0;
   const showIsa = initialIsaAmount > 0 || annualIsaContribution > 0;
   const showGia = initialGiaAmount > 0 || annualGiaContribution > 0;
 
@@ -127,9 +127,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
   const giaGrowthDecimal = (giaGrowthRate || 0) / 100;
 
-  let taxFreeLumpSumTakenAmount = 0;
-  let sippTaxFreeLumpSumTakenAmount = 0;
-
   for (let age = currentAge; age <= projectionEndAge; age++) {
     const yearOffset = age - currentAge;
     const currentYear = calculationTriggerYear + yearOffset;
@@ -148,22 +145,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     const sippContributionThisYear = (age < sippContributionEndAge && annualSippContribution > 0) ? annualSippContribution : 0;
-
-    // --- Process lump sums at retirement age ---
-    if (age === retirementAge) {
-      if (takeTaxFreeLumpSum) {
-          const dcValueForLumpSum = dcPotStartValue + dcContributionThisYear;
-          taxFreeLumpSumTakenAmount = dcValueForLumpSum * 0.25;
-          dcPotStartValue = dcValueForLumpSum * 0.75;
-          cashStartValue += taxFreeLumpSumTakenAmount;
-      }
-      if (takeSippTaxFreeLumpSum) {
-          const sippValueForLumpSum = sippPotStartValue + sippContributionThisYear;
-          sippTaxFreeLumpSumTakenAmount = sippValueForLumpSum * 0.25;
-          sippPotStartValue = sippValueForLumpSum * 0.75;
-          cashStartValue += sippTaxFreeLumpSumTakenAmount;
-      }
-    }
 
     const cashPot = processSavingsPot(age, cashStartValue, annualCashContribution, cashContributionEndAge, 0);
     const isaPot = processSavingsPot(age, isaStartValue, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
@@ -212,12 +193,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
 
         if (netShortfall > 0.01) {
-            const dcPotAfterContribution = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : dcPotStartValue + dcContributionThisYear;
-            const sippPotAfterContribution = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : sippPotStartValue + sippContributionThisYear;
+            const dcPotAfterContribution = dcPotStartValue + dcContributionThisYear;
+            const sippPotAfterContribution = sippPotStartValue + sippContributionThisYear;
 
             const pensionPotsInOrder = [
-              { potType: 'DC', balance: dcPotAfterContribution, amc: annualChargeAMC / 100, growth: investmentPercentageGrowth / 100, drawdown: 0, takeLumpSum: takeTaxFreeLumpSum },
-              { potType: 'SIPP', balance: sippPotAfterContribution, amc: sippAnnualChargeAMC / 100, growth: sippInvestmentPercentageGrowth / 100, drawdown: 0, takeLumpSum: takeSippTaxFreeLumpSum }
+              { potType: 'DC', balance: dcPotAfterContribution, amc: annualChargeAMC / 100, growth: investmentPercentageGrowth / 100, drawdown: 0 },
+              { potType: 'SIPP', balance: sippPotAfterContribution, amc: sippAnnualChargeAMC / 100, growth: sippInvestmentPercentageGrowth / 100, drawdown: 0 }
             ].filter(p => p.balance > 0).sort((a, b) => b.amc - a.amc || a.growth - b.growth || a.balance - b.balance);
 
             let totalTaxableIncomeSoFar = fixedTaxableIncome;
@@ -225,8 +206,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             for (const pot of pensionPotsInOrder) {
                 if (netShortfall <= 0.01) break;
 
-                const ufplsTaxFreePortion = pot.takeLumpSum ? 0 : UFPLS_TAX_FREE_PORTION;
-                const taxablePortionRate = 1 - ufplsTaxFreePortion;
+                const taxablePortionRate = 1 - UFPLS_TAX_FREE_PORTION;
                 
                 let taxRateForThisDraw = INCOME_TAX_RATE; // Simplified assumption
                 
@@ -264,36 +244,28 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const isSurplusYear = inflatedTargetNetIncome > 0 && netShortfall <= 0;
         if (isSurplusYear) {
             if (applyDcWithdrawalRateInSurplus && showDcPension) {
-                const dcPotForSurplus = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : dcPotStartValue + dcContributionThisYear;
+                const dcPotForSurplus = dcPotStartValue + dcContributionThisYear;
                 const dcStandardWithdrawal = (dcPotForSurplus - dcDrawdown) * (dcWithdrawalRate / 100);
                 dcDrawdown += Math.max(0, dcStandardWithdrawal);
             }
             if (applySippWithdrawalRateInSurplus && showSipp) {
-                const sippPotForSurplus = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : sippPotStartValue + sippContributionThisYear;
+                const sippPotForSurplus = sippPotStartValue + sippContributionThisYear;
                 const sippStandardWithdrawal = (sippPotForSurplus - sippDrawdown) * (sippWithdrawalRate / 100);
                 sippDrawdown += Math.max(0, sippStandardWithdrawal);
             }
         }
     }
     
-    const dcStartForFinalCalc = (age === retirementAge && takeTaxFreeLumpSum) ? dcPotStartValue : (previousRow?.['DC Pension Balance'] ?? initialDcPensionValue);
-    const sippStartForFinalCalc = (age === retirementAge && takeSippTaxFreeLumpSum) ? sippPotStartValue : (previousRow?.['SIPP Balance'] ?? initialSippValue);
+    const dcStartForFinalCalc = previousRow?.['DC Pension Balance'] ?? initialDcPensionValue;
+    const sippStartForFinalCalc = previousRow?.['SIPP Balance'] ?? initialSippValue;
     
-    // For years before the lump sum, contributions are added to the main pot
-    // For the year of the lump sum, the contribution is already accounted for in dc/sippPotStartValue
-    const dcContribForFinals = age === retirementAge && takeTaxFreeLumpSum ? 0 : dcContributionThisYear;
-    const sippContribForFinals = age === retirementAge && takeSippTaxFreeLumpSum ? 0 : sippContributionThisYear;
-
-    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContribForFinals, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
-    const sippFinals = calculateFinalPensionBalance(sippStartForFinalCalc, sippContribForFinals, sippDrawdown, sippAnnualChargeAMC / 100, sippInvestmentPercentageGrowth / 100);
+    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContributionThisYear, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
+    const sippFinals = calculateFinalPensionBalance(sippStartForFinalCalc, sippContributionThisYear, sippDrawdown, sippAnnualChargeAMC / 100, sippInvestmentPercentageGrowth / 100);
 
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
     const finalGrossPensionDrawdown = dcDrawdown + sippDrawdown;
 
-    const taxableDcPensionIncome = dcDrawdown * (takeTaxFreeLumpSum ? 1 : (1 - UFPLS_TAX_FREE_PORTION));
-    const taxableSippPensionIncome = sippDrawdown * (takeSippTaxFreeLumpSum ? 1 : (1 - UFPLS_TAX_FREE_PORTION));
-    const taxablePensionIncome = taxableDcPensionIncome + taxableSippPensionIncome;
-
+    const taxablePensionIncome = (dcDrawdown + sippDrawdown) * (1 - UFPLS_TAX_FREE_PORTION);
     const finalTotalTaxableIncome = fixedTaxableIncome + taxablePensionIncome;
     const incomeSubjectToTaxForTable = Math.max(0, finalTotalTaxableIncome - currentPersonalAllowance);
     const finalTaxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
@@ -346,11 +318,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     previousRow = row;
   }
 
-  const outputParameters = { 
-    ...params, 
-    taxFreeLumpSumTaken: taxFreeLumpSumTakenAmount,
-    sippTaxFreeLumpSumTaken: sippTaxFreeLumpSumTakenAmount,
-  };
+  const outputParameters = { ...params };
 
   const csvHeaderString = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
   const csvRowStrings = rows.map(r => {
