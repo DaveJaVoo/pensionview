@@ -117,13 +117,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   let dcPotAtRetirementForLumpSum = 0;
   if (takeDcLumpSum) {
     let tempPot = initialDcPensionValue;
+    const netGrowthRate = (investmentPercentageGrowth / 100) - (annualChargeAMC / 100);
+
     for (let age = currentAge; age < retirementAge; age++) {
       const contribution = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-      tempPot += contribution;
-      const amcCharge = tempPot * (annualChargeAMC / 100);
-      tempPot -= amcCharge;
-      const growth = tempPot * (investmentPercentageGrowth / 100);
-      tempPot += growth;
+      // Assume contribution is made at the start of the year
+      const potAfterContribution = tempPot + contribution;
+      // Apply net growth for the year
+      tempPot = potAfterContribution * (1 + netGrowthRate);
     }
     dcPotAtRetirementForLumpSum = tempPot;
   }
@@ -305,5 +306,3 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
-
-    
