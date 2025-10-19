@@ -11,14 +11,7 @@ export interface PensionDataRow {
   'DC Pension Growth': number;
   'DC Pension After Deductions': number;
   'DC Pension Balance': number;
-
-  'Initial SIPP'?: number;
-  'SIPP Drawdown'?: number;
-  'SIPP Contribution'?: number;
-  'SIPP AMC Charge'?: number;
-  'SIPP Growth'?: number;
-  'SIPP After Deductions'?: number;
-  'SIPP Balance'?: number;
+  'DC Lump Sum Taken'?: number;
 
   'DB Pension'?: number;
   'FAS Pension'?: number;
@@ -65,6 +58,7 @@ export interface PensionCalculationParameters {
   dbPensionStartAge: number;
   fasAmount: number;
   fasStartAge: number;
+axFreeLumpSum: boolean;
   statePensionAge: number;
   initialStatePensionAmount: number;
 
@@ -78,14 +72,7 @@ export interface PensionCalculationParameters {
   dcWithdrawalRate: number;
   annualChargeAMC: number;
   applyDcWithdrawalRateInSurplus: boolean;
-
-  initialSippValue: number;
-  annualSippContribution: number;
-  sippContributionEndAge: number;
-  sippInvestmentPercentageGrowth: number;
-  sippAnnualChargeAMC: number;
-  sippWithdrawalRate: number;
-  applySippWithdrawalRateInSurplus: boolean;
+  takeDcLumpSum: boolean;
 
   initialCashSavings: number;
   annualCashContribution: number;
@@ -110,3 +97,5 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
+
+    

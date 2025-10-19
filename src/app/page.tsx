@@ -50,7 +50,7 @@ const formSchema = z.object({
   fasAmount: z.coerce.number().min(0).default(0),
   fasStartAge: z.coerce.number().min(50).max(80).default(65),
   
-  initialDcPensionValue: z.coerce.number().min(0).default(0),
+  initialDcPensionValue: z.coerce.number().min(0).default(240000),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
@@ -58,14 +58,7 @@ const formSchema = z.object({
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   applyDcWithdrawalRateInSurplus: z.boolean().default(false),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
-
-  initialSippValue: z.coerce.number().min(0).default(0),
-  annualSippContribution: z.coerce.number().min(0).default(0),
-  sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
-  sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
-  sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
-  applySippWithdrawalRateInSurplus: z.boolean().default(false),
+  takeDcLumpSum: z.boolean().default(false),
 
 }).refine(data => {
   if (data.annualDcPensionContribution > 0) {
@@ -75,14 +68,6 @@ const formSchema = z.object({
 }, {
   message: "DC Contribution End Age must be after Current Age.",
   path: ["dcContributionEndAge"],
-}).refine(data => {
-  if (data.annualSippContribution > 0) {
-    return data.sippContributionEndAge > data.currentAge;
-  }
-  return true;
-}, {
-  message: "SIPP Contribution End Age must be after Current Age.",
-  path: ["sippContributionEndAge"],
 }).refine(data => data.retirementAge > data.currentAge, {
     message: "Retirement Age must be after Current Age.",
     path: ["retirementAge"],
@@ -211,7 +196,6 @@ export default function PensionPilotPage() {
       defaultValues.isaContributionEndAge = defaultValues.isaContributionEndAge || defaultValues.retirementAge;
       defaultValues.giaContributionEndAge = defaultValues.giaContributionEndAge || defaultValues.retirementAge;
       defaultValues.dcContributionEndAge = defaultValues.dcContributionEndAge || defaultValues.statePensionAge;
-      defaultValues.sippContributionEndAge = defaultValues.sippContributionEndAge || defaultValues.statePensionAge;
       reset(defaultValues);
       setIsFormInitialized(true);
     }
@@ -232,7 +216,6 @@ export default function PensionPilotPage() {
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
 
   const investmentGrowth = watch("investmentPercentageGrowth");
-  const sippInvestmentGrowth = watch("sippInvestmentPercentageGrowth");
   const inflation = watch("inflationRate");
 
   const realGrowthDC = useMemo(() => {
@@ -240,12 +223,6 @@ export default function PensionPilotPage() {
     const infl = parseFloat(String(inflation)) || 0;
     return (growth - infl).toFixed(2);
   }, [investmentGrowth, inflation]);
-
-  const realGrowthSIPP = useMemo(() => {
-    const growth = parseFloat(String(sippInvestmentGrowth)) || 0;
-    const infl = parseFloat(String(inflation)) || 0;
-    return (growth - infl).toFixed(2);
-  }, [sippInvestmentGrowth, inflation]);
 
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
@@ -313,11 +290,11 @@ export default function PensionPilotPage() {
     if (rowData['State Pension'] && rowData['State Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['State Pension'])} from State Pension</>);
     }
+     if (rowData['DC Lump Sum Taken'] && rowData['DC Lump Sum Taken'] > 0) {
+        incomeSources.push(<> a tax-free lump sum of {formatBoldCurrency(rowData['DC Lump Sum Taken'])} from your DC Pension</>);
+    }
     if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DC Pension Drawdown'])} from your DC Pension</>);
-    }
-    if (rowData['SIPP Drawdown'] && rowData['SIPP Drawdown'] > 0) {
-        incomeSources.push(<> {formatBoldCurrency(rowData['SIPP Drawdown'])} from your SIPP</>);
     }
     if (rowData['Other Income'] && rowData['Other Income'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Other Income'])} from other income sources</>);
@@ -413,15 +390,6 @@ export default function PensionPilotPage() {
     { name: "dcWithdrawalRate", label: "DC Withdrawal Rate", control: control, suffix: "%", description: "Annual % to withdraw from DC pot via UFPLS after State Pension Age if no specific income shortfall needs covering, or if this withdrawal is higher than what's needed for the target net income." },
   ];
 
-  const sippFields: FormFieldProps[] = [
-    { name: "initialSippValue", label: "Current SIPP Value", control: control, placeholder: "Enter amount in £", description: "Your current total SIPP value. Leave at 0 if none." , icon: Banknote},
-    { name: "annualSippContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your SIPP. Tax relief rules similar to DC pension apply." , icon: Landmark},
-    { name: "sippContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual SIPP contributions stop. Defaults to State Pension Age." },
-    { name: "sippInvestmentPercentageGrowth", label: "SIPP Inv. Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your SIPP investments." },
-    { name: "sippAnnualChargeAMC", label: "SIPP Annual Mgt. Charge", control: control, suffix: "%", description: "Annual Management Charge (AMC) on your SIPP pot." },
-    { name: "sippWithdrawalRate", label: "SIPP Withdrawal Rate", control: control, suffix: "%", description: "Annual % to withdraw from SIPP pot post-SPA if no shortfall or if higher than target income need from SIPP." },
-  ];
-
   const otherIncomeFields: FormFieldProps[] = [
     { name: "initialDbPensionAmount", label: "DB Pension Amount", control: control, placeholder: "Enter amount in £ pa", description: "Initial annual amount of Defined Benefit pension if applicable. Leave at 0 if none." },
     { name: "dbPensionStartAge", label: "DB Pension Start Age", control: control, description: "Age at which DB Pension payments begin." },
@@ -502,6 +470,39 @@ export default function PensionPilotPage() {
                 <div className="p-4 border rounded-lg bg-muted/20">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
                     {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
+                     <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
+                        <div className="flex items-center gap-1">
+                            <Label htmlFor="takeDcLumpSum" className="text-sm font-medium">
+                                Take 25% Tax-Free Lump Sum?
+                            </Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
+                                        <HelpCircleIcon className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-60 text-sm" side="top" align="start">
+                                  If enabled, 25% of your projected DC pot value at retirement is taken tax-free. The remaining 75% forms your drawdown pot, and all subsequent withdrawals from it will be fully taxable. If disabled, each withdrawal (UFPLS) will have a 25% tax-free element.
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <Controller
+                            name="takeDcLumpSum"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="takeDcLumpSum"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                    <span className="text-sm text-muted-foreground">
+                                        {field.value ? "Yes" : "No"}
+                                    </span>
+                                </div>
+                            )}
+                        />
+                    </div>
                     <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
                         <div className="flex items-center gap-1">
                             <Label htmlFor="applyDcWithdrawalRateInSurplus" className="text-sm font-medium">
@@ -542,57 +543,6 @@ export default function PensionPilotPage() {
                         <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
                             <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
                             <span className="text-sm font-semibold">{realGrowthDC}% pa</span>
-                        </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <FormSectionHeader>Self-Invested Personal Pension (SIPP)</FormSectionHeader>
-                <div className="p-4 border rounded-lg bg-muted/20">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
-                    {sippFields.map(field => <FormInput key={field.name} {...field} />)}
-                    <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
-                        <div className="flex items-center gap-1">
-                            <Label htmlFor="applySippWithdrawalRateInSurplus" className="text-sm font-medium">
-                                Apply Rate in Surplus Years?
-                            </Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" tabIndex={-1}>
-                                        <HelpCircleIcon className="h-4 w-4" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                  If enabled, the 'SIPP Withdrawal Rate' will be applied even in years where your other income sources already meet your target net income. By default, withdrawals are only made to cover an income shortfall.
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <Controller
-                            name="applySippWithdrawalRateInSurplus"
-                            control={control}
-                            render={({ field }) => (
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Switch
-                                        id="applySippWithdrawalRateInSurplus"
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                    <span className="text-sm text-muted-foreground">
-                                        {field.value ? "Yes" : "No"}
-                                    </span>
-                                </div>
-                            )}
-                        />
-                    </div>
-                     <div className="w-full max-w-[160px]">
-                        <Label className="text-sm font-medium">
-                          SIPP Real Growth <span className="text-xs text-muted-foreground font-normal">(SIPP Growth - Infl.)</span>
-                        </Label>
-                        <div className="flex items-center gap-2 mt-2 p-2 h-10 border border-input rounded-md bg-muted">
-                            <TrendingUpIcon className="w-5 h-5 text-muted-foreground" />
-                            <span className="text-sm font-semibold">{realGrowthSIPP}% pa</span>
                         </div>
                     </div>
                   </div>
@@ -711,3 +661,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
