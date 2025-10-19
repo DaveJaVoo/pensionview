@@ -243,29 +243,36 @@ export default function PensionPilotPage() {
 
   const updateLumpSumDisplay = useCallback((potType: 'DC' | 'SIPP') => {
       const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
+      if (!takeLumpSum) {
+          if (potType === 'DC') setCalculatedLumpSumDisplay(0);
+          else setCalculatedSippLumpSumDisplay(0);
+          return;
+      }
+  
       const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
       const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
-      
       const retirementAge = getValues("retirementAge");
       const currentAge = getValues("currentAge");
       const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
-      const growthRate = getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") / 100;
-      const amc = getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") / 100;
-
+      const growthRate = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
+      const amc = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
+  
       let potAtRetirement = initialValue;
       for (let age = currentAge; age < retirementAge; age++) {
-        const hasContribution = age < contributionEndAge;
-        const potAfterContribution = potAtRetirement + (hasContribution ? contribution : 0);
-        const amcCharge = potAfterContribution * amc;
-        const afterDeductions = potAfterContribution - amcCharge;
-        const growth = afterDeductions * growthRate;
-        potAtRetirement = afterDeductions + growth;
+          const hasContribution = age < contributionEndAge;
+          const currentYearContribution = hasContribution ? contribution : 0;
+          
+          let currentPotValue = potAtRetirement + currentYearContribution;
+          const amcCharge = currentPotValue * amc;
+          currentPotValue -= amcCharge;
+          const growth = currentPotValue * growthRate;
+          potAtRetirement = currentPotValue + growth;
       }
       
-      const hasFinalContribution = retirementAge < contributionEndAge;
-      const finalValueForLumpSum = potAtRetirement + (hasFinalContribution ? contribution : 0);
-
-      const pcls = takeLumpSum ? finalValueForLumpSum * 0.25 : 0;
+      const finalYearContribution = retirementAge < contributionEndAge ? contribution : 0;
+      const finalValueForLumpSum = potAtRetirement + finalYearContribution;
+  
+      const pcls = finalValueForLumpSum * 0.25;
       
       if (potType === 'DC') {
           setCalculatedLumpSumDisplay(pcls);
@@ -279,7 +286,7 @@ export default function PensionPilotPage() {
           updateLumpSumDisplay('DC');
           updateLumpSumDisplay('SIPP');
       }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay, watch("annualDcPensionContribution"), watch("annualSippContribution"), watch("retirementAge")]);
+  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay, watch("annualDcPensionContribution"), watch("annualSippContribution"), watch("retirementAge"), watch("investmentPercentageGrowth"), watch("sippInvestmentPercentageGrowth"), watch("annualChargeAMC"), watch("sippAnnualChargeAMC"), watch("currentAge"), watch("dcContributionEndAge"), watch("sippContributionEndAge")]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -379,7 +386,7 @@ export default function PensionPilotPage() {
     if (rowData['Withdraw from ISA'] && rowData['Withdraw from ISA'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from ISA'])} from your ISA</>);
     }
-    if (rowData['Withdraw from GIA'] && rowData['Withdraw from GIA'] > 0) {
+    if (rowData['GIA Value'] && rowData['GIA Value'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from GIA'])} from your GIA</>);
     }
     
@@ -875,5 +882,7 @@ export default function PensionPilotPage() {
     
 
 
+
+    
 
     
