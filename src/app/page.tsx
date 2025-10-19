@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -254,15 +253,18 @@ export default function PensionPilotPage() {
     let potAtRetirement = initialValue;
   
     for (let age = currentAge; age < retirementAge; age++) {
-      const currentYearContribution = age < contributionEndAge ? contribution : 0;
-      // 1. Add contribution
-      let potAfterContribution = potAtRetirement + currentYearContribution;
-      // 2. Apply growth
-      let growthAmount = potAfterContribution * growthRate;
-      let potAfterGrowth = potAfterContribution + growthAmount;
-      // 3. Subtract AMC
-      let amcCharge = potAfterGrowth * amcRate;
-      potAtRetirement = potAfterGrowth - amcCharge;
+      const makesContribution = age < contributionEndAge;
+      
+      // 1. Add contribution at start of the year
+      const potAfterContribution = potAtRetirement + (makesContribution ? contribution : 0);
+      
+      // 2. Apply growth and charges
+      // Growth is applied to the pot value after contributions.
+      // Charges are also applied to the pot value after contributions.
+      const growthAmount = potAfterContribution * growthRate;
+      const chargeAmount = potAfterContribution * amcRate;
+      
+      potAtRetirement = potAfterContribution + growthAmount - chargeAmount;
     }
   
     const pcls = potAtRetirement * 0.25;
