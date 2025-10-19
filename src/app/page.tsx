@@ -235,58 +235,62 @@ export default function PensionPilotPage() {
     
   }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
 
-
-  const initialDcPensionValueWatched = watch("initialDcPensionValue");
-  const takeTaxFreeLumpSumWatched = watch("takeTaxFreeLumpSum");
-  const initialSippValueWatched = watch("initialSippValue");
-  const takeSippTaxFreeLumpSumWatched = watch("takeSippTaxFreeLumpSum");
-
   const updateLumpSumDisplay = useCallback((potType: 'DC' | 'SIPP') => {
-      const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
-      if (!takeLumpSum) {
-          if (potType === 'DC') setCalculatedLumpSumDisplay(0);
-          else setCalculatedSippLumpSumDisplay(0);
-          return;
-      }
-  
-      const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
-      const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
-      const retirementAge = getValues("retirementAge");
-      const currentAge = getValues("currentAge");
-      const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
-      const growthRate = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
-      const amc = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
-  
-      let potAtRetirement = initialValue;
-      for (let age = currentAge; age < retirementAge; age++) {
-          const hasContribution = age < contributionEndAge;
-          const currentYearContribution = hasContribution ? contribution : 0;
-          
-          let currentPotValue = potAtRetirement + currentYearContribution;
-          const amcCharge = currentPotValue * amc;
-          currentPotValue -= amcCharge;
-          const growth = currentPotValue * growthRate;
-          potAtRetirement = currentPotValue + growth;
-      }
+    const takeLumpSum = getValues(potType === 'DC' ? "takeTaxFreeLumpSum" : "takeSippTaxFreeLumpSum");
+    if (!takeLumpSum) {
+      if (potType === 'DC') setCalculatedLumpSumDisplay(0);
+      else setCalculatedSippLumpSumDisplay(0);
+      return;
+    }
+
+    const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
+    const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
+    const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
+    const growthRate = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
+    const amc = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
+    const currentAge = getValues("currentAge");
+    const retirementAge = getValues("retirementAge");
+
+    let potAtRetirement = initialValue;
+
+    for (let age = currentAge; age < retirementAge; age++) {
+      const hasContribution = age < contributionEndAge;
+      const currentYearContribution = hasContribution ? contribution : 0;
       
-      const finalYearContribution = retirementAge < contributionEndAge ? contribution : 0;
-      const finalValueForLumpSum = potAtRetirement + finalYearContribution;
-  
-      const pcls = finalValueForLumpSum * 0.25;
+      let valueAfterContribution = potAtRetirement + currentYearContribution;
+      let amcCharge = valueAfterContribution * amc;
+      let valueAfterAmc = valueAfterContribution - amcCharge;
+      let growthAmount = valueAfterAmc * growthRate;
       
-      if (potType === 'DC') {
-          setCalculatedLumpSumDisplay(pcls);
-      } else {
-          setCalculatedSippLumpSumDisplay(pcls);
-      }
+      potAtRetirement = valueAfterAmc + growthAmount;
+    }
+
+    const pcls = potAtRetirement * 0.25;
+      
+    if (potType === 'DC') {
+      setCalculatedLumpSumDisplay(pcls);
+    } else {
+      setCalculatedSippLumpSumDisplay(pcls);
+    }
   }, [getValues]);
+
+
+  const watchedFieldsForLumpSum = [
+    "initialDcPensionValue", "takeTaxFreeLumpSum", "annualDcPensionContribution", 
+    "investmentPercentageGrowth", "annualChargeAMC", "dcContributionEndAge", 
+    "initialSippValue", "takeSippTaxFreeLumpSum", "annualSippContribution",
+    "sippInvestmentPercentageGrowth", "sippAnnualChargeAMC", "sippContributionEndAge",
+    "currentAge", "retirementAge"
+  ];
+  
+  const watchedValues = watch(watchedFieldsForLumpSum as any);
 
   useEffect(() => {
       if (isFormInitialized) {
           updateLumpSumDisplay('DC');
           updateLumpSumDisplay('SIPP');
       }
-  }, [isFormInitialized, initialDcPensionValueWatched, takeTaxFreeLumpSumWatched, initialSippValueWatched, takeSippTaxFreeLumpSumWatched, updateLumpSumDisplay, watch("annualDcPensionContribution"), watch("annualSippContribution"), watch("retirementAge"), watch("investmentPercentageGrowth"), watch("sippInvestmentPercentageGrowth"), watch("annualChargeAMC"), watch("sippAnnualChargeAMC"), watch("currentAge"), watch("dcContributionEndAge"), watch("sippContributionEndAge")]);
+  }, [isFormInitialized, updateLumpSumDisplay, ...watchedValues]);
 
 
   const investmentGrowth = watch("investmentPercentageGrowth");
@@ -595,7 +599,7 @@ export default function PensionPilotPage() {
                                 </div>
                             )}
                         />
-                        {takeTaxFreeLumpSumWatched && isFormInitialized && (
+                        {watch("takeTaxFreeLumpSum") && isFormInitialized && (
                             <p className="text-xs text-muted-foreground pt-1">
                                 Calculated Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
                             </p>
@@ -687,7 +691,7 @@ export default function PensionPilotPage() {
                                 </div>
                             )}
                         />
-                        {takeSippTaxFreeLumpSumWatched && isFormInitialized && (
+                        {watch("takeSippTaxFreeLumpSum") && isFormInitialized && (
                             <p className="text-xs text-muted-foreground pt-1">
                                 Calculated SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
                             </p>
@@ -876,13 +880,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
-    
 
     
