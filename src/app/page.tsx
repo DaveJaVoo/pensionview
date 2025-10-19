@@ -255,9 +255,11 @@ export default function PensionPilotPage() {
       let potAtRetirement = initialValue;
       for (let age = currentAge; age < retirementAge; age++) {
         const hasContribution = age < contributionEndAge;
-        potAtRetirement += hasContribution ? contribution : 0;
-        potAtRetirement -= potAtRetirement * amc;
-        potAtRetirement *= (1 + growthRate);
+        const potAfterContribution = potAtRetirement + (hasContribution ? contribution : 0);
+        const amcCharge = potAfterContribution * amc;
+        const afterDeductions = potAfterContribution - amcCharge;
+        const growth = afterDeductions * growthRate;
+        potAtRetirement = afterDeductions + growth;
       }
       
       const hasFinalContribution = retirementAge < contributionEndAge;
@@ -871,3 +873,4 @@ export default function PensionPilotPage() {
     
 
     
+
