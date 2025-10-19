@@ -242,7 +242,7 @@ export default function PensionPilotPage() {
       else setCalculatedSippLumpSumDisplay(0);
       return;
     }
-
+  
     const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
     const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
     const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
@@ -250,23 +250,25 @@ export default function PensionPilotPage() {
     const amc = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
     const currentAge = getValues("currentAge");
     const retirementAge = getValues("retirementAge");
-
+  
     let potAtRetirement = initialValue;
-
+  
     for (let age = currentAge; age < retirementAge; age++) {
-      const hasContribution = age < contributionEndAge;
-      const currentYearContribution = hasContribution ? contribution : 0;
-      
+      const currentYearContribution = age < contributionEndAge ? contribution : 0;
       const valueAfterContribution = potAtRetirement + currentYearContribution;
       const amcCharge = valueAfterContribution * amc;
       const valueAfterAmc = valueAfterContribution - amcCharge;
       const growthAmount = valueAfterAmc * growthRate;
-      
       potAtRetirement = valueAfterAmc + growthAmount;
     }
-
+  
+    // Add final contribution at retirement age before calculating PCLS
+    if (retirementAge < contributionEndAge) {
+      potAtRetirement += contribution;
+    }
+  
     const pcls = potAtRetirement * 0.25;
-      
+        
     if (potType === 'DC') {
       setCalculatedLumpSumDisplay(pcls);
     } else {
@@ -576,9 +578,9 @@ export default function PensionPilotPage() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                    If enabled, 25% of your 'Current DC Pension Value' is taken tax-free at your Retirement Age.
+                                    If enabled, 25% of your projected pension pot value at retirement is taken tax-free.
                                     The remaining 75% forms your DC pot for drawdown. All subsequent UFPLS withdrawals from this pot will be fully taxable.
-                                    If disabled, each UFPLS withdrawal will have a 25% tax-free element. This changes the withdrawal strategy to be 'pension-first' to maximise tax efficiency.
+                                    If disabled, each UFPLS withdrawal will have a 25% tax-free element.
                                 </PopoverContent>
                             </Popover>
                         </div>
@@ -601,7 +603,7 @@ export default function PensionPilotPage() {
                         />
                         {watch("takeTaxFreeLumpSum") && isFormInitialized && (
                             <p className="text-xs text-muted-foreground pt-1">
-                                Calculated Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
+                                Est. Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
                             </p>
                         )}
                     </div>
@@ -668,7 +670,7 @@ export default function PensionPilotPage() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-60 text-sm" side="top" align="start">
-                                    If enabled, 25% of your 'Current SIPP Value' is taken tax-free at your Retirement Age.
+                                    If enabled, 25% of your projected SIPP pot value at retirement is taken tax-free.
                                     The remaining 75% forms your SIPP pot for drawdown. All subsequent UFPLS withdrawals from SIPP are fully taxable.
                                     If disabled, each UFPLS withdrawal from SIPP will have a 25% tax-free element.
                                 </PopoverContent>
@@ -693,7 +695,7 @@ export default function PensionPilotPage() {
                         />
                         {watch("takeSippTaxFreeLumpSum") && isFormInitialized && (
                             <p className="text-xs text-muted-foreground pt-1">
-                                Calculated SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
+                                Est. SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
                             </p>
                         )}
                     </div>
@@ -826,61 +828,52 @@ export default function PensionPilotPage() {
                   </AlertDescription>
                 </Alert>
               )}
-              <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
-              {viewMode === 'table' ? (
-                <PensionDataTable 
-                  data={calculatedData.rows} 
-                  headers={calculatedData.headers} 
-                  retirementAge={calculatedData.parameters.retirementAge}
-                  statePensionAge={calculatedData.parameters.statePensionAge}
-                />
-              ) : (
-                <PensionCharts data={calculatedData.rows} />
-              )}
-            </section>
-            
-            <Card className="mt-8 shadow-xl rounded-xl">
-                <CardHeader>
-                    <CardTitle className="font-headline text-xl">Year in Brief</CardTitle>
-                    <CardDescription>Enter a year from your projection to see a quick summary of the results for that year.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <Label htmlFor="yearInBrief" className="font-semibold shrink-0">Enter Year:</Label>
+              <div className="flex flex-col gap-4 items-center">
+                 <div className="max-w-4xl w-full flex flex-col md:flex-row gap-4 items-center justify-center p-4 border rounded-lg bg-muted/30">
+                    <div className="flex-grow">
+                        <Label htmlFor="yearInBrief" className="text-sm font-medium">Year in Brief:</Label>
                         <Input
                             id="yearInBrief"
-                            type="number"
+                            type="text"
                             value={yearInBrief}
                             onChange={(e) => setYearInBrief(e.target.value)}
-                            placeholder="e.g., 2030"
-                            className="w-32"
+                            className="mt-1 w-full md:w-32"
+                            placeholder="Enter Year"
                         />
                     </div>
                     {summaryText && (
-                        <Alert className="bg-primary/10 border-primary/30">
+                        <Alert className="flex-grow-[3] bg-background/70">
                             <InfoIcon className="h-5 w-5 text-primary" />
-                            <AlertDescription className="text-primary/90">
+                            <AlertTitle className="font-semibold text-primary">Summary for {yearInBrief}</AlertTitle>
+                            <AlertDescription className="text-foreground/80">
                                 {summaryText}
                             </AlertDescription>
                         </Alert>
                     )}
-                </CardContent>
-            </Card>
+                 </div>
+                <ViewModeToggle currentMode={viewMode} onModeChange={setViewMode} />
+              </div>
+
+              <div className="mt-6">
+                {viewMode === 'table' ? (
+                  <PensionDataTable
+                    data={calculatedData.rows}
+                    headers={calculatedData.headers}
+                    retirementAge={calculatedData.parameters.retirementAge}
+                    statePensionAge={calculatedData.parameters.statePensionAge}
+                  />
+                ) : (
+                  <PensionCharts data={calculatedData.rows} />
+                )}
+              </div>
+            </section>
           </>
         )}
       </main>
 
-      <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border mt-auto">
-        <p className="px-4 text-xs italic">
-          Disclaimer: The information provided on this app is for educational and informational purposes only and should not be considered financial advice. While I aim to share useful insights and general guidance, I am not a licensed financial advisor, and the content shared does not take into account your individual financial situation, needs, or goals. Always do your own research to ensure that any options are right for your specific circumstances.
-        </p>
-        <p className="mt-4">&copy; {footerYear ?? new Date().getFullYear()} PensionView+. All rights reserved.</p>
-        <p>Pension planning, simplified.</p>
+      <footer className="py-4 text-center text-sm text-muted-foreground border-t">
+        &copy; {footerYear || new Date().getFullYear()} PensionView+. All Rights Reserved. This is a projection tool for illustrative purposes only.
       </footer>
     </div>
   );
 }
-
-    
-
-    
