@@ -242,30 +242,31 @@ export default function PensionPilotPage() {
       else setCalculatedSippLumpSumDisplay(0);
       return;
     }
-
+  
     const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
     const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
     const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
-    const growthRateDecimal = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
-    const amcDecimal = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
+    const growthRate = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
+    const amcRate = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
     const currentAge = getValues("currentAge");
     const retirementAge = getValues("retirementAge");
-
+  
     let potAtRetirement = initialValue;
-
+  
     for (let age = currentAge; age < retirementAge; age++) {
-        const currentYearContribution = age < contributionEndAge ? contribution : 0;
-        
-        let valueAfterContribution = potAtRetirement + currentYearContribution;
-        let amcCharge = valueAfterContribution * amcDecimal;
-        let valueAfterAmc = valueAfterContribution - amcCharge;
-        let growthAmount = valueAfterAmc * growthRateDecimal;
-
-        potAtRetirement = valueAfterAmc + growthAmount;
+      const currentYearContribution = age < contributionEndAge ? contribution : 0;
+      // 1. Add contribution
+      let potAfterContribution = potAtRetirement + currentYearContribution;
+      // 2. Apply growth
+      let growthAmount = potAfterContribution * growthRate;
+      let potAfterGrowth = potAfterContribution + growthAmount;
+      // 3. Subtract AMC
+      let amcCharge = potAfterGrowth * amcRate;
+      potAtRetirement = potAfterGrowth - amcCharge;
     }
-
+  
     const pcls = potAtRetirement * 0.25;
-        
+          
     if (potType === 'DC') {
       setCalculatedLumpSumDisplay(pcls);
     } else {
@@ -874,7 +875,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
