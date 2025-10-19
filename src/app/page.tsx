@@ -242,31 +242,28 @@ export default function PensionPilotPage() {
       else setCalculatedSippLumpSumDisplay(0);
       return;
     }
-  
+
     const initialValue = getValues(potType === 'DC' ? "initialDcPensionValue" : "initialSippValue") || 0;
     const contribution = getValues(potType === 'DC' ? "annualDcPensionContribution" : "annualSippContribution") || 0;
     const contributionEndAge = getValues(potType === 'DC' ? "dcContributionEndAge" : "sippContributionEndAge");
-    const growthRate = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
-    const amc = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
+    const growthRateDecimal = (getValues(potType === 'DC' ? "investmentPercentageGrowth" : "sippInvestmentPercentageGrowth") || 0) / 100;
+    const amcDecimal = (getValues(potType === 'DC' ? "annualChargeAMC" : "sippAnnualChargeAMC") || 0) / 100;
     const currentAge = getValues("currentAge");
     const retirementAge = getValues("retirementAge");
-  
+
     let potAtRetirement = initialValue;
-  
+
     for (let age = currentAge; age < retirementAge; age++) {
       const currentYearContribution = age < contributionEndAge ? contribution : 0;
+      
       const valueAfterContribution = potAtRetirement + currentYearContribution;
-      const amcCharge = valueAfterContribution * amc;
+      const amcCharge = valueAfterContribution * amcDecimal;
       const valueAfterAmc = valueAfterContribution - amcCharge;
-      const growthAmount = valueAfterAmc * growthRate;
+      const growthAmount = valueAfterAmc * growthRateDecimal;
+
       potAtRetirement = valueAfterAmc + growthAmount;
     }
-  
-    // Add final contribution at retirement age before calculating PCLS
-    if (retirementAge < contributionEndAge) {
-      potAtRetirement += contribution;
-    }
-  
+
     const pcls = potAtRetirement * 0.25;
         
     if (potType === 'DC') {
@@ -877,3 +874,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
