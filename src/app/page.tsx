@@ -257,10 +257,10 @@ export default function PensionPilotPage() {
       const hasContribution = age < contributionEndAge;
       const currentYearContribution = hasContribution ? contribution : 0;
       
-      let valueAfterContribution = potAtRetirement + currentYearContribution;
-      let amcCharge = valueAfterContribution * amc;
-      let valueAfterAmc = valueAfterContribution - amcCharge;
-      let growthAmount = valueAfterAmc * growthRate;
+      const valueAfterContribution = potAtRetirement + currentYearContribution;
+      const amcCharge = valueAfterContribution * amc;
+      const valueAfterAmc = valueAfterContribution - amcCharge;
+      const growthAmount = valueAfterAmc * growthRate;
       
       potAtRetirement = valueAfterAmc + growthAmount;
     }
@@ -880,5 +880,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
