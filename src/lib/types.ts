@@ -77,7 +77,7 @@ export interface PensionCalculationParameters {
   cashContributionEndAge: number;
   initialIsaAmount: number;
   annualIsaContribution: number;
-isaContributionEndAge: number;
+  isaContributionEndAge: number;
   isaGrowthRate: number;
   initialGiaAmount: number;
   annualGiaContribution: number;

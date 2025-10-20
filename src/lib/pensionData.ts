@@ -90,23 +90,22 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
+
+    let dcLumpSumTaken = 0;
     
     // --- Pot Contributions (happen before lump sum) ---
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
+    dcPot += dcContributionThisYear;
     
-    let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
-      const potForLumpSum = dcPot + dcContributionThisYear;
-      dcLumpSumTaken = potForLumpSum * UFPLS_TAX_FREE_PORTION;
-      dcPot = potForLumpSum - dcLumpSumTaken; // Deduct lump sum immediately
-    } else {
-      dcPot += dcContributionThisYear;
+      dcLumpSumTaken = dcPot * UFPLS_TAX_FREE_PORTION;
+      dcPot -= dcLumpSumTaken; // Deduct lump sum immediately
     }
     
     if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
 
     // --- Record initial pot values for the year AFTER lump sum event ---
-    row['Initial DC Pension'] = dcPot;
+    row['Initial DC Pension'] = dcPot + dcLumpSumTaken - dcContributionThisYear; // Show value before contribution and lump sum
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
 
     let dcPotBeforeDrawdown = dcPot;

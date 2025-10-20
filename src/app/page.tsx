@@ -37,7 +37,7 @@ const formSchema = z.object({
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
-giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+  giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(0),
