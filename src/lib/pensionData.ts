@@ -208,9 +208,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     dcPot = dcPotAfterDeductions + dcGrowth;
     row['DC Pension Balance'] = dcPot;
 
-    cashPot = cashPotThisYear - cashWithdrawal;
-    isaPot = isaPotThisYear - isaWithdrawal;
-    giaPot = giaPotThisYear - giaWithdrawal;
+    cashPot = cashPotThisYear; // cashPotThisYear already accounts for withdrawal
+    isaPot = isaPotThisYear;   // isaPotThisYear already accounts for withdrawal
+    giaPot = giaPotThisYear;   // giaPotThisYear already accounts for withdrawal
     
     row['Withdraw from Cash'] = cashWithdrawal;
     row['Withdraw from ISA'] = isaWithdrawal;
