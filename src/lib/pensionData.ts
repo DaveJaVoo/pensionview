@@ -1,4 +1,5 @@
 
+
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -76,6 +77,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   let isaPot = initialIsaAmount;
   let giaPot = initialGiaAmount;
   let lumpSumAmountTaken = 0;
+  let dcLumpSumThisYear = 0;
   
   const inflationDecimal = (inflationRate || 0) / 100;
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
@@ -93,7 +95,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
     
     // --- LUMP SUM & CONTRIBUTIONS ---
-    let dcLumpSumThisYear = 0;
+    dcLumpSumThisYear = 0;
     if (age === retirementAge && takeDcLumpSum && dcPot > 0) {
         dcLumpSumThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
         lumpSumAmountTaken = dcLumpSumThisYear;
@@ -272,3 +274,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: params, csvString, lumpSumAmount: lumpSumAmountTaken };
 }
+
+    
