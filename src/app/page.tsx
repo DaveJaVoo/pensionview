@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -49,7 +50,7 @@ const formSchema = z.object({
   fasAmount: z.coerce.number().min(0).default(0),
   fasStartAge: z.coerce.number().min(50).max(80).default(65),
   
-  initialDcPensionValue: z.coerce.number().min(0).default(0),
+  initialDcPensionValue: z.coerce.number().min(0).default(200200),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
@@ -230,11 +231,10 @@ export default function PensionPilotPage() {
     }
 
     try {
-      const parameters: PensionCalculationParameters = {
+      const result = calculatePensionProjection({
         ...data,
         calculationTriggerYear: new Date().getFullYear(),
-      };
-      const result = calculatePensionProjection(parameters);
+      });
       setCalculatedData(result);
       if (result.rows.length > 0) {
         setYearInBrief(String(result.rows[0].Year));
@@ -637,3 +637,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
