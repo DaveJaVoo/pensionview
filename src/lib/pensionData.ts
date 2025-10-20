@@ -1,4 +1,3 @@
-
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -209,9 +208,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     dcPot = dcPotAfterDeductions + dcGrowth;
     row['DC Pension Balance'] = dcPot;
 
-    cashPot = cashPotThisYear;
-    isaPot = isaPotThisYear;
-    giaPot = giaPotThisYear;
+    cashPot = cashPotThisYear - cashWithdrawal;
+    isaPot = isaPotThisYear - isaWithdrawal;
+    giaPot = giaPotThisYear - giaWithdrawal;
     
     row['Withdraw from Cash'] = cashWithdrawal;
     row['Withdraw from ISA'] = isaWithdrawal;
@@ -274,5 +273,3 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: params, csvString, lumpSumAmount: lumpSumAmountTaken };
 }
-
-    
