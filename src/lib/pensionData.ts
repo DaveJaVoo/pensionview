@@ -1,3 +1,4 @@
+
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -116,18 +117,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     row['ISA Initial'] = isaPot;
     const isaContribution = (age < isaContributionEndAge && annualIsaContribution > 0) ? annualIsaContribution : 0;
     if(annualIsaContribution > 0) row['ISA Contribution'] = isaContribution;
-    let isaPotThisYear = isaPot + isaContribution;
-    const isaGrowth = isaPotThisYear * isaGrowthDecimal;
-    isaPotThisYear += isaGrowth;
+    let isaPotBeforeGrowth = isaPot + isaContribution;
+    const isaGrowth = isaPotBeforeGrowth * isaGrowthDecimal;
+    let isaPotThisYear = isaPotBeforeGrowth + isaGrowth;
     row['ISA Growth'] = isaGrowth;
     row['ISA Value Before Withdrawal'] = isaPotThisYear;
     
     row['GIA Initial'] = giaPot;
     const giaContribution = (age < giaContributionEndAge && annualGiaContribution > 0) ? annualGiaContribution : 0;
     if(annualGiaContribution > 0) row['GIA Contribution'] = giaContribution;
-    let giaPotThisYear = giaPot + giaContribution;
-    const giaGrowth = giaPotThisYear * giaGrowthDecimal;
-    giaPotThisYear += giaGrowth;
+    let giaPotBeforeGrowth = giaPot + giaContribution;
+    const giaGrowth = giaPotBeforeGrowth * giaGrowthDecimal;
+    let giaPotThisYear = giaPotBeforeGrowth + giaGrowth;
     row['GIA Growth'] = giaGrowth;
     row['GIA Value Before Withdrawal'] = giaPotThisYear;
     
@@ -149,24 +150,21 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const netFromFixedIncome = fixedTaxableIncome - taxOnFixedIncome;
         let netShortfall = Math.max(0, inflatedTargetNetIncome - netFromFixedIncome);
     
-        if (netShortfall > 0) {
+        if (netShortfall > 0 && cashPotThisYear > 0) {
             const cashToDraw = Math.min(cashPotThisYear, netShortfall);
             cashWithdrawal = cashToDraw;
-            cashPotThisYear -= cashToDraw;
             netShortfall -= cashToDraw;
         }
 
-        if (netShortfall > 0) {
+        if (netShortfall > 0 && giaPotThisYear > 0) {
           const giaToDraw = Math.min(giaPotThisYear, netShortfall);
           giaWithdrawal = giaToDraw;
-          giaPotThisYear -= giaToDraw;
           netShortfall -= giaToDraw;
         }
 
-        if (netShortfall > 0) {
+        if (netShortfall > 0 && isaPotThisYear > 0) {
           const isaToDraw = Math.min(isaPotThisYear, netShortfall);
           isaWithdrawal = isaToDraw;
-          isaPotThisYear -= isaToDraw;
           netShortfall -= isaToDraw;
         }
 
@@ -208,9 +206,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     dcPot = dcPotAfterDeductions + dcGrowth;
     row['DC Pension Balance'] = dcPot;
 
-    cashPot = cashPotThisYear; // cashPotThisYear already accounts for withdrawal
-    isaPot = isaPotThisYear;   // isaPotThisYear already accounts for withdrawal
-    giaPot = giaPotThisYear;   // giaPotThisYear already accounts for withdrawal
+    cashPot = cashPotThisYear - cashWithdrawal;
+    isaPot = isaPotThisYear - isaWithdrawal;
+    giaPot = giaPotThisYear - giaWithdrawal;
     
     row['Withdraw from Cash'] = cashWithdrawal;
     row['Withdraw from ISA'] = isaWithdrawal;
