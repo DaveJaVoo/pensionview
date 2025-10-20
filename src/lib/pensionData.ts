@@ -125,10 +125,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (age === retirementAge && takeDcLumpSum) {
       dcLumpSumTaken = dcPotBeforeDrawdown * UFPLS_TAX_FREE_PORTION;
       dcPotBeforeDrawdown -= dcLumpSumTaken; // Reduce the pot immediately
-      row['DC Lump Sum Taken'] = dcLumpSumTaken;
-    } else if (takeDcLumpSum) {
-      row['DC Lump Sum Taken'] = 0;
     }
+    row['DC Lump Sum Taken'] = dcLumpSumTaken;
     
     const cashPot = processSavingsPot(age, cashStartValue, annualCashContribution, cashContributionEndAge, 0);
     const isaPot = processSavingsPot(age, isaStartValue, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
