@@ -49,7 +49,7 @@ const formSchema = z.object({
   fasAmount: z.coerce.number().min(0).default(0),
   fasStartAge: z.coerce.number().min(50).max(80).default(65),
   
-  initialDcPensionValue: z.coerce.number().min(0).default(0),
+  initialDcPensionValue: z.coerce.number().min(0).default(200200),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
@@ -60,7 +60,7 @@ const formSchema = z.object({
   takeDcLumpSum: z.boolean().default(false),
 
 }).refine(data => {
-  if ((data.annualDcPensionContribution ?? 0) > 0) {
+  if (data.annualDcPensionContribution > 0) {
     return data.dcContributionEndAge > data.currentAge;
   }
   return true;
@@ -140,7 +140,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                   onChange={e => {
                     const val = e.target.value;
                     if (type === 'number' && val === '') {
-                        field.onChange('');
+                        field.onChange(NaN);
                     } else {
                         field.onChange(val);
                     }
