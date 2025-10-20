@@ -58,7 +58,6 @@ export interface PensionCalculationParameters {
   dbPensionStartAge: number;
   fasAmount: number;
   fasStartAge: number;
-axFreeLumpSum: boolean;
   statePensionAge: number;
   initialStatePensionAmount: number;
 
@@ -79,7 +78,7 @@ axFreeLumpSum: boolean;
   cashContributionEndAge: number;
   initialIsaAmount: number;
   annualIsaContribution: number;
-  isaContributionEndAge: number;
+isaContributionEndAge: number;
   isaGrowthRate: number;
   initialGiaAmount: number;
   annualGiaContribution: number;
