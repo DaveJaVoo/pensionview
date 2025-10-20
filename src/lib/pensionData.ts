@@ -130,7 +130,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // --- Take Lump Sum at Retirement ---
     let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
-      const potForLumpSum = dcPotBeforeDrawdown; // The value before any growth/charges for the current year
+      const potForLumpSum = dcPotBeforeDrawdown; // Use the value before any other deductions for the current year
       dcLumpSumTaken = potForLumpSum * UFPLS_TAX_FREE_PORTION;
       dcPotBeforeDrawdown -= dcLumpSumTaken; // Reduce the pot immediately
     }
@@ -302,3 +302,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
+
+    

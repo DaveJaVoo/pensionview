@@ -52,7 +52,7 @@ const formSchema = z.object({
   
   initialDcPensionValue: z.coerce.number().min(0).default(0),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
-dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+  dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
   inflationRate: z.coerce.number().min(-10).max(20).default(3),
@@ -661,3 +661,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
