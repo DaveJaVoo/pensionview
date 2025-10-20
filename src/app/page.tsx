@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -187,25 +186,10 @@ export default function PensionPilotPage() {
     resolver: zodResolver(formSchema),
     defaultValues: formSchema.parse({}), 
   });
-  
-  useEffect(() => {
-    if (!isFormInitialized) {
-      const defaultValues = formSchema.parse({});
-      // This logic ensures that if the form is re-initialized, the default end ages align with retirement/state pension age.
-      defaultValues.cashContributionEndAge = defaultValues.cashContributionEndAge || defaultValues.retirementAge;
-      defaultValues.isaContributionEndAge = defaultValues.isaContributionEndAge || defaultValues.retirementAge;
-      defaultValues.giaContributionEndAge = defaultValues.giaContributionEndAge || defaultValues.retirementAge;
-      defaultValues.dcContributionEndAge = defaultValues.dcContributionEndAge || defaultValues.statePensionAge;
-      reset(defaultValues);
-      setIsFormInitialized(true);
-    }
-  }, [reset, isFormInitialized]);
 
   const currentAgeWatched = watch("currentAge");
 
   useEffect(() => {
-    if (!isFormInitialized) return;
-
     const currentAgeVal = getValues("currentAge");
     const retirementAgeVal = getValues("retirementAge");
     
@@ -213,7 +197,8 @@ export default function PensionPilotPage() {
         setValue("retirementAge", currentAgeVal + 1, { shouldValidate: true });
     }
     
-  }, [currentAgeWatched, isFormInitialized, setValue, getValues]);
+  }, [currentAgeWatched, setValue, getValues]);
+
 
   const investmentGrowth = watch("investmentPercentageGrowth");
   const inflation = watch("inflationRate");
@@ -402,17 +387,6 @@ export default function PensionPilotPage() {
     { name: "initialOtherIncome", label: "Other Annual Income", control: control, placeholder: "Enter amount in £ pa", icon: Building2, description: "Any other regular, taxable annual income you expect (e.g., from rental properties, side-hustles). This will be assumed to grow with inflation. Leave at 0 if none." },
   ];
 
-
-  if (!isFormInitialized) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <LoadingSpinner size={64} />
-        <p className="mt-4 text-xl text-foreground font-semibold font-headline">
-          Initializing Pension Pilot...
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -663,9 +637,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
