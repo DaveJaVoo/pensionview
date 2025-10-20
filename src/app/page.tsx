@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -141,12 +140,12 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
                   onChange={e => {
                     const val = e.target.value;
                     if (type === 'number' && val === '') {
-                        field.onChange(NaN);
+                        field.onChange('');
                     } else {
                         field.onChange(val);
                     }
                   }}
-                  value={Number.isNaN(field.value as number) ? '' : field.value ?? ''}
+                  value={field.value ?? ''}
                   className={cn(error ? "border-destructive" : "", suffix ? "pr-6" : "")}
                 />
                 {suffix && (
@@ -637,7 +636,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
