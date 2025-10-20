@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -280,7 +281,7 @@ export default function PensionPilotPage() {
     
     const incomeSources: React.ReactNode[] = [];
 
-    const taxFreeLumpSumTaken = calculatedData.lumpSumAmount > 0 && Number(yearInBrief) === calculatedData.parameters.calculationTriggerYear + (calculatedData.parameters.retirementAge - calculatedData.parameters.currentAge);
+    const lumpSumTakenThisYear = calculatedData.lumpSumAmount > 0 && Number(yearInBrief) === calculatedData.parameters.calculationTriggerYear + (calculatedData.parameters.retirementAge - calculatedData.parameters.currentAge);
     
     if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
@@ -291,7 +292,7 @@ export default function PensionPilotPage() {
     if (rowData['State Pension'] && rowData['State Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['State Pension'])} from State Pension</>);
     }
-    if (taxFreeLumpSumTaken) {
+    if (lumpSumTakenThisYear) {
         incomeSources.push(<> a tax-free lump sum of {formatBoldCurrency(calculatedData.lumpSumAmount)} from your DC Pension</>);
     }
     if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
