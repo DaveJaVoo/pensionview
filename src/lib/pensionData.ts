@@ -1,3 +1,4 @@
+
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -100,13 +101,15 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     
     let dcPotThisYear = dcPot;
-
+    
+    // Lump Sum logic must be inside the loop
     if (age === retirementAge && takeDcLumpSum) {
+      // Lump sum is taken from the pot value *before* this year's contribution
       dcLumpSumTaken = dcPotThisYear * UFPLS_TAX_FREE_PORTION;
       dcPotThisYear -= dcLumpSumTaken; // Deduct lump sum immediately
     }
 
-    // Now add contribution
+    // Now add contribution after lump sum is handled
     dcPotThisYear += dcContributionThisYear;
     
     if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
