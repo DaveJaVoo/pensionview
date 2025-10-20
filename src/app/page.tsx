@@ -281,8 +281,8 @@ export default function PensionPilotPage() {
     
     const incomeSources: React.ReactNode[] = [];
 
-    const lumpSumTakenThisYear = calculatedData.lumpSumAmount > 0 && Number(yearInBrief) === calculatedData.parameters.calculationTriggerYear + (calculatedData.parameters.retirementAge - calculatedData.parameters.currentAge);
-    
+    const lumpSumTakenThisYear = calculatedData.lumpSumAmount > 0 && rowData.Age === calculatedData.parameters.retirementAge;
+
     if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
     }
@@ -663,5 +663,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     

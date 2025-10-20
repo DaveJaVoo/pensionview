@@ -77,7 +77,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   let isaPot = initialIsaAmount;
   let giaPot = initialGiaAmount;
   let lumpSumAmountTaken = 0;
-  let dcLumpSumThisYear = 0;
   
   const inflationDecimal = (inflationRate || 0) / 100;
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
@@ -95,11 +94,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
     
     // --- LUMP SUM & CONTRIBUTIONS ---
-    dcLumpSumThisYear = 0;
+    let dcLumpSumThisYear = 0;
     if (age === retirementAge && takeDcLumpSum && dcPot > 0) {
         dcLumpSumThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
         lumpSumAmountTaken = dcLumpSumThisYear;
-        dcPot -= dcLumpSumThisYear; // Permanently reduce the main pot.
+        dcPot -= dcLumpSumThisYear;
     }
     
     row['Initial DC Pension'] = dcPot;
@@ -226,7 +225,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const taxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
     
     const nonTaxableDcIncome = takeDcLumpSum ? 0 : (dcDrawdown * UFPLS_TAX_FREE_PORTION);
-    const totalGrossIncome = fixedTaxableIncome + dcDrawdown; // Lump sum is separate, not part of annual income
+    const totalGrossIncome = fixedTaxableIncome + dcDrawdown;
     const totalSavingsWithdrawal = cashWithdrawal + isaWithdrawal + giaWithdrawal;
     const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + totalSavingsWithdrawal + dcLumpSumThisYear;
 
