@@ -91,9 +91,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
-
+    
     // --- LUMP SUM & CONTRIBUTIONS ---
-    // At the start of the retirement year, take lump sum first from the pot as it stands.
     let dcLumpSumThisYear = 0;
     if (age === retirementAge && takeDcLumpSum && dcPot > 0) {
         dcLumpSumThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
@@ -224,9 +223,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const taxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
     
     const nonTaxableDcIncome = takeDcLumpSum ? 0 : (dcDrawdown * UFPLS_TAX_FREE_PORTION);
-    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + dcLumpSumThisYear;
+    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + (age === retirementAge ? dcLumpSumThisYear : 0);
     const totalSavingsWithdrawal = cashWithdrawal + isaWithdrawal + giaWithdrawal;
-    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + dcLumpSumThisYear + totalSavingsWithdrawal;
+    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + (age === retirementAge ? dcLumpSumThisYear : 0) + totalSavingsWithdrawal;
 
     Object.assign(row, {
         'DC Pension Drawdown': dcDrawdown,
