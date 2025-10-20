@@ -93,22 +93,26 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     let dcLumpSumTaken = 0;
     
-    // --- Pot Contributions (happen before lump sum) ---
+    // --- Record initial pot values for the year ---
+    row['Initial DC Pension'] = dcPot;
+
+    // --- Pot Contributions & Lump Sum (events at start of year) ---
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-    dcPot += dcContributionThisYear;
     
+    let dcPotThisYear = dcPot;
+
     if (age === retirementAge && takeDcLumpSum) {
-      dcLumpSumTaken = dcPot * UFPLS_TAX_FREE_PORTION;
-      dcPot -= dcLumpSumTaken; // Deduct lump sum immediately
+      dcLumpSumTaken = dcPotThisYear * UFPLS_TAX_FREE_PORTION;
+      dcPotThisYear -= dcLumpSumTaken; // Deduct lump sum immediately
     }
+
+    // Now add contribution
+    dcPotThisYear += dcContributionThisYear;
     
     if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
-
-    // --- Record initial pot values for the year AFTER lump sum event ---
-    row['Initial DC Pension'] = dcPot + dcLumpSumTaken - dcContributionThisYear; // Show value before contribution and lump sum
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
 
-    let dcPotBeforeDrawdown = dcPot;
+    let dcPotBeforeDrawdown = dcPotThisYear;
 
     // --- Savings Pots initial values and contributions ---
     row['Cash Savings Initial'] = cashPot;
@@ -209,7 +213,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     dcPotBeforeDrawdown += dcGrowth;
     row['DC Pension Growth'] = dcGrowth;
     
-    // --- Finalize balances and totals ---
+    // --- Finalize balances for next year ---
     dcPot = dcPotBeforeDrawdown;
     row['DC Pension Balance'] = dcPot;
 
