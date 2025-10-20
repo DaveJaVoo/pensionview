@@ -140,20 +140,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     row['Initial DC Pension'] = dcPotStartValue;
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
     
-    // --- Lump Sum Calculation at Retirement ---
     let dcLumpSumTaken = 0;
-    if (takeDcLumpSum) {
-      if (age === retirementAge) {
-        const potValueBeforeLumpSum = dcPotStartValue + dcContributionThisYear;
-        dcLumpSumTaken = potValueBeforeLumpSum * UFPLS_TAX_FREE_PORTION;
-        dcPotStartValue = potValueBeforeLumpSum - dcLumpSumTaken;
-        row['DC Lump Sum Taken'] = dcLumpSumTaken;
-      } else {
-        row['DC Lump Sum Taken'] = 0;
-      }
-    }
+    let dcContributionForFinalCalc = dcContributionThisYear;
 
-    const dcStartForYearMainCalc = dcPotStartValue + (age === retirementAge && takeDcLumpSum ? 0 : dcContributionThisYear);
+    if (age === retirementAge && takeDcLumpSum) {
+      const potValueForLumpSum = dcPotStartValue + dcContributionThisYear;
+      dcLumpSumTaken = potValueForLumpSum * UFPLS_TAX_FREE_PORTION;
+      dcPotStartValue = potValueForLumpSum - dcLumpSumTaken;
+      dcContributionForFinalCalc = 0; // Contribution is now part of the lump sum calc pot
+      row['DC Lump Sum Taken'] = dcLumpSumTaken;
+    } else if (takeDcLumpSum) {
+        row['DC Lump Sum Taken'] = 0;
+    }
     
     // --- Non-Discretionary Income ---
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
@@ -167,6 +165,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     let cashWithdrawal = 0;
     let isaWithdrawal = 0;
     let giaWithdrawal = 0;
+
+    let dcStartForYearMainCalc = dcPotStartValue;
+    // For non-retirement year with lump sum enabled, need to add contribution back to main calc
+    if (age !== retirementAge || !takeDcLumpSum) {
+        dcStartForYearMainCalc += dcContributionThisYear;
+    }
 
     if (isInRetirement) {
         const taxOnFixedIncome = Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE;
@@ -222,10 +226,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
     }
     
-    // Lump sum contribution is already handled for retirement year, contribution is not added again
-    const dcContributionForFinalCalc = (age === retirementAge && takeDcLumpSum) ? 0 : dcContributionThisYear;
-    
-    // Pot value for final balance calculation should be the start of year value
     const dcFinals = calculateFinalPensionBalance(dcPotStartValue, dcContributionForFinalCalc, dcDrawdown, amcDecimal, dcGrowthDecimal);
     
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
@@ -248,7 +248,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const finalIsaBalance = isaPot.valueBeforeWithdrawal - isaWithdrawal;
     const finalGiaBalance = giaPot.valueBeforeWithdrawal - giaWithdrawal;
     
-    if (showDcPension) Object.assign(row, { 'DC Pension Drawdown': dcDrawdown, 'DC AMC Charge': dcFinals.amcCharge, 'DC Pension After Deductions': dcFinals.afterDumptions, 'DC Pension Growth': dcFinals.growth, 'DC Pension Balance': dcFinals.finalBalance });
+    if (showDcPension) Object.assign(row, { 'DC Pension Drawdown': dcDrawdown, 'DC AMC Charge': dcFinals.amcCharge, 'DC Pension After Deductions': dcFinals.afterDeductions, 'DC Pension Growth': dcFinals.growth, 'DC Pension Balance': dcFinals.finalBalance });
     
     if (initialDbPensionAmount > 0) row['DB Pension'] = dbPensionThisYear;
     if (fasAmount > 0) row['FAS Pension'] = fasThisYear;
