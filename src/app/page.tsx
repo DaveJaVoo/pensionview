@@ -279,6 +279,8 @@ export default function PensionPilotPage() {
     };
     
     const incomeSources: React.ReactNode[] = [];
+
+    const taxFreeLumpSumTaken = calculatedData.lumpSumAmount > 0 && Number(yearInBrief) === calculatedData.parameters.calculationTriggerYear + (calculatedData.parameters.retirementAge - calculatedData.parameters.currentAge);
     
     if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
@@ -289,8 +291,8 @@ export default function PensionPilotPage() {
     if (rowData['State Pension'] && rowData['State Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['State Pension'])} from State Pension</>);
     }
-     if (rowData['DC Lump Sum Taken'] && rowData['DC Lump Sum Taken'] > 0) {
-        incomeSources.push(<> a tax-free lump sum of {formatBoldCurrency(rowData['DC Lump Sum Taken'])} from your DC Pension</>);
+    if (taxFreeLumpSumTaken) {
+        incomeSources.push(<> a tax-free lump sum of {formatBoldCurrency(calculatedData.lumpSumAmount)} from your DC Pension</>);
     }
     if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DC Pension Drawdown'])} from your DC Pension</>);
@@ -660,3 +662,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    

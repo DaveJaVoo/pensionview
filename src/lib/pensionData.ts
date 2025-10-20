@@ -1,4 +1,3 @@
-
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -28,7 +27,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   if (showDcPension) {
     const dcHeaders = ['Initial DC Pension'];
     if (annualDcPensionContribution > 0) dcHeaders.push('DC Pension Contribution');
-     if (takeDcLumpSum) dcHeaders.push('DC Lump Sum Taken');
     dcHeaders.push('DC Pension Drawdown', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Balance');
     headers.splice(2, 0, ...dcHeaders);
   }
@@ -76,6 +74,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   let cashPot = initialCashSavings;
   let isaPot = initialIsaAmount;
   let giaPot = initialGiaAmount;
+  let lumpSumAmountTaken = 0;
   
   const inflationDecimal = (inflationRate || 0) / 100;
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
@@ -92,23 +91,20 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
 
-    // --- Record initial pot values for the year ---
-    row['Initial DC Pension'] = dcPot;
-
     // --- Contributions & Lump Sum (events at start of year) ---
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
-    
-    // Add contribution
     dcPot += dcContributionThisYear;
-    
-    let dcLumpSumTaken = 0;
-    if (age === retirementAge && takeDcLumpSum) {
-      dcLumpSumTaken = dcPot * UFPLS_TAX_FREE_PORTION;
-      dcPot -= dcLumpSumTaken; // Deduct lump sum immediately from main pot
-    }
-    if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
 
+    let dcLumpSumTakenThisYear = 0;
+    if (age === retirementAge && takeDcLumpSum && dcPot > 0) {
+      dcLumpSumTakenThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
+      lumpSumAmountTaken = dcLumpSumTakenThisYear; // Store for summary
+      dcPot -= dcLumpSumTakenThisYear;
+    }
+    
+    // --- Record initial pot values for the year (AFTER lump sum) ---
+    row['Initial DC Pension'] = dcPot;
     let dcPotBeforeDrawdownAndGrowth = dcPot;
 
     // --- Savings Pots initial values and contributions ---
@@ -230,9 +226,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const taxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
     
     const nonTaxableDcIncome = takeDcLumpSum ? 0 : (dcDrawdown * UFPLS_TAX_FREE_PORTION);
-    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + dcLumpSumTaken;
+    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + dcLumpSumTakenThisYear;
     const totalSavingsWithdrawal = cashWithdrawal + isaWithdrawal + giaWithdrawal;
-    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + dcLumpSumTaken + totalSavingsWithdrawal;
+    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + dcLumpSumTakenThisYear + totalSavingsWithdrawal;
 
     Object.assign(row, {
         'DC Pension Drawdown': dcDrawdown,
@@ -276,7 +272,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   });
   const csvString = [csvHeaderString, ...csvRowStrings].join('\n');
 
-  return { rows, headers, parameters: params, csvString };
+  return { rows, headers, parameters: params, csvString, lumpSumAmount: lumpSumAmountTaken };
 }
 
     

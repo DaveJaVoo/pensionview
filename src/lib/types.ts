@@ -10,7 +10,6 @@ export interface PensionDataRow {
   'DC Pension Growth': number;
   'DC Pension After Deductions': number;
   'DC Pension Balance': number;
-  'DC Lump Sum Taken'?: number;
 
   'DB Pension'?: number;
   'FAS Pension'?: number;
@@ -90,8 +89,11 @@ export interface CalculatedPensionData {
   headers: string[];
   parameters: PensionCalculationParameters;
   csvString: string;
+  lumpSumAmount: number;
 }
 
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
+
+    

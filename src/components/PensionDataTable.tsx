@@ -19,7 +19,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('pension') ||
-           lowerHeader.includes('lump sum') ||
            lowerHeader.includes('income') ||
            lowerHeader.includes('savings') || 
            lowerHeader.includes('cash') ||
@@ -42,7 +41,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
       'DC Pension Contribution': ['DC Pension', 'Contrib.'],
-      'DC Lump Sum Taken': ['DC Lump Sum', 'Taken'],
       'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
@@ -108,7 +106,6 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
   const isPinkStyledHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('dc pension drawdown') || 
-           lowerHeader.includes('dc lump sum taken') ||
            lowerHeader.includes('withdraw from cash') ||
            lowerHeader.includes('withdraw from isa') ||
            lowerHeader.includes('withdraw from gia') ||
