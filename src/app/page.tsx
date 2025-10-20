@@ -38,7 +38,7 @@ const formSchema = z.object({
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
-  giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(0),
@@ -378,6 +378,7 @@ export default function PensionPilotPage() {
       { name: "annualGiaContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs.", icon: Landmark },
       { name: "giaContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual GIA contributions stop. Defaults to your Retirement Age." },
       { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
+_
   ];
 
 

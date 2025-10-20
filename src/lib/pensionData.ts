@@ -97,46 +97,40 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // 1. Contributions
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
-    
-    const cashContribution = (age < cashContributionEndAge && annualCashContribution > 0) ? annualCashContribution : 0;
-    if (annualCashContribution > 0) row['Cash Savings Contribution'] = cashContribution;
-    
-    const isaContribution = (age < isaContributionEndAge && annualIsaContribution > 0) ? annualIsaContribution : 0;
-    if (annualIsaContribution > 0) row['ISA Contribution'] = isaContribution;
-    
-    const giaContribution = (age < giaContributionEndAge && annualGiaContribution > 0) ? annualGiaContribution : 0;
-    if (annualGiaContribution > 0) row['GIA Contribution'] = giaContribution;
-
     dcPot += dcContributionThisYear;
-
-    // 2. Lump Sum Event (ONLY at retirement age)
+    
+    // 2. Lump Sum Event (ONLY at retirement age, BEFORE any other deductions)
     let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
       dcLumpSumTaken = dcPot * UFPLS_TAX_FREE_PORTION;
-      dcPot -= dcLumpSumTaken;
+      dcPot -= dcLumpSumTaken; // Deduct lump sum immediately
     }
     if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
 
-    // Pot values before any withdrawals for the year
+    // --- Start of Savings Pots ---
     row['Cash Savings Initial'] = cashPot;
-    row['ISA Initial'] = isaPot;
-    row['GIA Initial'] = giaPot;
-    
+    const cashContribution = (age < cashContributionEndAge && annualCashContribution > 0) ? annualCashContribution : 0;
+    if(annualCashContribution > 0) row['Cash Savings Contribution'] = cashContribution;
     let cashPotThisYear = cashPot + cashContribution;
-    let isaPotThisYear = isaPot + isaContribution;
-    let giaPotThisYear = giaPot + giaContribution;
 
-    // Calculate growth on savings pots before withdrawal
+    row['ISA Initial'] = isaPot;
+    const isaContribution = (age < isaContributionEndAge && annualIsaContribution > 0) ? annualIsaContribution : 0;
+    if(annualIsaContribution > 0) row['ISA Contribution'] = isaContribution;
+    let isaPotThisYear = isaPot + isaContribution;
     const isaGrowth = isaPotThisYear * isaGrowthDecimal;
     isaPotThisYear += isaGrowth;
     row['ISA Growth'] = isaGrowth;
-
+    row['ISA Value Before Withdrawal'] = isaPotThisYear;
+    
+    row['GIA Initial'] = giaPot;
+    const giaContribution = (age < giaContributionEndAge && annualGiaContribution > 0) ? annualGiaContribution : 0;
+    if(annualGiaContribution > 0) row['GIA Contribution'] = giaContribution;
+    let giaPotThisYear = giaPot + giaContribution;
     const giaGrowth = giaPotThisYear * giaGrowthDecimal;
     giaPotThisYear += giaGrowth;
     row['GIA Growth'] = giaGrowth;
-
-    row['ISA Value Before Withdrawal'] = isaPotThisYear;
     row['GIA Value Before Withdrawal'] = giaPotThisYear;
+    // --- End of Savings Pots ---
 
     // 3. Fixed Income sources
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
@@ -179,36 +173,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
         if (netShortfall > 0 && dcPot > 0) {
             const taxablePortionRate = takeDcLumpSum ? 1.0 : (1 - UFPLS_TAX_FREE_PORTION);
-            const availablePersonalAllowance = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
-
-            // This is a simplified calculation to find the gross drawdown needed.
-            // It estimates the tax on the drawdown itself to determine the required gross amount.
-            let grossDrawdownRequired;
-            const taxableDrawdownToCoverShortfall = netShortfall / (1 - INCOME_TAX_RATE);
-            const nonTaxableDrawdownToCoverShortfall = netShortfall;
-
-            if ( (taxableDrawdownToCoverShortfall * taxablePortionRate) > availablePersonalAllowance) {
-                 grossDrawdownRequired = (netShortfall - (availablePersonalAllowance * (1 - INCOME_TAX_RATE)) ) / (1- (taxablePortionRate * INCOME_TAX_RATE)) + availablePersonalAllowance / taxablePortionRate;
-                  grossDrawdownRequired = netShortfall / (1 - taxablePortionRate * INCOME_TAX_RATE);
-                  const taxOnDrawdown = ((grossDrawdownRequired * taxablePortionRate) - availablePersonalAllowance) * INCOME_TAX_RATE;
-                  grossDrawdownRequired = (netShortfall + taxOnDrawdown) / (1 - (taxablePortionRate * INCOME_TAX_RATE * (taxablePortionRate === 1.0 ? 1 : 0) ) );
-
-                  const netFromTaxablePart = (taxableDrawdownToCoverShortfall * taxablePortionRate - availablePersonalAllowance) * (1-INCOME_TAX_RATE)
-                  const grossForTaxablePart = (taxableDrawdownToCoverShortfall*taxablePortionRate-availablePersonalAllowance);
-                  
-                  const estimatedTax = (netShortfall / (1 - INCOME_TAX_RATE) * taxablePortionRate > availablePersonalAllowance)
-                  ? (netShortfall / (1 - INCOME_TAX_RATE) * taxablePortionRate - availablePersonalAllowance) * INCOME_TAX_RATE
-                  : 0;
-                  grossDrawdownRequired = (netShortfall + estimatedTax) / (1 - ((1 - taxablePortionRate) * 0));
-                  
-                  grossDrawdownRequired = netShortfall / (1-INCOME_TAX_RATE*taxablePortionRate);
-            } else {
-                 grossDrawdownRequired = netShortfall; // Simplified, assumes it fits in PA
-            }
-             
-            let finalGrossDraw = netShortfall / (1 - (INCOME_TAX_RATE * taxablePortionRate));
-            
-            dcDrawdown = Math.min(dcPot, finalGrossDraw);
+            // Simplified gross-up calculation
+            const grossDrawdownRequired = netShortfall / (1 - INCOME_TAX_RATE * taxablePortionRate);
+            dcDrawdown = Math.min(dcPot, grossDrawdownRequired);
         }
     }
     
