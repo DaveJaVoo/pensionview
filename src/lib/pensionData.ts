@@ -1,4 +1,3 @@
-
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -94,14 +93,16 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     // --- Pot Contributions (happen before lump sum) ---
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-    dcPot += dcContributionThisYear;
     
-    // --- LUMP SUM EVENT ---
     let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
-      dcLumpSumTaken = dcPot * UFPLS_TAX_FREE_PORTION;
-      dcPot -= dcLumpSumTaken; // Deduct lump sum immediately
+      const potForLumpSum = dcPot + dcContributionThisYear;
+      dcLumpSumTaken = potForLumpSum * UFPLS_TAX_FREE_PORTION;
+      dcPot = potForLumpSum - dcLumpSumTaken; // Deduct lump sum immediately
+    } else {
+      dcPot += dcContributionThisYear;
     }
+    
     if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
 
     // --- Record initial pot values for the year AFTER lump sum event ---
@@ -230,9 +231,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const taxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
     
     const nonTaxableDcIncome = takeDcLumpSum ? 0 : (dcDrawdown * UFPLS_TAX_FREE_PORTION);
-    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + (age === retirementAge ? dcLumpSumTaken : 0);
+    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + dcLumpSumTaken;
     const totalSavingsWithdrawal = cashWithdrawal + isaWithdrawal + giaWithdrawal;
-    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + (age === retirementAge ? dcLumpSumTaken : 0) + totalSavingsWithdrawal;
+    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + dcLumpSumTaken + totalSavingsWithdrawal;
 
     Object.assign(row, {
         'DC Pension Drawdown': dcDrawdown,

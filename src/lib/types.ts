@@ -1,4 +1,3 @@
-
 export interface PensionDataRow {
   [key: string]: string | number | undefined;
   Age: number;
@@ -96,5 +95,3 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
-
-    
