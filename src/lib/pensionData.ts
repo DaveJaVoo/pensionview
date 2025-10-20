@@ -92,23 +92,19 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const currentPersonalAllowance = PERSONAL_ALLOWANCE * Math.pow(1 + inflationDecimal, yearOffset);
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
 
-    // --- START OF YEAR ACCOUNTING ---
-    // Handle contributions first, as they happen at the start of the year.
-    const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-    if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
-    dcPot += dcContributionThisYear;
-
-    // --- Lump Sum Calculation at Retirement Age ---
-    // This happens at the point of retirement, after the final contribution.
+    // --- LUMP SUM & CONTRIBUTIONS ---
+    // At the start of the retirement year, take lump sum first from the pot as it stands.
     let dcLumpSumThisYear = 0;
     if (age === retirementAge && takeDcLumpSum && dcPot > 0) {
         dcLumpSumThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
         lumpSumAmountTaken = dcLumpSumThisYear;
         dcPot -= dcLumpSumThisYear; // Permanently reduce the main pot.
     }
-    
-    // --- Record initial pot values for the year (AFTER any contributions and lump sum) ---
     row['Initial DC Pension'] = dcPot;
+
+    const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
+    if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
+    dcPot += dcContributionThisYear;
 
     // --- Savings Pots initial values and contributions ---
     row['Cash Savings Initial'] = cashPot;
