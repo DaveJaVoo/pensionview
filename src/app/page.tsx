@@ -450,7 +450,7 @@ export default function PensionPilotPage() {
                   </div>
                   
                   <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">ISA (Individual Savings Account)</h4>
+                    <h4 className="text-lg font.headline font-medium text-primary/90 mb-4">ISA (Individual Savings Account)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                       {isaFields.map(field => <FormInput key={field.name} {...field} />)}
                     </div>
@@ -661,3 +661,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
