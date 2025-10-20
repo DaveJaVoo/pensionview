@@ -130,7 +130,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // --- Take Lump Sum at Retirement ---
     let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
-      dcLumpSumTaken = dcPotBeforeDrawdown * UFPLS_TAX_FREE_PORTION;
+      const potForLumpSum = dcPotBeforeDrawdown; // The value before any growth/charges for the current year
+      dcLumpSumTaken = potForLumpSum * UFPLS_TAX_FREE_PORTION;
       dcPotBeforeDrawdown -= dcLumpSumTaken; // Reduce the pot immediately
     }
     row['DC Lump Sum Taken'] = dcLumpSumTaken;
@@ -178,33 +179,26 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             const availablePersonalAllowance = Math.max(0, currentPersonalAllowance - fixedTaxableIncome);
 
             // Gross-up calculation
-            const grossUpFactor = (1 - (taxablePortionRate * taxRateForThisDraw));
-            let grossDrawdownRequired = netShortfall / grossUpFactor;
-            
-            // Adjust for available personal allowance which is not taxed
-            const potentialTaxablePart = grossDrawdownRequired * taxablePortionRate;
-            if (potentialTaxablePart > availablePersonalAllowance) {
-                const amountTaxed = potentialTaxablePart - availablePersonalAllowance;
-                const taxOnThatAmount = amountTaxed * taxRateForThisDraw;
-                grossDrawdownRequired = netShortfall + taxOnThatAmount;
-            } else {
-                 grossDrawdownRequired = netShortfall;
-            }
+            let grossDrawdownRequired = netShortfall;
+            const taxablePart = grossDrawdownRequired * taxablePortionRate;
+            if (taxablePart > availablePersonalAllowance) {
+                const amountOverAllowance = taxablePart - availablePersonalAllowance;
+                const netFromTaxablePart = amountOverAllowance * (1 - taxRateForThisDraw);
+                const grossForTaxablePart = amountOverAllowance / (1 - taxRateForThisDraw);
+                
+                const untaxedPart = taxablePart - amountOverAllowance;
+                
+                grossDrawdownRequired = (netShortfall - untaxedPart) / (1-taxRateForThisDraw) + untaxedPart;
 
-            const draw = Math.min(dcPotBeforeDrawdown, grossDrawdownRequired);
-            
-            const taxablePartOfDraw = draw * taxablePortionRate;
-            const taxableAmountForThisDraw = Math.max(0, taxablePartOfDraw - availablePersonalAllowance);
-            const taxOnThisDraw = taxableAmountForThisDraw * taxRateForThisDraw;
-            const netFromThisDraw = draw - taxOnThisDraw;
-            
-            // If we overshot, adjust down
-            if (netFromThisDraw > netShortfall * 1.005) { 
-                const overshootFactor = netShortfall / netFromThisDraw;
-                dcDrawdown += draw * overshootFactor;
-            } else {
-                 dcDrawdown += draw;
             }
+            
+            // Simplified gross-up
+            let grossDrawRequiredForNet = netShortfall;
+            let taxToPayOnGross = Math.max(0, ((fixedTaxableIncome + (grossDrawRequiredForNet * taxablePortionRate)) - currentPersonalAllowance) * taxRateForThisDraw) - taxOnFixedIncome;
+            grossDrawRequiredForNet = netShortfall + taxToPayOnGross;
+
+            const draw = Math.min(dcPotBeforeDrawdown, grossDrawRequiredForNet);
+            dcDrawdown += draw;
         }
 
         const isSurplusYear = inflatedTargetNetIncome > 0 && netShortfall <= 0;
@@ -308,3 +302,5 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
   return { rows, headers, parameters: outputParameters, csvString };
 }
+
+    
