@@ -99,6 +99,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         lumpSumAmountTaken = dcLumpSumThisYear;
         dcPot -= dcLumpSumThisYear; // Permanently reduce the main pot.
     }
+    
     row['Initial DC Pension'] = dcPot;
 
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
@@ -169,9 +170,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
 
         if (netShortfall > 0 && dcPot > 0) {
+            // Note: If lump sum was taken, all DC drawdown is fully taxable.
             const taxablePortionRate = takeDcLumpSum ? 1.0 : (1 - UFPLS_TAX_FREE_PORTION);
-            const effectiveTaxRate = taxablePortionRate * INCOME_TAX_RATE;
-            const grossDrawdownRequired = netShortfall / (1 - effectiveTaxRate);
+            const grossDrawdownRequired = netShortfall / (1 - (taxablePortionRate * INCOME_TAX_RATE));
             dcDrawdown = Math.min(dcPot, grossDrawdownRequired);
         }
     }
@@ -223,9 +224,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const taxPaid = incomeSubjectToTaxForTable * INCOME_TAX_RATE;
     
     const nonTaxableDcIncome = takeDcLumpSum ? 0 : (dcDrawdown * UFPLS_TAX_FREE_PORTION);
-    const totalGrossIncome = fixedTaxableIncome + dcDrawdown + dcLumpSumThisYear;
+    const totalGrossIncome = fixedTaxableIncome + dcDrawdown; // Lump sum is separate, not part of annual income
     const totalSavingsWithdrawal = cashWithdrawal + isaWithdrawal + giaWithdrawal;
-    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + dcLumpSumThisYear + totalSavingsWithdrawal;
+    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + totalSavingsWithdrawal + dcLumpSumThisYear;
 
     Object.assign(row, {
         'DC Pension Drawdown': dcDrawdown,
