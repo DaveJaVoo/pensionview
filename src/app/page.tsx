@@ -77,6 +77,8 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const defaultFormValues = formSchema.parse({});
+
 interface FormFieldProps {
   name: keyof FormValues;
   label: React.ReactNode;
@@ -183,6 +185,7 @@ export default function PensionPilotPage() {
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues: defaultFormValues,
   });
 
   const currentAgeWatched = watch("currentAge");
@@ -320,8 +323,7 @@ export default function PensionPilotPage() {
 
 
   const handleResetForm = () => {
-    const defaultValues = formSchema.parse({});
-    reset(defaultValues);
+    reset(defaultFormValues);
     setCalculatedData(null);
     setCalculationError(null);
     setYearInBrief('');
