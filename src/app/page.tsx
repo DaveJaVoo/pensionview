@@ -173,7 +173,6 @@ export default function PensionPilotPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [isLoading, setIsLoading] = useState(false);
   const [calculationError, setCalculationError] = useState<string | null>(null);
-  const [isFormInitialized, setIsFormInitialized] = useState(false);
   const [footerYear, setFooterYear] = useState<number | null>(null);
   const [yearInBrief, setYearInBrief] = useState<string>('');
   const [summaryText, setSummaryText] = useState<React.ReactNode | null>(null);
@@ -184,7 +183,6 @@ export default function PensionPilotPage() {
 
   const { control, handleSubmit, watch, formState: { errors }, reset, getValues, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: formSchema.parse({}), 
   });
 
   const currentAgeWatched = watch("currentAge");
