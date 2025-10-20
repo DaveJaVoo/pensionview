@@ -93,18 +93,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const inflatedTargetNetIncome = targetAnnualNetIncome * Math.pow(1 + inflationDecimal, yearOffset);
     
     // --- Pot initial values and contributions ---
-    let dcPotAtYearStart = dcPot;
-    row['Initial DC Pension'] = dcPotAtYearStart;
+    row['Initial DC Pension'] = dcPot;
+    let dcPotBeforeDrawdown = dcPot;
     
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
-    dcPotAtYearStart += dcContributionThisYear;
+    dcPotBeforeDrawdown += dcContributionThisYear;
 
     // --- LUMP SUM EVENT ---
     let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
-      dcLumpSumTaken = dcPotAtYearStart * UFPLS_TAX_FREE_PORTION;
-      dcPotAtYearStart -= dcLumpSumTaken; // Deduct lump sum immediately
+      dcLumpSumTaken = dcPotBeforeDrawdown * UFPLS_TAX_FREE_PORTION;
+      dcPotBeforeDrawdown -= dcLumpSumTaken; // Deduct lump sum immediately
     }
     if (takeDcLumpSum) row['DC Lump Sum Taken'] = dcLumpSumTaken;
     
@@ -172,11 +172,10 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
           netShortfall -= isaToDraw;
         }
 
-        if (netShortfall > 0 && dcPotAtYearStart > 0) {
+        if (netShortfall > 0 && dcPotBeforeDrawdown > 0) {
             const taxablePortionRate = takeDcLumpSum ? 1.0 : (1 - UFPLS_TAX_FREE_PORTION);
             const grossDrawdownRequired = netShortfall / (1 - (taxablePortionRate === 1.0 ? INCOME_TAX_RATE : (INCOME_TAX_RATE * (1 - UFPLS_TAX_FREE_PORTION))));
-            const availableDcAfterLumpSum = dcPotAtYearStart;
-            dcDrawdown = Math.min(availableDcAfterLumpSum, grossDrawdownRequired);
+            dcDrawdown = Math.min(dcPotBeforeDrawdown, grossDrawdownRequired);
         }
     }
     
@@ -186,30 +185,31 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       const isSurplusYear = (targetAnnualNetIncome > 0 && (netFromFixedIncome >= inflatedTargetNetIncome));
       const noTargetIncome = targetAnnualNetIncome <= 0;
       
-      const availableDcForStandardWithdrawal = dcPotAtYearStart - dcDrawdown;
+      const availableDcForStandardWithdrawal = dcPotBeforeDrawdown - dcDrawdown;
 
       if (availableDcForStandardWithdrawal > 0 && (noTargetIncome || (isSurplusYear && applyDcWithdrawalRateInSurplus))) {
         const standardWithdrawal = availableDcForStandardWithdrawal * (dcWithdrawalRate / 100);
         dcDrawdown += standardWithdrawal;
       }
     }
-    dcDrawdown = Math.min(dcPotAtYearStart, dcDrawdown);
+    dcDrawdown = Math.min(dcPotBeforeDrawdown, dcDrawdown);
     
     // --- Apply DC deductions and growth ---
-    dcPotAtYearStart -= dcDrawdown;
+    dcPotBeforeDrawdown -= dcDrawdown;
 
-    const amcCharge = dcPotAtYearStart * amcDecimal;
-    dcPotAtYearStart -= amcCharge;
+    const amcCharge = dcPotBeforeDrawdown * amcDecimal;
+    dcPotBeforeDrawdown -= amcCharge;
     row['DC AMC Charge'] = amcCharge;
-    row['DC Pension After Deductions'] = dcPotAtYearStart;
+    row['DC Pension After Deductions'] = dcPotBeforeDrawdown;
 
-    const dcGrowth = dcPotAtYearStart * dcGrowthDecimal;
-    dcPotAtYearStart += dcGrowth;
+    const dcGrowth = dcPotBeforeDrawdown * dcGrowthDecimal;
+    dcPotBeforeDrawdown += dcGrowth;
     row['DC Pension Growth'] = dcGrowth;
-    row['DC Pension Balance'] = dcPotAtYearStart;
     
     // --- Finalize balances and totals ---
-    dcPot = dcPotAtYearStart;
+    dcPot = dcPotBeforeDrawdown;
+    row['DC Pension Balance'] = dcPot;
+
     cashPot = cashPotThisYear;
     isaPot = isaPotThisYear;
     giaPot = giaPotThisYear;
@@ -229,7 +229,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const nonTaxableDcIncome = takeDcLumpSum ? 0 : (dcDrawdown * UFPLS_TAX_FREE_PORTION);
     const totalGrossIncome = fixedTaxableIncome + dcDrawdown + dcLumpSumTaken;
     const totalSavingsWithdrawal = cashWithdrawal + isaWithdrawal + giaWithdrawal;
-    const totalNetIncome = (fixedTaxableIncome + nonTaxableDcIncome + dcLumpSumTaken + totalSavingsWithdrawal) + (taxableDcIncome - taxPaid);
+    const totalNetIncome = (totalTaxableIncome - taxPaid) + nonTaxableDcIncome + dcLumpSumTaken + totalSavingsWithdrawal;
 
     Object.assign(row, {
         'DC Pension Drawdown': dcDrawdown,
