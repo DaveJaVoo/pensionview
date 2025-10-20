@@ -31,16 +31,37 @@ const formSchema = z.object({
   initialCashSavings: z.coerce.number().min(0).default(0),
   annualCashContribution: z.coerce.number().min(0).default(0),
   cashContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+
   initialIsaAmount: z.coerce.number().min(0).default(0),
   annualIsaContribution: z.coerce.number().min(0).default(0),
   isaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   isaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
+
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
   giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   
   targetAnnualNetIncome: z.coerce.number().min(0).default(0),
+
+  // DC Pension
+  initialDcPensionValue: z.coerce.number().min(0).default(0),
+  annualDcContribution: z.coerce.number().min(0).default(0),
+  dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+  dcGrowthRate: z.coerce.number().min(-20).max(50).default(4),
+  dcAnnualManagementCharge: z.coerce.number().min(0).max(10).default(0.5),
+
+  // SIPP
+  initialSippValue: z.coerce.number().min(0).default(200200),
+  annualSippContribution: z.coerce.number().min(0).default(0),
+  sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
+  sippGrowthRate: z.coerce.number().min(-20).max(50).default(4),
+  sippAnnualManagementCharge: z.coerce.number().min(0).max(10).default(0.5),
+  sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
+  applySippWithdrawalRateInSurplus: z.boolean().default(false),
+  takeSippLumpSum: z.boolean().default(false),
+
+  // Other Income
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
   statePensionAge: z.coerce.number().min(60).max(80).default(67),
@@ -49,15 +70,7 @@ const formSchema = z.object({
   fasAmount: z.coerce.number().min(0).default(0),
   fasStartAge: z.coerce.number().min(50).max(80).default(65),
   
-  initialSippValue: z.coerce.number().min(0).default(200200),
-  annualSippContribution: z.coerce.number().min(0).default(0),
-  sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  sippGrowthRate: z.coerce.number().min(-20).max(50).default(4),
-  sippAnnualManagementCharge: z.coerce.number().min(0).max(10).default(0.5),
   inflationRate: z.coerce.number().min(-10).max(20).default(3),
-  sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
-  applySippWithdrawalRateInSurplus: z.boolean().default(false),
-  takeSippLumpSum: z.boolean().default(false),
 
 }).refine(data => {
   if (data.annualSippContribution > 0) {
@@ -283,6 +296,9 @@ export default function PensionPilotPage() {
     if (rowData['SIPP Drawdown'] && rowData['SIPP Drawdown'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['SIPP Drawdown'])} from your SIPP</>);
     }
+     if (rowData['DC Drawdown'] && rowData['DC Drawdown'] > 0) {
+        incomeSources.push(<> {formatBoldCurrency(rowData['DC Drawdown'])} from your DC Pension</>);
+    }
     if (rowData['Other Income'] && rowData['Other Income'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Other Income'])} from other income sources</>);
     }
@@ -366,6 +382,13 @@ export default function PensionPilotPage() {
       { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
   ];
 
+  const dcPensionFields: FormFieldProps[] = [
+    { name: "initialDcPensionValue", label: "Current DC Pension Value", control: control, placeholder: "Enter amount in £", description: "Your current total Defined Contribution (DC) pension pot value." },
+    { name: "annualDcContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Gross annual amount you plan to contribute to your DC pension. Enter the amount including assumed basic rate tax relief (e.g., if you pay in £80, enter £100).", icon: Landmark},
+    { name: "dcContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual DC pension contributions stop." },
+    { name: "dcGrowthRate", label: "DC Inv. Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate of your DC pension investments." },
+    { name: "dcAnnualManagementCharge", label: "Annual Management Charge", control: control, suffix: "%", description: "Annual Management Charge on your DC pension pot." },
+  ];
 
   const sippFields: FormFieldProps[] = [
     { name: "initialSippValue", label: "Current SIPP Value", control: control, placeholder: "Enter amount in £", description: "Your current total Self-Invested Personal Pension pot value." },
@@ -416,26 +439,37 @@ export default function PensionPilotPage() {
 
               <div>
                 <FormSectionHeader>Savings & Investments</FormSectionHeader>
-                <div className="space-y-6">
-                  <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">Cash Savings</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
-                      {cashFields.map(field => <FormInput key={field.name} {...field} />)}
-                    </div>
+                <div className="p-4 border rounded-lg bg-muted/20 space-y-6">
+                  <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">Cash Savings</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                    {cashFields.map(field => <FormInput key={field.name} {...field} />)}
                   </div>
-                  
-                  <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font.headline font-medium text-primary/90 mb-4">ISA (Individual Savings Account)</h4>
+                </div>
+              </div>
+
+              <div>
+                <FormSectionHeader>ISA (Individual Savings Account)</FormSectionHeader>
+                <div className="p-4 border rounded-lg bg-muted/20">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                       {isaFields.map(field => <FormInput key={field.name} {...field} />)}
                     </div>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">GIA (General Investment Account)</h4>
+                </div>
+              </div>
+              
+              <div>
+                <FormSectionHeader>GIA (General Investment Account)</FormSectionHeader>
+                <div className="p-4 border rounded-lg bg-muted/20">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                       {giaFields.map(field => <FormInput key={field.name} {...field} />)}
                     </div>
+                </div>
+              </div>
+              
+              <div>
+                <FormSectionHeader>Defined Contribution (DC) Pension</FormSectionHeader>
+                <div className="p-4 border rounded-lg bg-muted/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
+                    {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
                   </div>
                 </div>
               </div>
@@ -636,3 +670,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    

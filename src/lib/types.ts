@@ -4,13 +4,21 @@ export interface PensionDataRow {
   Age: number;
   Year: string;
 
-  'Initial SIPP': number;
-  'SIPP Drawdown': number;
-  'SIPP Contribution': number;
-  'SIPP AMC Charge': number;
-  'SIPP Growth': number;
-  'SIPP After Deductions': number;
-  'SIPP Balance': number;
+  'Initial SIPP'?: number;
+  'SIPP Drawdown'?: number;
+  'SIPP Contribution'?: number;
+  'SIPP AMC Charge'?: number;
+  'SIPP Growth'?: number;
+  'SIPP After Deductions'?: number;
+  'SIPP Balance'?: number;
+
+  'Initial DC'?: number;
+  'DC Contribution'?: number;
+  'DC Drawdown'?: number;
+  'DC AMC Charge'?: number;
+  'DC After Deductions'?: number;
+  'DC Growth'?: number;
+  'DC Balance'?: number;
 
   'DB Pension'?: number;
   'FAS Pension'?: number;
@@ -62,6 +70,12 @@ export interface PensionCalculationParameters {
 
   initialOtherIncome: number;
 
+  initialDcPensionValue: number;
+  annualDcContribution: number;
+  dcContributionEndAge: number;
+  dcGrowthRate: number;
+  dcAnnualManagementCharge: number;
+
   initialSippValue: number;
   annualSippContribution: number;
   sippContributionEndAge: number;
@@ -96,5 +110,7 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
+
+    
 
     
