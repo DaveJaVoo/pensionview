@@ -1,3 +1,4 @@
+
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -124,10 +125,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     if (age === retirementAge && takeDcLumpSum) {
       dcLumpSumTaken = dcPotBeforeDrawdown * UFPLS_TAX_FREE_PORTION;
       dcPotBeforeDrawdown -= dcLumpSumTaken; // Reduce the pot immediately
-    }
-    
-    if (takeDcLumpSum) {
-        row['DC Lump Sum Taken'] = dcLumpSumTaken;
+      row['DC Lump Sum Taken'] = dcLumpSumTaken;
+    } else if (takeDcLumpSum) {
+      row['DC Lump Sum Taken'] = 0;
     }
     
     const cashPot = processSavingsPot(age, cashStartValue, annualCashContribution, cashContributionEndAge, 0);
