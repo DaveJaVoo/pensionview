@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -60,7 +61,7 @@ const formSchema = z.object({
   takeDcLumpSum: z.boolean().default(false),
 
 }).refine(data => {
-  if (data.annualDcPensionContribution > 0) {
+  if ((data.annualDcPensionContribution ?? 0) > 0) {
     return data.dcContributionEndAge > data.currentAge;
   }
   return true;
@@ -636,3 +637,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
