@@ -139,20 +139,21 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     row['Initial DC Pension'] = dcPotStartValue;
     if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
-
+    
     // --- Lump Sum Calculation at Retirement ---
     let dcLumpSumTaken = 0;
-    if (takeDcLumpSum && age === retirementAge) {
-      const potValueBeforeLumpSum = dcPotStartValue + dcContributionThisYear;
-      dcLumpSumTaken = potValueBeforeLumpSum * UFPLS_TAX_FREE_PORTION;
-      dcPotStartValue = potValueBeforeLumpSum - dcLumpSumTaken;
-      row['DC Lump Sum Taken'] = dcLumpSumTaken;
-      // We've taken the lump sum, so we override the starting pot for this year's main calculation
-    } else {
-       if (takeDcLumpSum) row['DC Lump Sum Taken'] = 0;
-       // Add contribution to start value for this year's main calculation
-       dcPotStartValue += dcContributionThisYear;
+    if (takeDcLumpSum) {
+      if (age === retirementAge) {
+        const potValueBeforeLumpSum = dcPotStartValue + dcContributionThisYear;
+        dcLumpSumTaken = potValueBeforeLumpSum * UFPLS_TAX_FREE_PORTION;
+        dcPotStartValue = potValueBeforeLumpSum - dcLumpSumTaken;
+        row['DC Lump Sum Taken'] = dcLumpSumTaken;
+      } else {
+        row['DC Lump Sum Taken'] = 0;
+      }
     }
+
+    const dcStartForYearMainCalc = dcPotStartValue + (age === retirementAge && takeDcLumpSum ? 0 : dcContributionThisYear);
     
     // --- Non-Discretionary Income ---
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
@@ -196,7 +197,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             
             const grossDrawdownRequired = netShortfall / (1 - (taxablePortionRate * taxRateForThisDraw));
             
-            const dcPotAvailableForDrawdown = dcPotStartValue;
+            const dcPotAvailableForDrawdown = dcStartForYearMainCalc;
             let draw = Math.min(dcPotAvailableForDrawdown, grossDrawdownRequired);
             
             const taxablePartOfDraw = draw * taxablePortionRate;
@@ -215,19 +216,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
         const isSurplusYear = inflatedTargetNetIncome > 0 && netShortfall <= 0;
         if (isSurplusYear && applyDcWithdrawalRateInSurplus && showDcPension) {
-            const dcPotForSurplus = dcPotStartValue;
+            const dcPotForSurplus = dcStartForYearMainCalc;
             const dcStandardWithdrawal = (dcPotForSurplus - dcDrawdown) * (dcWithdrawalRate / 100);
             dcDrawdown += Math.max(0, dcStandardWithdrawal);
         }
     }
     
-    // In pre-retirement years, dcPotStartValue already includes contribution
-    // In the retirement year with lump sum, dcPotStartValue is already reduced, and we don't add contribution again
-    const dcStartForFinalCalc = dcPotStartValue;
-    const dcContributionForFinalCalc = 0; // Contribution is already accounted for.
-
-    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContributionForFinalCalc, dcDrawdown, amcDecimal, dcGrowthDecimal);
-
+    // Lump sum contribution is already handled for retirement year, contribution is not added again
+    const dcContributionForFinalCalc = (age === retirementAge && takeDcLumpSum) ? 0 : dcContributionThisYear;
+    
+    // Pot value for final balance calculation should be the start of year value
+    const dcFinals = calculateFinalPensionBalance(dcPotStartValue, dcContributionForFinalCalc, dcDrawdown, amcDecimal, dcGrowthDecimal);
+    
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
 
     const taxablePensionIncome = dcDrawdown * (takeDcLumpSum ? 1.0 : (1 - UFPLS_TAX_FREE_PORTION));
@@ -248,7 +248,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const finalIsaBalance = isaPot.valueBeforeWithdrawal - isaWithdrawal;
     const finalGiaBalance = giaPot.valueBeforeWithdrawal - giaWithdrawal;
     
-    if (showDcPension) Object.assign(row, { 'DC Pension Drawdown': dcDrawdown, 'DC AMC Charge': dcFinals.amcCharge, 'DC Pension After Deductions': dcFinals.afterDeductions, 'DC Pension Growth': dcFinals.growth, 'DC Pension Balance': dcFinals.finalBalance });
+    if (showDcPension) Object.assign(row, { 'DC Pension Drawdown': dcDrawdown, 'DC AMC Charge': dcFinals.amcCharge, 'DC Pension After Deductions': dcFinals.afterDumptions, 'DC Pension Growth': dcFinals.growth, 'DC Pension Balance': dcFinals.finalBalance });
     
     if (initialDbPensionAmount > 0) row['DB Pension'] = dbPensionThisYear;
     if (fasAmount > 0) row['FAS Pension'] = fasThisYear;
