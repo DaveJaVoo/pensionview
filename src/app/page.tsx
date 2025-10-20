@@ -50,7 +50,7 @@ const formSchema = z.object({
   fasAmount: z.coerce.number().min(0).default(0),
   fasStartAge: z.coerce.number().min(50).max(80).default(65),
   
-  initialDcPensionValue: z.coerce.number().min(0).default(200200),
+  initialDcPensionValue: z.coerce.number().min(0).default(0),
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
@@ -637,5 +637,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
