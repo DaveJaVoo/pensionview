@@ -115,14 +115,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     // --- Contributions & Pot Values at Start of Year ---
     row['Initial DC Pension'] = dcPot;
+    let dcPotBeforeDrawdown = dcPot;
+
     const dcContributionThisYear = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-    if (annualDcPensionContribution > 0) row['DC Pension Contribution'] = dcContributionThisYear;
-    let dcPotBeforeDrawdown = dcPot + dcContributionThisYear;
+    if (annualDcPensionContribution > 0) {
+      row['DC Pension Contribution'] = dcContributionThisYear;
+      dcPotBeforeDrawdown += dcContributionThisYear;
+    }
 
     const cashSavings = processSavingsPot(age, cashPot, annualCashContribution, cashContributionEndAge, 0);
     const isaSavings = processSavingsPot(age, isaPot, annualIsaContribution, isaContributionEndAge, isaGrowthDecimal);
     const giaSavings = processSavingsPot(age, giaPot, annualGiaContribution, giaContributionEndAge, giaGrowthDecimal);
-
+    
     // --- Take Lump Sum at Retirement ---
     let dcLumpSumTaken = 0;
     if (age === retirementAge && takeDcLumpSum) {
@@ -130,7 +134,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       dcPotBeforeDrawdown -= dcLumpSumTaken; // Reduce the pot immediately
     }
     row['DC Lump Sum Taken'] = dcLumpSumTaken;
-    
+
     // --- Non-Discretionary Income ---
     const dbPensionThisYear = (initialDbPensionAmount > 0 && age >= dbPensionStartAge) ? initialDbPensionAmount * Math.pow(1 + inflationDecimal, age - dbPensionStartAge) : 0;
     const fasThisYear = (fasAmount > 0 && age >= fasStartAge) ? fasAmount * Math.pow(1 + inflationDecimal, age - fasStartAge) : 0;
@@ -204,9 +208,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
 
         const isSurplusYear = inflatedTargetNetIncome > 0 && netShortfall <= 0;
-        if (isSurplusYear && applyDcWithdrawalRateInSurplus && showDcPension) {
-            const dcStandardWithdrawal = (dcPotBeforeDrawdown - dcDrawdown) * (dcWithdrawalRate / 100);
-            dcDrawdown += Math.max(0, dcStandardWithdrawal);
+        if ((isSurplusYear && applyDcWithdrawalRateInSurplus && showDcPension) || (inflatedTargetNetIncome === 0 && showDcPension && dcWithdrawalRate > 0)) {
+            const remainingDcPot = dcPotBeforeDrawdown - dcDrawdown;
+            if(remainingDcPot > 0){
+                const dcStandardWithdrawal = remainingDcPot * (dcWithdrawalRate / 100);
+                dcDrawdown += Math.max(0, dcStandardWithdrawal);
+            }
         }
     }
     row['DC Pension Drawdown'] = dcDrawdown;
