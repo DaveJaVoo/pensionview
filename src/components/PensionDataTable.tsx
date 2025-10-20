@@ -33,18 +33,19 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
            lowerHeader.includes('minus amc') ||
+           lowerHeader.includes('sipp') ||
            lowerHeader.includes('after deductions');
   };
   
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
-      'Initial DC Pension': ['Initial DC', 'Pension'],
-      'DC Pension Contribution': ['DC Pension', 'Contrib.'],
-      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
-      'DC AMC Charge': ['DC AMC', 'Charge'],
-      'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
-      'DC Pension Growth': ['DC Pension', 'Growth'],
-      'DC Pension Balance': ['DC Pension', 'Balance'],
+      'Initial SIPP': ['Initial SIPP'],
+      'SIPP Contribution': ['SIPP', 'Contrib.'],
+      'SIPP Drawdown': ['SIPP', 'Drawdown'],
+      'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
+      'SIPP After Deductions': ['SIPP', 'After Deductions'],
+      'SIPP Growth': ['SIPP', 'Growth'],
+      'SIPP Balance': ['SIPP', 'Balance'],
 
       'DB Pension': ['DB Pension'],
       'FAS Pension': ['FAS Pension'],
@@ -96,7 +97,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('db pension') ||
            lowerHeader.includes('fas pension') ||
            lowerHeader.includes('other income') ||
-           lowerHeader.includes('dc pension contribution') || 
+           lowerHeader.includes('sipp contribution') || 
            lowerHeader.includes('cash savings contribution') ||
            lowerHeader.includes('gia contribution') ||
            lowerHeader.includes('isa contribution');
@@ -104,12 +105,12 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
   const isPinkStyledHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
-    return lowerHeader.includes('dc pension drawdown') || 
+    return lowerHeader.includes('sipp drawdown') || 
            lowerHeader.includes('withdraw from cash') ||
            lowerHeader.includes('withdraw from isa') ||
            lowerHeader.includes('withdraw from gia') ||
            lowerHeader.includes('total savings withdrawn') ||
-           lowerHeader.includes('dc amc charge') ||
+           lowerHeader.includes('sipp amc charge') ||
            lowerHeader.includes('income tax paid');
   };
 

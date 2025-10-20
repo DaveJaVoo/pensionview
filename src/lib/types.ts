@@ -4,13 +4,13 @@ export interface PensionDataRow {
   Age: number;
   Year: string;
 
-  'Initial DC Pension': number;
-  'DC Pension Drawdown': number;
-  'DC Pension Contribution': number;
-  'DC AMC Charge': number;
-  'DC Pension Growth': number;
-  'DC Pension After Deductions': number;
-  'DC Pension Balance': number;
+  'Initial SIPP': number;
+  'SIPP Drawdown': number;
+  'SIPP Contribution': number;
+  'SIPP AMC Charge': number;
+  'SIPP Growth': number;
+  'SIPP After Deductions': number;
+  'SIPP Balance': number;
 
   'DB Pension'?: number;
   'FAS Pension'?: number;
@@ -62,15 +62,15 @@ export interface PensionCalculationParameters {
 
   initialOtherIncome: number;
 
-  initialDcPensionValue: number;
-  annualDcPensionContribution: number;
-  dcContributionEndAge: number;
-  investmentPercentageGrowth: number;
+  initialSippValue: number;
+  annualSippContribution: number;
+  sippContributionEndAge: number;
+  sippGrowthRate: number;
   inflationRate: number;
-  dcWithdrawalRate: number;
-  annualChargeAMC: number;
-  applyDcWithdrawalRateInSurplus: boolean;
-  takeDcLumpSum: boolean;
+  sippWithdrawalRate: number;
+  sippAnnualManagementCharge: number;
+  applySippWithdrawalRateInSurplus: boolean;
+  takeSippLumpSum: boolean;
 
   initialCashSavings: number;
   annualCashContribution: number;

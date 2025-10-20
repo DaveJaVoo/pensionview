@@ -11,7 +11,7 @@ interface PensionChartsProps {
 }
 
 const chartColors = {
-  dcPensionBalance: "hsl(var(--chart-1))",
+  sippBalance: "hsl(var(--chart-1))",
   totalIncome: "hsl(var(--chart-3))",
   netIncomePerYear: "hsl(var(--chart-4))", 
   dbPension: "hsl(var(--chart-5))",
@@ -41,7 +41,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
   const chartData = data.map(row => ({
     year: row.Year, 
     age: row.Age,   
-    dcPensionBalance: row['DC Pension Balance'],
+    sippBalance: row['SIPP Balance'],
     totalIncome: row['TOTAL INCOME'],
     netIncomePerYear: row['Net Income Per Year'],
     dbPension: row['DB Pension'] || 0,
@@ -68,7 +68,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
-              <Line type="monotone" dataKey="dcPensionBalance" name="DC Pension Balance" stroke={chartColors.dcPensionBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="sippBalance" name="SIPP Balance" stroke={chartColors.sippBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
