@@ -378,7 +378,6 @@ export default function PensionPilotPage() {
       { name: "annualGiaContribution", label: "Annual Contribution", control: control, placeholder: "Enter amount in £ pa", description: "Annual amount you plan to contribute to your GIAs.", icon: Landmark },
       { name: "giaContributionEndAge", label: "Contribution End Age", control: control, description: "Age when your annual GIA contributions stop. Defaults to your Retirement Age." },
       { name: "giaGrowthRate", label: "GIA Growth Rate", control: control, suffix: "%", description: "Expected annual growth rate for your GIAs.", icon: TrendingUpIcon },
-_
   ];
 
 
