@@ -113,17 +113,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
   const inflationDecimal = (inflationRate || 0) / 100;
   const isaGrowthDecimal = (isaGrowthRate || 0) / 100;
   const giaGrowthDecimal = (giaGrowthRate || 0) / 100;
-  const netDcGrowthRate = (investmentPercentageGrowth / 100) - (annualChargeAMC / 100);
-
-  let dcPotAtRetirementForLumpSum = 0;
-  if (takeDcLumpSum) {
-    let tempPot = initialDcPensionValue;
-    for (let age = currentAge; age < retirementAge; age++) {
-      const contribution = (age < dcContributionEndAge && annualDcPensionContribution > 0) ? annualDcPensionContribution : 0;
-      tempPot = (tempPot + contribution) * (1 + netDcGrowthRate);
-    }
-    dcPotAtRetirementForLumpSum = tempPot;
-  }
+  const dcGrowthDecimal = investmentPercentageGrowth / 100;
+  const amcDecimal = annualChargeAMC / 100;
 
   for (let age = currentAge; age <= projectionEndAge; age++) {
     const yearOffset = age - currentAge;
@@ -152,13 +143,15 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     // --- Lump Sum Calculation at Retirement ---
     let dcLumpSumTaken = 0;
     if (takeDcLumpSum && age === retirementAge) {
-      const potValueBeforeLumpSum = (previousRow?.['DC Pension Balance'] ?? initialDcPensionValue) + dcContributionThisYear;
+      const potValueBeforeLumpSum = dcPotStartValue + dcContributionThisYear;
       dcLumpSumTaken = potValueBeforeLumpSum * UFPLS_TAX_FREE_PORTION;
       dcPotStartValue = potValueBeforeLumpSum - dcLumpSumTaken;
       row['DC Lump Sum Taken'] = dcLumpSumTaken;
-      row['Initial DC Pension'] = potValueBeforeLumpSum; // Show pot value before lump sum
+      // We've taken the lump sum, so we override the starting pot for this year's main calculation
     } else {
        if (takeDcLumpSum) row['DC Lump Sum Taken'] = 0;
+       // Add contribution to start value for this year's main calculation
+       dcPotStartValue += dcContributionThisYear;
     }
     
     // --- Non-Discretionary Income ---
@@ -203,7 +196,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
             
             const grossDrawdownRequired = netShortfall / (1 - (taxablePortionRate * taxRateForThisDraw));
             
-            const dcPotAvailableForDrawdown = dcPotStartValue + (age === retirementAge ? 0 : dcContributionThisYear);
+            const dcPotAvailableForDrawdown = dcPotStartValue;
             let draw = Math.min(dcPotAvailableForDrawdown, grossDrawdownRequired);
             
             const taxablePartOfDraw = draw * taxablePortionRate;
@@ -222,16 +215,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
         const isSurplusYear = inflatedTargetNetIncome > 0 && netShortfall <= 0;
         if (isSurplusYear && applyDcWithdrawalRateInSurplus && showDcPension) {
-            const dcPotForSurplus = dcPotStartValue + (age === retirementAge ? 0 : dcContributionThisYear);
+            const dcPotForSurplus = dcPotStartValue;
             const dcStandardWithdrawal = (dcPotForSurplus - dcDrawdown) * (dcWithdrawalRate / 100);
             dcDrawdown += Math.max(0, dcStandardWithdrawal);
         }
     }
     
+    // In pre-retirement years, dcPotStartValue already includes contribution
+    // In the retirement year with lump sum, dcPotStartValue is already reduced, and we don't add contribution again
     const dcStartForFinalCalc = dcPotStartValue;
-    const dcContributionForFinalCalc = (age === retirementAge && takeDcLumpSum) ? 0 : dcContributionThisYear;
+    const dcContributionForFinalCalc = 0; // Contribution is already accounted for.
 
-    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContributionForFinalCalc, dcDrawdown, annualChargeAMC / 100, investmentPercentageGrowth / 100);
+    const dcFinals = calculateFinalPensionBalance(dcStartForFinalCalc, dcContributionForFinalCalc, dcDrawdown, amcDecimal, dcGrowthDecimal);
 
     const finalTotalSavingsWithdrawn = cashWithdrawal + isaWithdrawal + giaWithdrawal;
 
