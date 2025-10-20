@@ -102,17 +102,16 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     }
 
     // --- Lump Sum Calculation at Retirement Age ---
-    // At the start of the retirement year, BEFORE the final contribution, take the lump sum.
     let dcLumpSumThisYear = 0;
     if (age === retirementAge) {
-        // First, add final contribution for the year you retire
-        dcPot += dcContributionThisYear;
-
-        if (takeDcLumpSum && dcPot > 0) {
-            dcLumpSumThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
-            lumpSumAmountTaken = dcLumpSumThisYear;
-            dcPot -= dcLumpSumThisYear;
-        }
+      // Add final contribution for the year you retire
+      dcPot += dcContributionThisYear;
+        
+      if (takeDcLumpSum && dcPot > 0) {
+          dcLumpSumThisYear = dcPot * UFPLS_TAX_FREE_PORTION;
+          lumpSumAmountTaken = dcLumpSumThisYear;
+          dcPot -= dcLumpSumThisYear;
+      }
     }
     
     // --- Record initial pot values for the year ---
