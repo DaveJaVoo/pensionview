@@ -1,3 +1,4 @@
+
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -132,7 +133,27 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         pclsTakenFromSipp = true;
       }
     }
+
+    // --- REFACTORED LOGIC: GROWTH & CHARGES APPLIED BEFORE WITHDRAWALS ---
+    const dcAmcCharge = dcPot * (params.annualChargeAMC / 100);
+    const dcAfterCharges = dcPot - dcAmcCharge;
+    const dcGrowth = dcAfterCharges * (params.investmentPercentageGrowth / 100);
+    dcPot = dcAfterCharges + dcGrowth;
     
+    const sippAmcCharge = sippPot * (params.sippAnnualChargeAMC / 100);
+    const sippAfterCharges = sippPot - sippAmcCharge;
+    const sippGrowth = sippAfterCharges * (params.sippInvestmentPercentageGrowth / 100);
+    sippPot = sippAfterCharges + sippGrowth;
+
+    const isaGrowth = isaPot * (params.isaGrowthRate / 100);
+    const giaGrowth = giaPot * (params.giaGrowthRate / 100);
+    isaPot += isaGrowth;
+    giaPot += giaGrowth;
+
+    const isaValueBeforeWithdrawal = initialBalances.isa + contributions.isa + isaGrowth;
+    const giaValueBeforeWithdrawal = initialBalances.gia + contributions.gia + giaGrowth;
+
+
     // --- Step C: Income & Withdrawals (Retirement) ---
     let totalGrossIncomeThisYear = 0;
     let taxablePensionIncomeFromDrawdown = 0;
@@ -143,16 +164,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     const fixedTaxableIncome = dbPensionIncome + statePensionIncome + otherIncomeSource;
     totalGrossIncomeThisYear += fixedTaxableIncome;
-
-    // Apply ISA and GIA growth BEFORE withdrawals in retirement
-    let isaGrowth = 0;
-    let giaGrowth = 0;
-    if (isRetired) {
-      isaGrowth = isaPot * (params.isaGrowthRate / 100);
-      giaGrowth = giaPot * (params.giaGrowthRate / 100);
-      isaPot += isaGrowth;
-      giaPot += giaGrowth;
-    }
     
     if (isRetired) {
         const incomeTarget = params.targetAnnualNetIncome * inflationMultiplierFromStart;
@@ -256,24 +267,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
     }
     
-    // --- Step D: Apply Charges & Growth ---
-    const dcAmcCharge = dcPot * (params.annualChargeAMC / 100);
-    const dcAfterCharges = dcPot - dcAmcCharge;
-    const dcGrowth = dcAfterCharges * (params.investmentPercentageGrowth / 100);
-    const finalDcPot = Math.max(0, dcAfterCharges + dcGrowth);
-
-    const sippAmcCharge = sippPot * (params.sippAnnualChargeAMC / 100);
-    const sippAfterCharges = sippPot - sippAmcCharge;
-    const sippGrowth = sippAfterCharges * (params.sippInvestmentPercentageGrowth / 100);
-    const finalSippPot = Math.max(0, sippAfterCharges + sippGrowth);
-
-    // Note: ISA/GIA growth for pre-retirement or if not touched in retirement
-    if (!isRetired) {
-        isaGrowth = isaPot * (params.isaGrowthRate / 100);
-        giaGrowth = giaPot * (params.giaGrowthRate / 100);
-        isaPot += isaGrowth;
-        giaPot += giaGrowth;
-    }
+    // --- Step D: Pot balances are now final for the year ---
+    const finalDcPot = Math.max(0, dcPot);
+    const finalSippPot = Math.max(0, sippPot);
     const finalIsaPot = Math.max(0, isaPot);
     const finalGiaPot = Math.max(0, giaPot);
     const finalCashPot = Math.max(0, cashPot);
@@ -296,19 +292,13 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
       'SIPP AMC Charge': sippAmcCharge, 'SIPP After Deductions': sippAfterCharges, 'SIPP Growth': sippGrowth, 'SIPP Balance': finalSippPot,
       'DB Pension': dbPensionIncome, 'State Pension': statePensionIncome, 'Other Income': otherIncomeSource,
       'Cash Savings Initial': initialBalances.cash, 'Cash Savings Contribution': contributions.cash, 'Withdraw from Cash': withdrawals.cash, 'Cash Savings Balance': finalCashPot,
-      'ISA Initial': initialBalances.isa, 'ISA Contribution': contributions.isa, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': initialBalances.isa + contributions.isa + isaGrowth, 'Withdraw from ISA': withdrawals.isa, 'ISA Balance': finalIsaPot,
-      'GIA Initial': initialBalances.gia, 'GIA Contribution': contributions.gia, 'GIA Growth': giaGrowth, 'GIA Value Before Withdrawal': initialBalances.gia + contributions.gia + giaGrowth, 'Withdraw from GIA': withdrawals.gia, 'GIA Balance': finalGiaPot,
+      'ISA Initial': initialBalances.isa, 'ISA Contribution': contributions.isa, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': isaValueBeforeWithdrawal, 'Withdraw from ISA': withdrawals.isa, 'ISA Balance': finalIsaPot,
+      'GIA Initial': initialBalances.gia, 'GIA Contribution': contributions.gia, 'GIA Growth': giaGrowth, 'GIA Value Before Withdrawal': giaValueBeforeWithdrawal, 'Withdraw from GIA': withdrawals.gia, 'GIA Balance': finalGiaPot,
       'Total Savings Withdrawn': withdrawals.cash + withdrawals.isa + withdrawals.gia,
       'Total Savings Balance': finalCashPot + finalIsaPot + finalGiaPot,
       'TOTAL INCOME': totalGrossIncomeThisYear, 'Income Subject to Tax': totalTaxableIncomeThisYear, 'Income Tax Paid': incomeTaxPaid, 'Net Income Per Year': finalNetIncome, 'Net Income Per Month': finalNetIncome / 12,
     };
     rows.push(row);
-    
-    dcPot = finalDcPot;
-    sippPot = finalSippPot;
-    cashPot = finalCashPot;
-    isaPot = finalIsaPot;
-    giaPot = finalGiaPot;
   }
   
   const outputParameters = { 
