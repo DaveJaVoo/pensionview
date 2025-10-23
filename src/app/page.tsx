@@ -581,7 +581,7 @@ export default function PensionPilotPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="save">Save and Draw Down</SelectItem>
-                                      <SelectItem value="spend">Spend Immediately</SelectItem>
+                                      <SelectItem value="spend">Spend</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 )}
@@ -690,7 +690,7 @@ export default function PensionPilotPage() {
                                      </SelectTrigger>
                                      <SelectContent>
                                        <SelectItem value="save">Save and Draw Down</SelectItem>
-                                       <SelectItem value="spend">Spend Immediately</SelectItem>
+                                       <SelectItem value="spend">Spend</SelectItem>
                                      </SelectContent>
                                    </Select>
                                  )}
@@ -925,6 +925,8 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
 
