@@ -1,4 +1,3 @@
-
 "use client";
 import type { FC } from 'react';
 import type { PensionDataRow } from '@/lib/types'; 
@@ -11,7 +10,8 @@ interface PensionChartsProps {
 }
 
 const chartColors = {
-  sippBalance: "hsl(var(--chart-1))",
+  dcPensionBalance: "hsl(var(--chart-1))",
+  sippBalance: "hsl(var(--chart-2))", // New for SIPP
   totalIncome: "hsl(var(--chart-3))",
   netIncomePerYear: "hsl(var(--chart-4))", 
   dbPension: "hsl(var(--chart-5))",
@@ -41,7 +41,8 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
   const chartData = data.map(row => ({
     year: row.Year, 
     age: row.Age,   
-    sippBalance: row['SIPP Balance'],
+    dcPensionBalance: row['DC Pension Balance'],
+    sippBalance: row['SIPP Balance'], // New for SIPP
     totalIncome: row['TOTAL INCOME'],
     netIncomePerYear: row['Net Income Per Year'],
     dbPension: row['DB Pension'] || 0,
@@ -57,8 +58,8 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
       <Card className="shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-xl">Pension Pot Balances Over Time</CardTitle>
-          <CardDescription>Tracks defined contribution pension balances.</CardDescription>
+          <CardTitle className="font-headline text-xl">DC Pension & SIPP Balances Over Time</CardTitle>
+          <CardDescription>Tracks defined contribution pension and SIPP balances.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -68,6 +69,7 @@ const PensionCharts: FC<PensionChartsProps> = ({ data }) => {
               <YAxis stroke="hsl(var(--foreground))" tickFormatter={yAxisTickFormatter} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--muted), 0.5)' }}/>
               <Legend />
+              <Line type="monotone" dataKey="dcPensionBalance" name="DC Pension Balance" stroke={chartColors.dcPensionBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               <Line type="monotone" dataKey="sippBalance" name="SIPP Balance" stroke={chartColors.sippBalance} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
