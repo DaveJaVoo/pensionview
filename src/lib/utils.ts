@@ -37,4 +37,3 @@ export function parsePercentage(value: string | undefined): number | undefined {
   const num = parseFloat(value.replace('%', ''));
   return isNaN(num) ? undefined : num;
 }
-
