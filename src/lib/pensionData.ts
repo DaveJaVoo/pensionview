@@ -168,16 +168,16 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
             let potBalance = 0;
             switch(potName) {
-                case 'gia': potBalance = giaPot; break;
                 case 'cash': potBalance = cashPot; break;
+                case 'gia': potBalance = giaPot; break;
                 case 'isa': potBalance = isaPot; break;
             }
             if (potBalance <= 0) continue;
             
             const draw = Math.min(netIncomeShortfall, potBalance);
             switch(potName) {
-                case 'gia': withdrawals.gia += draw; giaPot -= draw; break;
                 case 'cash': withdrawals.cash += draw; cashPot -= draw; break;
+                case 'gia': withdrawals.gia += draw; giaPot -= draw; break;
                 case 'isa': withdrawals.isa += draw; isaPot -= draw; break;
             }
             netIncomeShortfall -= draw;
@@ -363,5 +363,3 @@ function generateCsvString(headers: string[], rows: PensionDataRow[]): string {
     );
     return [csvHeaderString, ...csvRowStrings].join('\n');
 }
-
-    
