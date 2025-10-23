@@ -1,3 +1,4 @@
+
 "use client";
 import type { FC } from 'react';
 import React from 'react';
@@ -18,6 +19,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
   const isMonetaryHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
     return lowerHeader.includes('pension') ||
+           lowerHeader.includes('sipp') ||
            lowerHeader.includes('income') ||
            lowerHeader.includes('savings') || 
            lowerHeader.includes('cash') ||
@@ -33,12 +35,19 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
            lowerHeader.includes('minus amc') ||
-           lowerHeader.includes('sipp') ||
            lowerHeader.includes('after deductions');
   };
   
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
+      'Initial DC Pension': ['Initial DC', 'Pension'],
+      'DC Pension Contribution': ['DC Pension', 'Contrib.'],
+      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
+      'DC AMC Charge': ['DC AMC', 'Charge'],
+      'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
+      'DC Pension Growth': ['DC Pension', 'Growth'],
+      'DC Pension Balance': ['DC Pension', 'Balance'],
+
       'Initial SIPP': ['Initial SIPP'],
       'SIPP Contribution': ['SIPP', 'Contrib.'],
       'SIPP Drawdown': ['SIPP', 'Drawdown'],
@@ -97,7 +106,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('db pension') ||
            lowerHeader.includes('fas pension') ||
            lowerHeader.includes('other income') ||
-           lowerHeader.includes('sipp contribution') || 
+           lowerHeader.includes('dc pension contribution') || 
+           lowerHeader.includes('sipp contribution') ||
            lowerHeader.includes('cash savings contribution') ||
            lowerHeader.includes('gia contribution') ||
            lowerHeader.includes('isa contribution');
@@ -105,11 +115,13 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
   const isPinkStyledHeader = (header: string): boolean => {
     const lowerHeader = header.toLowerCase();
-    return lowerHeader.includes('sipp drawdown') || 
+    return lowerHeader.includes('dc pension drawdown') || 
+           lowerHeader.includes('sipp drawdown') ||
            lowerHeader.includes('withdraw from cash') ||
            lowerHeader.includes('withdraw from isa') ||
            lowerHeader.includes('withdraw from gia') ||
            lowerHeader.includes('total savings withdrawn') ||
+           lowerHeader.includes('dc amc charge') ||
            lowerHeader.includes('sipp amc charge') ||
            lowerHeader.includes('income tax paid');
   };
@@ -146,7 +158,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
               className={cn(
                 "hover:bg-muted/50 transition-colors duration-150 even:bg-card odd:bg-background",
                 isPreRetirementRow && "border-b-2 border-destructive",
-                isPreStatePensionRow && "border-b-2 border-emerald-500"
+                isPreStatePensionRow && "border-b-2 border-green-500"
               )}
             >
               {headers.map((header) => {
@@ -208,5 +220,4 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 };
 
 export default PensionDataTable;
-
     
