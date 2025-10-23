@@ -1,4 +1,3 @@
-
 import type { PensionDataRow, PensionCalculationParameters, CalculatedPensionData } from './types';
 import { PERSONAL_ALLOWANCE, INCOME_TAX_RATE, UFPLS_TAX_FREE_PORTION } from './types';
 
@@ -118,14 +117,18 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const lumpSum = dcPot * UFPLS_TAX_FREE_PORTION;
         dcTaxFreeLumpSumTaken = lumpSum;
         dcPot -= lumpSum;
-        cashPot += lumpSum; // Lump sum goes into cash
+        if (params.dcLumpSumAction === 'save') {
+          cashPot += lumpSum; // Add to cash if saved
+        }
         pclsTakenFromDc = true;
       }
       if (params.takeSippTaxFreeLumpSum && sippPot > 0) {
         const lumpSum = sippPot * UFPLS_TAX_FREE_PORTION;
         sippTaxFreeLumSumTaken = lumpSum;
         sippPot -= lumpSum;
-        cashPot += lumpSum; // Lump sum goes into cash
+        if (params.sippLumpSumAction === 'save') {
+          cashPot += lumpSum; // Add to cash if saved
+        }
         pclsTakenFromSipp = true;
       }
     }
@@ -157,7 +160,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         let netIncomeShortfall = Math.max(0, incomeTarget - netFromFixed);
 
         // CORRECTED Tax-Efficient Withdrawal Order: Cash -> GIA -> ISA -> Pensions
-        // Use cash first (includes any PCLS) -> then GIAs -> then ISAs.
         const savingsWithdrawalOrder: ('cash' | 'gia' | 'isa')[] = ['cash', 'gia', 'isa'];
 
         // 1. Withdraw from non-pension assets first
@@ -361,4 +363,5 @@ function generateCsvString(headers: string[], rows: PensionDataRow[]): string {
     );
     return [csvHeaderString, ...csvRowStrings].join('\n');
 }
+
     

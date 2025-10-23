@@ -1,4 +1,3 @@
-
 export interface PensionDataRow {
   [key: string]: string | number | undefined;
   Age: number;
@@ -77,6 +76,7 @@ export interface PensionCalculationParameters {
   dcWithdrawalRate: number;
   annualChargeAMC: number;
   takeTaxFreeLumpSum: boolean;
+  dcLumpSumAction: 'spend' | 'save';
   applyDcWithdrawalRateInSurplus: boolean;
 
   initialSippValue: number;
@@ -86,6 +86,7 @@ export interface PensionCalculationParameters {
   sippAnnualChargeAMC: number;
   sippWithdrawalRate: number;
   takeSippTaxFreeLumpSum: boolean;
+  sippLumpSumAction: 'spend' | 'save';
   applySippWithdrawalRateInSurplus: boolean;
 
   pensionDrawdownOrder: 'dc_first' | 'sipp_first';
@@ -122,3 +123,5 @@ export interface CalculatedPensionData {
 export const PERSONAL_ALLOWANCE = 12570;
 export const INCOME_TAX_RATE = 0.20;
 export const UFPLS_TAX_FREE_PORTION = 0.25;
+
+    

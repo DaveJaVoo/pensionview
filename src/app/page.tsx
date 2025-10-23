@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
@@ -53,6 +52,7 @@ const formSchema = z.object({
   annualDcPensionContribution: z.coerce.number().min(0).default(0),
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
+  dcLumpSumAction: z.enum(['spend', 'save']).default('save'),
   investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   inflationRate: z.coerce.number().min(-10).max(20).default(3),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
@@ -63,6 +63,7 @@ const formSchema = z.object({
   annualSippContribution: z.coerce.number().min(0).default(0),
   sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeSippTaxFreeLumpSum: z.boolean().default(false),
+  sippLumpSumAction: z.enum(['spend', 'save']).default('save'),
   sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
   sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
   sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
@@ -563,15 +564,32 @@ export default function PensionPilotPage() {
                                         aria-labelledby="takeTaxFreeLumpSumLabel"
                                     />
                                     <span id="takeTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                        {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
+                                        {field.value ? "Yes" : "No"}
                                     </span>
                                 </div>
                             )}
                         />
-                        {takeTaxFreeLumpSumWatched && isFormInitialized && (
+                        {takeTaxFreeLumpSumWatched && (
+                          <div className="mt-4 space-y-1">
+                            <Controller
+                                name="dcLumpSumAction"
+                                control={control}
+                                render={({ field }) => (
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <SelectTrigger className="w-full max-w-[160px]">
+                                      <SelectValue placeholder="Lump sum action..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="save">Save and Draw Down</SelectItem>
+                                      <SelectItem value="spend">Spend Immediately</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              />
                             <p className="text-xs text-muted-foreground pt-1">
-                                Calculated Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
+                                Calculated Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
                             </p>
+                          </div>
                         )}
                     </div>
                     <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
@@ -655,16 +673,33 @@ export default function PensionPilotPage() {
                                         aria-labelledby="takeSippTaxFreeLumpSumLabel"
                                     />
                                     <span id="takeSippTaxFreeLumpSumLabel" className="text-sm text-muted-foreground">
-                                        {field.value ? "Yes, take upfront lump sum" : "No, tax-free with each withdrawal"}
+                                        {field.value ? "Yes" : "No"}
                                     </span>
                                 </div>
                             )}
                         />
-                        {takeSippTaxFreeLumpSumWatched && isFormInitialized && (
-                            <p className="text-xs text-muted-foreground pt-1">
-                                Calculated SIPP Tax-Free Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
-                            </p>
-                        )}
+                         {takeSippTaxFreeLumpSumWatched && (
+                           <div className="mt-4 space-y-1">
+                             <Controller
+                                 name="sippLumpSumAction"
+                                 control={control}
+                                 render={({ field }) => (
+                                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                     <SelectTrigger className="w-full max-w-[160px]">
+                                       <SelectValue placeholder="Lump sum action..." />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                       <SelectItem value="save">Save and Draw Down</SelectItem>
+                                       <SelectItem value="spend">Spend Immediately</SelectItem>
+                                     </SelectContent>
+                                   </Select>
+                                 )}
+                               />
+                             <p className="text-xs text-muted-foreground pt-1">
+                                 Calculated SIPP Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
+                             </p>
+                           </div>
+                         )}
                     </div>
                     <div className="space-y-1 col-span-1 md:col-span-2 lg:col-span-1"> 
                         <div className="flex items-center gap-1">
@@ -890,5 +925,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
