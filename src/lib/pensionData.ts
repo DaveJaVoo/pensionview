@@ -59,7 +59,6 @@ function getGrossPensionWithdrawalForNet(netNeeded: number, remainingPersonalAll
     
     // This remaining net must come from a withdrawal where the taxable part (75%) is fully taxed at 20%.
     // For this portion of the withdrawal (let's call it G_add):
-    // Net_add = (G_add * 0.25) + (G_add * 0.75) * (1 - 0.20)
     // Net_add = G_add * (0.25 + 0.75 * 0.8)
     // Net_add = G_add * (0.25 + 0.6)
     // Net_add = G_add * 0.85
@@ -119,14 +118,14 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const lumpSum = dcPot * UFPLS_TAX_FREE_PORTION;
         dcTaxFreeLumpSumTaken = lumpSum;
         dcPot -= lumpSum;
-        cashPot += lumpSum;
+        cashPot += lumpSum; // Lump sum goes into cash
         pclsTakenFromDc = true;
       }
       if (params.takeSippTaxFreeLumpSum && sippPot > 0) {
         const lumpSum = sippPot * UFPLS_TAX_FREE_PORTION;
         sippTaxFreeLumSumTaken = lumpSum;
         sippPot -= lumpSum;
-        cashPot += lumpSum;
+        cashPot += lumpSum; // Lump sum goes into cash
         pclsTakenFromSipp = true;
       }
     }
@@ -141,7 +140,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     
     const fixedTaxableIncome = dbPensionIncome + statePensionIncome + otherIncomeSource;
     totalGrossIncomeThisYear += fixedTaxableIncome;
-    let netIncomeFromFixedSources = fixedTaxableIncome; // This is net for now, tax will be removed later.
 
     // Apply ISA and GIA growth BEFORE withdrawals in retirement
     let isaGrowth = 0;
@@ -158,8 +156,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const netFromFixed = Math.max(0, fixedTaxableIncome - (Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE));
         let netIncomeShortfall = Math.max(0, incomeTarget - netFromFixed);
 
-        // CORRECTED Tax-Efficient Withdrawal Order: GIA -> Cash -> ISA -> Pensions
-        const savingsWithdrawalOrder: ('gia' | 'cash' | 'isa')[] = ['gia', 'cash', 'isa'];
+        // CORRECTED Tax-Efficient Withdrawal Order: Cash -> GIA -> ISA -> Pensions
+        // Use cash first (includes any PCLS) -> then GIAs -> then ISAs.
+        const savingsWithdrawalOrder: ('cash' | 'gia' | 'isa')[] = ['cash', 'gia', 'isa'];
 
         // 1. Withdraw from non-pension assets first
         for (const potName of savingsWithdrawalOrder) {
