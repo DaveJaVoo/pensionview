@@ -35,13 +35,15 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('withdrawn') ||
            lowerHeader.includes('contribution') ||
            lowerHeader.includes('minus amc') ||
-           lowerHeader.includes('after deductions');
+           lowerHeader.includes('after deductions') ||
+           lowerHeader.includes('lump sum taken');
   };
   
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
       'DC Pension Contribution': ['DC Pension', 'Contrib.'],
+      'DC Lump Sum Taken': ['DC Lump Sum', 'Taken'],
       'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
@@ -50,6 +52,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
       'Initial SIPP': ['Initial SIPP'],
       'SIPP Contribution': ['SIPP', 'Contrib.'],
+      'SIPP Lump Sum Taken': ['SIPP Lump Sum', 'Taken'],
       'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
       'SIPP After Deductions': ['SIPP', 'After Deductions'],
@@ -123,7 +126,8 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('total savings withdrawn') ||
            lowerHeader.includes('dc amc charge') ||
            lowerHeader.includes('sipp amc charge') ||
-           lowerHeader.includes('income tax paid');
+           lowerHeader.includes('income tax paid') ||
+           lowerHeader.includes('lump sum taken');
   };
 
   const isBlueStyledHeader = (header: string): boolean => {
@@ -220,4 +224,3 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 };
 
 export default PensionDataTable;
-    

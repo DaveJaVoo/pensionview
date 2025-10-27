@@ -514,7 +514,7 @@ export default function PensionPilotPage() {
               <p className="text-sm text-muted-foreground italic pt-4 text-center">Click section headers to expand or collapse.</p>
               
               <Accordion type="multiple" className="w-full space-y-2 pt-2">
-                <AccordionItem value="savings-investments" className="border-b-0">
+                <AccordionItem value="savings-investments">
                   <AccordionTrigger className="py-0 hover:no-underline border-b">
                     <FormSectionHeader className="mb-0 pb-0">
                       <AccordionSectionHeader>Savings &amp; Investments</AccordionSectionHeader>
@@ -552,7 +552,7 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="dc-pension" className="border-b-0">
+                <AccordionItem value="dc-pension">
                   <AccordionTrigger className="py-0 hover:no-underline border-b">
                      <FormSectionHeader className="mb-0 pb-0">
                       <AccordionSectionHeader>Defined Contribution (DC) Pension</AccordionSectionHeader>
@@ -615,7 +615,9 @@ export default function PensionPilotPage() {
                                     )}
                                   />
                                 <p className="text-xs text-muted-foreground pt-1">
-                                    Calculated Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
+                                    Approx. Lump Sum: <span className="font-semibold">{formatCurrency(calculatedLumpSumDisplay)}</span>
+                                    <br/>
+                                    <span className="italic">(Check blue alert in results for final figure)</span>
                                 </p>
                               </div>
                             )}
@@ -667,7 +669,7 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="sipp" className="border-b-0">
+                <AccordionItem value="sipp">
                    <AccordionTrigger className="py-0 hover:no-underline border-b">
                      <FormSectionHeader className="mb-0 pb-0">
                         <AccordionSectionHeader>Self-Invested Personal Pension (SIPP)</AccordionSectionHeader>
@@ -730,7 +732,9 @@ export default function PensionPilotPage() {
                                     )}
                                   />
                                 <p className="text-xs text-muted-foreground pt-1">
-                                    Calculated SIPP Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
+                                    Approx. Lump Sum: <span className="font-semibold">{formatCurrency(calculatedSippLumpSumDisplay)}</span>
+                                    <br/>
+                                    <span className="italic">(Check blue alert in results for final figure)</span>
                                 </p>
                               </div>
                             )}
@@ -782,7 +786,7 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="drawdown-strategy" className="border-b-0">
+                <AccordionItem value="drawdown-strategy">
                   <AccordionTrigger className="py-0 hover:no-underline border-b">
                      <FormSectionHeader className="mb-0 pb-0">
                         <AccordionSectionHeader>Drawdown Strategy</AccordionSectionHeader>
@@ -829,7 +833,7 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="other-income" className="border-b-0">
+                <AccordionItem value="other-income">
                   <AccordionTrigger className="py-0 hover:no-underline border-b">
                      <FormSectionHeader className="mb-0 pb-0">
                         <AccordionSectionHeader>Other Income Sources</AccordionSectionHeader>
@@ -972,7 +976,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
