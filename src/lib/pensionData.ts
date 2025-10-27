@@ -63,7 +63,7 @@ function getGrossPensionWithdrawalForNet(netNeeded: number, remainingPersonalAll
     // Net_add = G_add * (0.25 + 0.6)
     // Net_add = G_add * 0.85
     // G_add = Net_add / 0.85
-    const additionalGrossNeeded = remainingNetNeeded / (1 - (1 - UFPLS_TAX_FREE_PORTION) * INCOME_TAX_RATE);
+    const additionalGrossNeeded = remainingNetNeeded / (1 - ((1 - UFPLS_TAX_FREE_PORTION) * INCOME_TAX_RATE));
 
     return grossWithdrawalToUseUpAllowance + additionalGrossNeeded;
 }
@@ -99,7 +99,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     let contributions = { dc: 0, sipp: 0, cash: 0, isa: 0, gia: 0 };
     let withdrawals = { dc: 0, sipp: 0, cash: 0, isa: 0, gia: 0 };
     
-    // --- Step A: Contributions ---
+    // --- Step A: Contributions (Pre-growth) ---
     if (age < params.dcContributionEndAge) contributions.dc = params.annualDcPensionContribution;
     if (age < params.sippContributionEndAge) contributions.sipp = params.annualSippContribution;
     if (age < params.cashContributionEndAge) contributions.cash = params.annualCashContribution;
@@ -111,30 +111,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     cashPot += contributions.cash;
     isaPot += contributions.isa;
     giaPot += contributions.gia;
-
-    // --- Step B: PCLS at Retirement ---
-    if (age === params.retirementAge) {
-      if (params.takeTaxFreeLumpSum && dcPot > 0) {
-        const lumpSum = dcPot * UFPLS_TAX_FREE_PORTION;
-        dcTaxFreeLumpSumTaken = lumpSum;
-        dcPot -= lumpSum;
-        if (params.dcLumpSumAction === 'save') {
-          cashPot += lumpSum; // Add to cash if saved
-        }
-        pclsTakenFromDc = true;
-      }
-      if (params.takeSippTaxFreeLumpSum && sippPot > 0) {
-        const lumpSum = sippPot * UFPLS_TAX_FREE_PORTION;
-        sippTaxFreeLumSumTaken = lumpSum;
-        sippPot -= lumpSum;
-        if (params.sippLumpSumAction === 'save') {
-          cashPot += lumpSum; // Add to cash if saved
-        }
-        pclsTakenFromSipp = true;
-      }
-    }
-
-    // --- REFACTORED LOGIC: GROWTH & CHARGES APPLIED BEFORE WITHDRAWALS ---
+    
+    // --- Step B: Growth & Charges (Applied before any withdrawals) ---
     const dcAmcCharge = dcPot * (params.annualChargeAMC / 100);
     const dcAfterCharges = dcPot - dcAmcCharge;
     const dcGrowth = dcAfterCharges * (params.investmentPercentageGrowth / 100);
@@ -146,15 +124,37 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     sippPot = sippAfterCharges + sippGrowth;
 
     const isaGrowth = isaPot * (params.isaGrowthRate / 100);
-    const giaGrowth = giaPot * (params.giaGrowthRate / 100);
     isaPot += isaGrowth;
+    const giaGrowth = giaPot * (params.giaGrowthRate / 100);
     giaPot += giaGrowth;
 
-    const isaValueBeforeWithdrawal = initialBalances.isa + contributions.isa + isaGrowth;
-    const giaValueBeforeWithdrawal = initialBalances.gia + contributions.gia + giaGrowth;
+    const isaValueBeforeWithdrawal = isaPot;
+    const giaValueBeforeWithdrawal = giaPot;
+
+    // --- Step C: PCLS at Retirement ---
+    if (age === params.retirementAge) {
+      if (params.takeTaxFreeLumpSum && dcPot > 0) {
+        const lumpSum = dcPot * UFPLS_TAX_FREE_PORTION;
+        dcTaxFreeLumpSumTaken = lumpSum;
+        dcPot -= lumpSum;
+        if (params.dcLumpSumAction === 'save') {
+          cashPot += lumpSum;
+        }
+        pclsTakenFromDc = true;
+      }
+      if (params.takeSippTaxFreeLumpSum && sippPot > 0) {
+        const lumpSum = sippPot * UFPLS_TAX_FREE_PORTION;
+        sippTaxFreeLumSumTaken = lumpSum;
+        sippPot -= lumpSum;
+        if (params.sippLumpSumAction === 'save') {
+          cashPot += lumpSum;
+        }
+        pclsTakenFromSipp = true;
+      }
+    }
 
 
-    // --- Step C: Income & Withdrawals (Retirement) ---
+    // --- Step D: Income & Withdrawals (Retirement) ---
     let totalGrossIncomeThisYear = 0;
     let taxablePensionIncomeFromDrawdown = 0;
     
@@ -170,7 +170,6 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         const netFromFixed = Math.max(0, fixedTaxableIncome - (Math.max(0, fixedTaxableIncome - currentPersonalAllowance) * INCOME_TAX_RATE));
         let netIncomeShortfall = Math.max(0, incomeTarget - netFromFixed);
 
-        // CORRECTED Tax-Efficient Withdrawal Order: Cash -> GIA -> ISA -> Pensions
         const savingsWithdrawalOrder: ('cash' | 'gia' | 'isa')[] = ['cash', 'gia', 'isa'];
 
         // 1. Withdraw from non-pension assets first
@@ -237,6 +236,7 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
                  const withdrawalRate = potName === 'dc' ? params.dcWithdrawalRate : params.sippWithdrawalRate;
                  const applyInSurplus = potName === 'dc' ? params.applyDcWithdrawalRateInSurplus : params.applySippWithdrawalRateInSurplus;
                  
+                 // Use the balance *before* this year's withdrawals for rate calculation
                  const potForRateCalc = (potName === 'dc' ? initialBalances.dc + contributions.dc : initialBalances.sipp + contributions.sipp);
 
                  if (applyInSurplus && withdrawalRate > 0 && potForRateCalc > 0) {
@@ -267,23 +267,22 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
         }
     }
     
-    // --- Step D: Pot balances are now final for the year ---
+    // --- Step E: Pot balances are now final for the year ---
     const finalDcPot = Math.max(0, dcPot);
     const finalSippPot = Math.max(0, sippPot);
     const finalIsaPot = Math.max(0, isaPot);
     const finalGiaPot = Math.max(0, giaPot);
     const finalCashPot = Math.max(0, cashPot);
 
-    // --- Step E: Final Tax & Net Income ---
+    // --- Step F: Final Tax & Net Income ---
     const totalTaxableIncomeThisYear = fixedTaxableIncome + taxablePensionIncomeFromDrawdown;
     const incomeTaxPaid = Math.max(0, totalTaxableIncomeThisYear - currentPersonalAllowance) * INCOME_TAX_RATE;
     
-    const netFromTaxableSources = totalTaxableIncomeThisYear - incomeTaxPaid;
     const nonTaxablePensionPortion = (withdrawals.dc * (pclsTakenFromDc ? 0 : UFPLS_TAX_FREE_PORTION)) + (withdrawals.sipp * (pclsTakenFromSipp ? 0 : UFPLS_TAX_FREE_PORTION));
-    
-    const finalNetIncome = netFromTaxableSources + nonTaxablePensionPortion + withdrawals.cash + withdrawals.isa + withdrawals.gia;
+    const totalIncomeFromWithdrawals = withdrawals.cash + withdrawals.isa + withdrawals.gia + withdrawals.dc + withdrawals.sipp;
+    const finalNetIncome = (totalIncomeFromWithdrawals) + fixedTaxableIncome - incomeTaxPaid;
 
-    // --- Step F: Assemble Row & Update Pots for Next Loop ---
+    // --- Step G: Assemble Row & Update Pots for Next Loop ---
     const row: PensionDataRow = {
       'Age': age, 'Year': String(currentYear),
       'Initial DC Pension': initialBalances.dc, 'DC Pension Contribution': contributions.dc, 'DC Pension Drawdown': withdrawals.dc,
@@ -353,3 +352,5 @@ function generateCsvString(headers: string[], rows: PensionDataRow[]): string {
     );
     return [csvHeaderString, ...csvRowStrings].join('\n');
 }
+
+    
