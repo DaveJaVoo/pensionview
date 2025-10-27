@@ -19,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CalculatorIcon, AlertTriangleIcon, TrendingUpIcon, InfoIcon, HelpCircleIcon, RotateCcwIcon, PiggyBank, Briefcase, TrendingDown, Landmark, Banknote, Building2, LifeBuoy, Target, WalletCards, ListOrdered } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 import { calculatePensionProjection } from '@/lib/pensionData';
 import type { PensionCalculationParameters, CalculatedPensionData } from '@/lib/types';
@@ -504,29 +505,35 @@ export default function PensionPilotPage() {
               </div>
 
               <div>
-                <FormSectionHeader>Savings & Investments</FormSectionHeader>
-                <div className="space-y-6">
-                  <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">Cash Savings</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
-                      {cashFields.map(field => <FormInput key={field.name} {...field} />)}
-                    </div>
-                  </div>
+                <FormSectionHeader>Savings &amp; Investments</FormSectionHeader>
+                <Accordion type="multiple" className="w-full space-y-2">
+                  <AccordionItem value="cash-savings" className="border rounded-lg bg-muted/20 px-4">
+                    <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1">Cash Savings</AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                        {cashFields.map(field => <FormInput key={field.name} {...field} />)}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                   
-                  <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">ISA (Individual Savings Account)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
-                      {isaFields.map(field => <FormInput key={field.name} {...field} />)}
-                    </div>
-                  </div>
+                  <AccordionItem value="isa" className="border rounded-lg bg-muted/20 px-4">
+                    <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1">ISA (Individual Savings Account)</AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                        {isaFields.map(field => <FormInput key={field.name} {...field} />)}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                   
-                  <div className="p-4 border rounded-lg bg-muted/20">
-                    <h4 className="text-lg font-headline font-medium text-primary/90 mb-4">GIA (General Investment Account)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
-                      {giaFields.map(field => <FormInput key={field.name} {...field} />)}
-                    </div>
-                  </div>
-                </div>
+                  <AccordionItem value="gia" className="border rounded-lg bg-muted/20 px-4">
+                     <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1">GIA (General Investment Account)</AccordionTrigger>
+                     <AccordionContent className="pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
+                        {giaFields.map(field => <FormInput key={field.name} {...field} />)}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
 
               <div>
@@ -925,9 +932,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
