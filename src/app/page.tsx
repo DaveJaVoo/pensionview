@@ -183,10 +183,16 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
   );
 };
 
-const FormSectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-xl font-headline font-semibold text-primary pt-6 pb-2 border-b border-border mb-4">
+const FormSectionHeader: React.FC<React.PropsWithChildren<{ className?: string }>> = ({ children, className }) => (
+  <h3 className={cn("text-xl font-headline font-semibold text-primary pt-6 pb-2 border-b border-border mb-4", className)}>
     {children}
   </h3>
+);
+
+const AccordionSectionHeader: React.FC<React.PropsWithChildren<{}>> = ({ children }) => (
+  <div className="text-xl font-headline font-semibold text-primary">
+    {children}
+  </div>
 );
 
 
@@ -497,21 +503,25 @@ export default function PensionPilotPage() {
             <CardContent className="space-y-2">
               
               <div>
-                <FormSectionHeader>Core Parameters</FormSectionHeader>
-                <div className="p-4 border rounded-lg bg-muted/20">
+                <FormSectionHeader className="mb-0 pb-0 border-b-0">Core Parameters</FormSectionHeader>
+                <div className="p-4 border rounded-lg bg-muted/20 mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-4 gap-y-6">
                     {coreParamsFields.map(field => <FormInput key={field.name} {...field} />)}
                   </div>
                 </div>
               </div>
 
-              <Accordion type="multiple" className="w-full space-y-2">
-                <AccordionItem value="savings-investments">
-                  <FormSectionHeader>Savings &amp; Investments</FormSectionHeader>
-                  <AccordionContent className="space-y-2 !pb-0">
-                    <Accordion type="multiple" className="w-full space-y-2">
+              <Accordion type="multiple" className="w-full space-y-2 pt-4">
+                <AccordionItem value="savings-investments" className="border-none">
+                  <AccordionTrigger className="py-0 hover:no-underline">
+                    <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                      <AccordionSectionHeader>Savings &amp; Investments</AccordionSectionHeader>
+                    </FormSectionHeader>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-2 !pb-0 mt-4">
+                    <Accordion type="multiple" className="w-full space-y-2" defaultValue={['cash-savings']}>
                       <AccordionItem value="cash-savings" className="border rounded-lg bg-muted/20 px-4">
-                        <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1">Cash Savings</AccordionTrigger>
+                        <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1 py-3">Cash Savings</AccordionTrigger>
                         <AccordionContent className="pt-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                             {cashFields.map(field => <FormInput key={field.name} {...field} />)}
@@ -520,7 +530,7 @@ export default function PensionPilotPage() {
                       </AccordionItem>
                       
                       <AccordionItem value="isa" className="border rounded-lg bg-muted/20 px-4">
-                        <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1">ISA (Individual Savings Account)</AccordionTrigger>
+                        <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1 py-3">ISA (Individual Savings Account)</AccordionTrigger>
                         <AccordionContent className="pt-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                             {isaFields.map(field => <FormInput key={field.name} {...field} />)}
@@ -529,7 +539,7 @@ export default function PensionPilotPage() {
                       </AccordionItem>
                       
                       <AccordionItem value="gia" className="border rounded-lg bg-muted/20 px-4">
-                        <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1">GIA (General Investment Account)</AccordionTrigger>
+                        <AccordionTrigger className="text-lg font-headline font-medium text-primary/90 hover:no-underline -mx-1 px-1 py-3">GIA (General Investment Account)</AccordionTrigger>
                         <AccordionContent className="pt-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
                             {giaFields.map(field => <FormInput key={field.name} {...field} />)}
@@ -540,9 +550,13 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="dc-pension">
-                  <FormSectionHeader>Defined Contribution (DC) Pension</FormSectionHeader>
-                  <AccordionContent className="!pb-0">
+                <AccordionItem value="dc-pension" className="border-none">
+                  <AccordionTrigger className="py-0 hover:no-underline">
+                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                      <AccordionSectionHeader>Defined Contribution (DC) Pension</AccordionSectionHeader>
+                    </FormSectionHeader>
+                  </AccordionTrigger>
+                  <AccordionContent className="!pb-0 mt-4">
                     <div className="p-4 border rounded-lg bg-muted/20">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
                         {dcPensionFields.map(field => <FormInput key={field.name} {...field} />)}
@@ -651,9 +665,13 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="sipp">
-                  <FormSectionHeader>Self-Invested Personal Pension (SIPP)</FormSectionHeader>
-                  <AccordionContent className="!pb-0">
+                <AccordionItem value="sipp" className="border-none">
+                   <AccordionTrigger className="py-0 hover:no-underline">
+                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                        <AccordionSectionHeader>Self-Invested Personal Pension (SIPP)</AccordionSectionHeader>
+                      </FormSectionHeader>
+                   </AccordionTrigger>
+                  <AccordionContent className="!pb-0 mt-4">
                     <div className="p-4 border rounded-lg bg-muted/20">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6 items-start">
                         {sippFields.map(field => <FormInput key={field.name} {...field} />)}
@@ -762,9 +780,13 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="drawdown-strategy">
-                  <FormSectionHeader>Drawdown Strategy</FormSectionHeader>
-                  <AccordionContent className="!pb-0">
+                <AccordionItem value="drawdown-strategy" className="border-none">
+                  <AccordionTrigger className="py-0 hover:no-underline">
+                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                        <AccordionSectionHeader>Drawdown Strategy</AccordionSectionHeader>
+                      </FormSectionHeader>
+                  </AccordionTrigger>
+                  <AccordionContent className="!pb-0 mt-4">
                     <div className="p-4 border rounded-lg bg-muted/20">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
                         <div className="space-y-1">
@@ -805,9 +827,13 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="other-income">
-                  <FormSectionHeader>Other Income Sources</FormSectionHeader>
-                  <AccordionContent className="!pb-0">
+                <AccordionItem value="other-income" className="border-none">
+                  <AccordionTrigger className="py-0 hover:no-underline">
+                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                        <AccordionSectionHeader>Other Income Sources</AccordionSectionHeader>
+                      </FormSectionHeader>
+                  </AccordionTrigger>
+                  <AccordionContent className="!pb-0 mt-4">
                     <div className="p-4 border rounded-lg bg-muted/20">
                       <p className="text-sm text-muted-foreground -mt-4 mb-4">(Leave values at 0 if not applicable)</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-6">
@@ -944,3 +970,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
