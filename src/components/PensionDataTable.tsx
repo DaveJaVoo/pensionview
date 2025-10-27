@@ -36,27 +36,29 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
            lowerHeader.includes('contribution') ||
            lowerHeader.includes('minus amc') ||
            lowerHeader.includes('after deductions') ||
-           lowerHeader.includes('lump sum taken');
+           lowerHeader.includes('lump sum');
   };
   
   const formatHeaderForDisplay = (header: string): React.ReactNode => {
     const specificHeaders: Record<string, string[]> = {
       'Initial DC Pension': ['Initial DC', 'Pension'],
       'DC Pension Contribution': ['DC Pension', 'Contrib.'],
-      'DC Lump Sum Taken': ['DC Lump Sum', 'Taken'],
-      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC AMC Charge': ['DC AMC', 'Charge'],
       'DC Pension After Deductions': ['DC Pension', 'After Deductions'],
       'DC Pension Growth': ['DC Pension', 'Growth'],
+      'DC Pension Value Before Lump Sum': ['DC Value', 'Pre-Lump Sum'],
+      'DC Lump Sum Taken': ['DC Lump Sum', 'Taken'],
+      'DC Pension Drawdown': ['DC Pension', 'Drawdown'],
       'DC Pension Balance': ['DC Pension', 'Balance'],
 
       'Initial SIPP': ['Initial SIPP'],
       'SIPP Contribution': ['SIPP', 'Contrib.'],
-      'SIPP Lump Sum Taken': ['SIPP Lump Sum', 'Taken'],
-      'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP AMC Charge': ['SIPP AMC', 'Charge'],
       'SIPP After Deductions': ['SIPP', 'After Deductions'],
       'SIPP Growth': ['SIPP', 'Growth'],
+      'SIPP Value Before Lump Sum': ['SIPP Value', 'Pre-Lump Sum'],
+      'SIPP Lump Sum Taken': ['SIPP Lump Sum', 'Taken'],
+      'SIPP Drawdown': ['SIPP', 'Drawdown'],
       'SIPP Balance': ['SIPP', 'Balance'],
 
       'DB Pension': ['DB Pension'],
@@ -172,7 +174,7 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
 
                 if (isMonetaryHeader(header)) {
                   const parsedNum = parseCurrency(String(cellValue));
-                  if (header.toLowerCase() === 'income tax paid' && (parsedNum === 0 || parsedNum === undefined)) {
+                  if (parsedNum === 0) {
                      displayValue = "£0";
                   } else {
                      displayValue = formatCurrency(cellValue);

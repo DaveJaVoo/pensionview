@@ -7,19 +7,21 @@ export interface PensionDataRow {
   'Initial DC Pension': number;
   'DC Pension Drawdown': number;
   'DC Pension Contribution': number;
-  'DC Lump Sum Taken'?: number;
   'DC AMC Charge': number;
-  'DC Pension Growth': number;
   'DC Pension After Deductions': number;
+  'DC Pension Growth': number;
+  'DC Pension Value Before Lump Sum'?: number;
+  'DC Lump Sum Taken'?: number;
   'DC Pension Balance': number;
 
   'Initial SIPP'?: number;
   'SIPP Drawdown'?: number;
   'SIPP Contribution'?: number;
-  'SIPP Lump Sum Taken'?: number;
   'SIPP AMC Charge'?: number;
-  'SIPP Growth'?: number;
   'SIPP After Deductions'?: number;
+  'SIPP Growth'?: number;
+  'SIPP Value Before Lump Sum'?: number;
+  'SIPP Lump Sum Taken'?: number;
   'SIPP Balance'?: number;
 
   'DB Pension'?: number;

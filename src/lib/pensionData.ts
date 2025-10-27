@@ -95,6 +95,9 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const initialBalances = { dc: dcPot, sipp: sippPot, cash: cashPot, isa: isaPot, gia: giaPot };
     let contributions = { dc: 0, sipp: 0, cash: 0, isa: 0, gia: 0 };
     let lumpSumsTaken = { dc: 0, sipp: 0 };
+    let dcValueBeforeLumpSum = 0;
+    let sippValueBeforeLumpSum = 0;
+
 
     // --- Step A: Contributions (Pre-growth) ---
     if (age < params.dcContributionEndAge) contributions.dc = params.annualDcPensionContribution;
@@ -127,6 +130,11 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const isaValueBeforeWithdrawal = isaPot;
     const giaValueBeforeWithdrawal = giaPot;
+
+    if (age === params.retirementAge) {
+      dcValueBeforeLumpSum = dcPot;
+      sippValueBeforeLumpSum = sippPot;
+    }
 
     // --- Step C: PCLS at Retirement ---
     if (age === params.retirementAge) {
@@ -277,10 +285,8 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     const row: PensionDataRow = {
       'Age': age, 'Year': String(currentYear),
-      'Initial DC Pension': initialBalances.dc, 'DC Pension Contribution': contributions.dc, 'DC Lump Sum Taken': lumpSumsTaken.dc, 'DC Pension Drawdown': withdrawals.dc,
-      'DC AMC Charge': dcAmcCharge, 'DC Pension After Deductions': dcAfterCharges, 'DC Pension Growth': dcGrowth, 'DC Pension Balance': finalDcPot,
-      'Initial SIPP': initialBalances.sipp, 'SIPP Contribution': contributions.sipp, 'SIPP Lump Sum Taken': lumpSumsTaken.sipp, 'SIPP Drawdown': withdrawals.sipp,
-      'SIPP AMC Charge': sippAmcCharge, 'SIPP After Deductions': sippAfterCharges, 'SIPP Growth': sippGrowth, 'SIPP Balance': finalSippPot,
+      'Initial DC Pension': initialBalances.dc, 'DC Pension Contribution': contributions.dc, 'DC AMC Charge': dcAmcCharge, 'DC Pension After Deductions': dcAfterCharges, 'DC Pension Growth': dcGrowth, 'DC Pension Value Before Lump Sum': dcValueBeforeLumpSum, 'DC Lump Sum Taken': lumpSumsTaken.dc, 'DC Pension Drawdown': withdrawals.dc, 'DC Pension Balance': finalDcPot,
+      'Initial SIPP': initialBalances.sipp, 'SIPP Contribution': contributions.sipp, 'SIPP AMC Charge': sippAmcCharge, 'SIPP After Deductions': sippAfterCharges, 'SIPP Growth': sippGrowth, 'SIPP Value Before Lump Sum': sippValueBeforeLumpSum, 'SIPP Lump Sum Taken': lumpSumsTaken.sipp, 'SIPP Drawdown': withdrawals.sipp, 'SIPP Balance': finalSippPot,
       'DB Pension': dbPensionIncome, 'State Pension': statePensionIncome, 'Other Income': otherIncomeSource,
       'Cash Savings Initial': initialBalances.cash, 'Cash Savings Contribution': contributions.cash, 'Withdraw from Cash': withdrawals.cash, 'Cash Savings Balance': finalCashPot,
       'ISA Initial': initialBalances.isa, 'ISA Contribution': contributions.isa, 'ISA Growth': isaGrowth, 'ISA Value Before Withdrawal': isaValueBeforeWithdrawal, 'Withdraw from ISA': withdrawals.isa, 'ISA Balance': finalIsaPot,
@@ -315,8 +321,8 @@ function generateHeaders(params: PensionCalculationParameters): string[] {
     const hasGIA = params.initialGiaAmount > 0 || params.annualGiaContribution > 0;
     const hasSavings = hasCash || hasISA || hasGIA;
 
-    if (hasDC) headers.push('Initial DC Pension', 'DC Pension Contribution', 'DC Lump Sum Taken', 'DC Pension Drawdown', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Balance');
-    if (hasSIPP) headers.push('Initial SIPP', 'SIPP Contribution', 'SIPP Lump Sum Taken', 'SIPP Drawdown', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Balance');
+    if (hasDC) headers.push('Initial DC Pension', 'DC Pension Contribution', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Value Before Lump Sum', 'DC Lump Sum Taken', 'DC Pension Drawdown', 'DC Pension Balance');
+    if (hasSIPP) headers.push('Initial SIPP', 'SIPP Contribution', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Value Before Lump Sum', 'SIPP Lump Sum Taken', 'SIPP Drawdown', 'SIPP Balance');
     if (hasDB) headers.push('DB Pension');
     if (hasSP) headers.push('State Pension');
     if (hasOther) headers.push('Other Income');
