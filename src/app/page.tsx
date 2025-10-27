@@ -184,7 +184,7 @@ const FormInput: React.FC<FormFieldProps> = ({ name, label, control, type = "num
 };
 
 const FormSectionHeader: React.FC<React.PropsWithChildren<{ className?: string }>> = ({ children, className }) => (
-  <h3 className={cn("text-xl font-headline font-semibold text-primary pt-6 pb-2 border-b border-border mb-4", className)}>
+  <h3 className={cn("text-xl font-headline font-semibold text-primary py-3", className)}>
     {children}
   </h3>
 );
@@ -510,11 +510,13 @@ export default function PensionPilotPage() {
                   </div>
                 </div>
               </div>
-
-              <Accordion type="multiple" className="w-full space-y-2 pt-4">
-                <AccordionItem value="savings-investments" className="border-none">
-                  <AccordionTrigger className="py-0 hover:no-underline">
-                    <FormSectionHeader className="mb-0 pb-0 border-b-0">
+              
+              <p className="text-sm text-muted-foreground italic pt-4 text-center">Click section headers to expand or collapse.</p>
+              
+              <Accordion type="multiple" className="w-full space-y-2 pt-2">
+                <AccordionItem value="savings-investments" className="border-b-0">
+                  <AccordionTrigger className="py-0 hover:no-underline border-b">
+                    <FormSectionHeader className="mb-0 pb-0">
                       <AccordionSectionHeader>Savings &amp; Investments</AccordionSectionHeader>
                     </FormSectionHeader>
                   </AccordionTrigger>
@@ -550,9 +552,9 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="dc-pension" className="border-none">
-                  <AccordionTrigger className="py-0 hover:no-underline">
-                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                <AccordionItem value="dc-pension" className="border-b-0">
+                  <AccordionTrigger className="py-0 hover:no-underline border-b">
+                     <FormSectionHeader className="mb-0 pb-0">
                       <AccordionSectionHeader>Defined Contribution (DC) Pension</AccordionSectionHeader>
                     </FormSectionHeader>
                   </AccordionTrigger>
@@ -665,9 +667,9 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="sipp" className="border-none">
-                   <AccordionTrigger className="py-0 hover:no-underline">
-                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                <AccordionItem value="sipp" className="border-b-0">
+                   <AccordionTrigger className="py-0 hover:no-underline border-b">
+                     <FormSectionHeader className="mb-0 pb-0">
                         <AccordionSectionHeader>Self-Invested Personal Pension (SIPP)</AccordionSectionHeader>
                       </FormSectionHeader>
                    </AccordionTrigger>
@@ -780,9 +782,9 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="drawdown-strategy" className="border-none">
-                  <AccordionTrigger className="py-0 hover:no-underline">
-                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                <AccordionItem value="drawdown-strategy" className="border-b-0">
+                  <AccordionTrigger className="py-0 hover:no-underline border-b">
+                     <FormSectionHeader className="mb-0 pb-0">
                         <AccordionSectionHeader>Drawdown Strategy</AccordionSectionHeader>
                       </FormSectionHeader>
                   </AccordionTrigger>
@@ -827,9 +829,9 @@ export default function PensionPilotPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="other-income" className="border-none">
-                  <AccordionTrigger className="py-0 hover:no-underline">
-                     <FormSectionHeader className="mb-0 pb-0 border-b-0">
+                <AccordionItem value="other-income" className="border-b-0">
+                  <AccordionTrigger className="py-0 hover:no-underline border-b">
+                     <FormSectionHeader className="mb-0 pb-0">
                         <AccordionSectionHeader>Other Income Sources</AccordionSectionHeader>
                       </FormSectionHeader>
                   </AccordionTrigger>
@@ -970,5 +972,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
