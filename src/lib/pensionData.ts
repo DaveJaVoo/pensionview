@@ -132,8 +132,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const giaValueBeforeWithdrawal = giaPot;
 
     if (age === params.retirementAge) {
-      dcValueBeforeLumpSum = dcPot;
-      sippValueBeforeLumpSum = sippPot;
+      if (params.takeTaxFreeLumpSum) {
+        dcValueBeforeLumpSum = dcPot;
+      }
+      if (params.takeSippTaxFreeLumpSum) {
+        sippValueBeforeLumpSum = sippPot;
+      }
     }
 
     // --- Step C: PCLS at Retirement ---
@@ -321,8 +325,22 @@ function generateHeaders(params: PensionCalculationParameters): string[] {
     const hasGIA = params.initialGiaAmount > 0 || params.annualGiaContribution > 0;
     const hasSavings = hasCash || hasISA || hasGIA;
 
-    if (hasDC) headers.push('Initial DC Pension', 'DC Pension Contribution', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth', 'DC Pension Value Before Lump Sum', 'DC Lump Sum Taken', 'DC Pension Drawdown', 'DC Pension Balance');
-    if (hasSIPP) headers.push('Initial SIPP', 'SIPP Contribution', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth', 'SIPP Value Before Lump Sum', 'SIPP Lump Sum Taken', 'SIPP Drawdown', 'SIPP Balance');
+    if (hasDC) {
+        headers.push('Initial DC Pension', 'DC Pension Contribution', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth');
+        if (params.takeTaxFreeLumpSum) {
+            headers.push('DC Pension Value Before Lump Sum', 'DC Lump Sum Taken');
+        }
+        headers.push('DC Pension Drawdown', 'DC Pension Balance');
+    }
+    
+    if (hasSIPP) {
+        headers.push('Initial SIPP', 'SIPP Contribution', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth');
+        if (params.takeSippTaxFreeLumpSum) {
+            headers.push('SIPP Value Before Lump Sum', 'SIPP Lump Sum Taken');
+        }
+        headers.push('SIPP Drawdown', 'SIPP Balance');
+    }
+
     if (hasDB) headers.push('DB Pension');
     if (hasSP) headers.push('State Pension');
     if (hasOther) headers.push('Other Income');
