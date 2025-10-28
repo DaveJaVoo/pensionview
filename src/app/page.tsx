@@ -486,7 +486,7 @@ export default function PensionPilotPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <AppHeader title="PensionView+ 2025" />
+      <AppHeader title="PensionView+" />
 
       <main className="flex-grow container mx-auto px-4 py-8 space-y-8">
         <Card className="shadow-xl rounded-xl">
@@ -976,3 +976,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
