@@ -171,11 +171,13 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 const cellValue = row[header];
                 let displayValue: string | number | undefined = cellValue;
                 let cellClasses = "px-3 py-3 text-sm text-card-foreground text-left align-top border-l-2 border-border first:border-l-0";
+                let isZeroMonetary = false;
 
                 if (isMonetaryHeader(header)) {
                   const parsedNum = parseCurrency(String(cellValue));
                   if (parsedNum === 0) {
-                     displayValue = "£0";
+                     isZeroMonetary = true;
+                     displayValue = "-";
                   } else {
                      displayValue = formatCurrency(cellValue);
                   }
@@ -190,23 +192,27 @@ const PensionDataTable: FC<PensionDataTableProps> = ({ data, headers, retirement
                 } else {
                   // This is for tax paid being zero, it won't be bold.
                 }
-
-                if (isBlueStyledHeader(header)) {
-                    cellClasses = cn(cellClasses, "font-semibold");
-                }
                 
-                if (isGreenStyledHeader(header)) {
-                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40");
-                  }
-                } else if (isPinkStyledHeader(header)) {
-                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-pink-50 dark:bg-pink-900/40");
-                  }
-                } else if (isBlueStyledHeader(header)) {
-                  if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
-                    cellClasses = cn(cellClasses, "bg-sky-100 dark:bg-sky-900/40");
-                  }
+                if (isZeroMonetary) {
+                  cellClasses = cn(cellClasses, "bg-orange-100 dark:bg-orange-900/30 text-center");
+                } else {
+                    if (isBlueStyledHeader(header)) {
+                        cellClasses = cn(cellClasses, "font-semibold");
+                    }
+                    
+                    if (isGreenStyledHeader(header)) {
+                      if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                        cellClasses = cn(cellClasses, "bg-emerald-50 dark:bg-emerald-900/40");
+                      }
+                    } else if (isPinkStyledHeader(header)) {
+                      if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                        cellClasses = cn(cellClasses, "bg-pink-50 dark:bg-pink-900/40");
+                      }
+                    } else if (isBlueStyledHeader(header)) {
+                      if (numericValueForStyling !== undefined && numericValueForStyling > 0) {
+                        cellClasses = cn(cellClasses, "bg-sky-100 dark:bg-sky-900/40");
+                      }
+                    }
                 }
                 
                 return (
