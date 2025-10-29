@@ -205,8 +205,7 @@ export default function PensionPilotPage() {
   const [calculatedLumpSumDisplay, setCalculatedLumpSumDisplay] = useState<number>(0);
   const [calculatedSippLumpSumDisplay, setCalculatedSippLumpSumDisplay] = useState<number>(0);
   const [footerYear, setFooterYear] = useState<number | null>(null);
-  const [yearInBrief, setYearInBrief] = useState<string>('');
-  const [summaryText, setSummaryText] = useState<React.ReactNode | null>(null);
+  const [summaryLines, setSummaryLines] = useState<React.ReactNode[]>([]);
   
 
   useEffect(() => {
@@ -293,8 +292,7 @@ export default function PensionPilotPage() {
     setIsLoading(true);
     setCalculationError(null);
     setCalculatedData(null);
-    setSummaryText(null);
-    setYearInBrief('');
+    setSummaryLines([]);
     
 
     if (data.projectionEndAge <= data.retirementAge) {
@@ -316,9 +314,6 @@ export default function PensionPilotPage() {
       };
       const result = calculatePensionProjection(parameters);
       setCalculatedData(result);
-      if (result.rows.length > 0) {
-        setYearInBrief(String(result.rows[0].Year));
-      }
       
     } catch (error) {
       console.error("Failed to calculate pension data:", error);
@@ -329,73 +324,68 @@ export default function PensionPilotPage() {
     }
   };
 
-  useEffect(() => {
-    if (!calculatedData || !yearInBrief) {
-        setSummaryText(null);
-        return;
-    }
-
-    const rowData = calculatedData.rows.find(row => String(row.Year) === String(yearInBrief));
-
-    if (!rowData) {
-        setSummaryText(`No data available for the year ${yearInBrief}. Please enter a year between ${calculatedData.rows[0].Year} and ${calculatedData.rows[calculatedData.rows.length - 1].Year}.`);
-        return;
+ useEffect(() => {
+    if (!calculatedData) {
+      setSummaryLines([]);
+      return;
     }
 
     const formatBoldCurrency = (value: number | string | undefined) => {
       return <strong className="font-semibold">{formatCurrency(value)}</strong>;
     };
-    
-    const incomeSources: React.ReactNode[] = [];
-    
-    if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
+
+    const newSummaryLines = calculatedData.rows.map(rowData => {
+      const incomeSources: React.ReactNode[] = [];
+      
+      if (rowData['DB Pension'] && rowData['DB Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DB Pension'])} from your DB Pension</>);
-    }
-    if (rowData['State Pension'] && rowData['State Pension'] > 0) {
+      }
+      if (rowData['State Pension'] && rowData['State Pension'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['State Pension'])} from State Pension</>);
-    }
-    if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
+      }
+      if (rowData['DC Pension Drawdown'] && rowData['DC Pension Drawdown'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['DC Pension Drawdown'])} from your DC Pension</>);
-    }
-    if (rowData['SIPP Drawdown'] && rowData['SIPP Drawdown'] > 0) {
+      }
+      if (rowData['SIPP Drawdown'] && rowData['SIPP Drawdown'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['SIPP Drawdown'])} from your SIPP</>);
-    }
-    if (rowData['Other Income'] && rowData['Other Income'] > 0) {
+      }
+      if (rowData['Other Income'] && rowData['Other Income'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Other Income'])} from other income sources</>);
-    }
-    if (rowData['Withdraw from Cash'] && rowData['Withdraw from Cash'] > 0) {
+      }
+      if (rowData['Withdraw from Cash'] && rowData['Withdraw from Cash'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from Cash'])} from your Cash Savings</>);
-    }
-    if (rowData['Withdraw from ISA'] && rowData['Withdraw from ISA'] > 0) {
+      }
+      if (rowData['Withdraw from ISA'] && rowData['Withdraw from ISA'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from ISA'])} from your ISA</>);
-    }
-    if (rowData['Withdraw from GIA'] && rowData['Withdraw from GIA'] > 0) {
+      }
+      if (rowData['Withdraw from GIA'] && rowData['Withdraw from GIA'] > 0) {
         incomeSources.push(<> {formatBoldCurrency(rowData['Withdraw from GIA'])} from your GIA</>);
-    }
-    
-    let incomeText: React.ReactNode;
-    if (incomeSources.length > 0) {
+      }
+      
+      let incomeText: React.ReactNode;
+      if (incomeSources.length > 0) {
         const joinedSources = incomeSources.reduce((acc, curr, index) => {
-            if (index === 0) return [curr];
-            if (index === incomeSources.length - 1) return [...acc, ' and', curr];
-            return [...acc, ',', curr];
+          if (index === 0) return [curr];
+          if (index === incomeSources.length - 1) return [...acc, ' and', curr];
+          return [...acc, ',', curr];
         }, [] as React.ReactNode[]);
         incomeText = <>you will draw income of{...joinedSources}</>;
-    } else {
+      } else {
         incomeText = 'you will not draw any income as you are not yet retired';
-    }
+      }
 
-    const taxPaid = rowData['Income Tax Paid'] > 0 ? formatBoldCurrency(rowData['Income Tax Paid']) : <strong>£0</strong>;
-    const netIncome = formatBoldCurrency(rowData['Net Income Per Year']);
+      const taxPaid = rowData['Income Tax Paid'] > 0 ? formatBoldCurrency(rowData['Income Tax Paid']) : <strong>£0</strong>;
+      const netIncome = formatBoldCurrency(rowData['Net Income Per Year']);
 
-    const finalSummary = (
-        <>
-            In <strong className="font-semibold">{yearInBrief}</strong>, {incomeText}. You will pay {taxPaid} in Income Tax and your Net Income will be {netIncome}.
-        </>
-    );
-    setSummaryText(finalSummary);
+      return (
+        <React.Fragment key={rowData.Year}>
+            In <strong className="font-semibold">{rowData.Year}</strong>, {incomeText}. You will pay {taxPaid} in Income Tax and your Net Income will be {netIncome}.
+        </React.Fragment>
+      );
+    });
 
-  }, [yearInBrief, calculatedData]);
+    setSummaryLines(newSummaryLines);
+  }, [calculatedData]);
 
 
   const handleResetForm = () => {
@@ -403,9 +393,7 @@ export default function PensionPilotPage() {
     reset(defaultValues);
     setCalculatedData(null);
     setCalculationError(null);
-    setYearInBrief('');
-    setSummaryText(null);
-    
+    setSummaryLines([]);
   };
 
   const coreParamsFields: FormFieldProps[] = [
@@ -938,27 +926,20 @@ export default function PensionPilotPage() {
             <Card className="mt-8 shadow-xl rounded-xl">
                 <CardHeader>
                     <CardTitle className="font-headline text-xl">Year in Brief</CardTitle>
-                    <CardDescription>Enter a year from your projection to see a quick summary of the results for that year.</CardDescription>
+                    <CardDescription>A summary of your income, tax, and net income for each year of the projection.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <Label htmlFor="yearInBrief" className="font-semibold shrink-0">Enter Year:</Label>
-                        <Input
-                            id="yearInBrief"
-                            type="number"
-                            value={yearInBrief}
-                            onChange={(e) => setYearInBrief(e.target.value)}
-                            placeholder="e.g., 2030"
-                            className="w-32"
-                        />
-                    </div>
-                    {summaryText && (
-                        <Alert className="bg-primary/10 border-primary/30">
-                            <InfoIcon className="h-5 w-5 text-primary" />
-                            <AlertDescription className="text-primary/90">
-                                {summaryText}
-                            </AlertDescription>
-                        </Alert>
+                <CardContent className="space-y-2">
+                    {summaryLines.length > 0 ? (
+                        summaryLines.map((summary, index) => (
+                            <Alert key={index} className="bg-primary/10 border-primary/30">
+                                <InfoIcon className="h-5 w-5 text-primary" />
+                                <AlertDescription className="text-primary/90">
+                                    {summary}
+                                </AlertDescription>
+                            </Alert>
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Run a calculation to see the yearly summary.</p>
                     )}
                 </CardContent>
             </Card>
@@ -976,5 +957,3 @@ export default function PensionPilotPage() {
     </div>
   );
 }
-
-    
