@@ -36,13 +36,13 @@ const formSchema = z.object({
   initialIsaAmount: z.coerce.number().min(0).default(0),
   annualIsaContribution: z.coerce.number().min(0).default(0),
   isaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
-  isaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
+  isaGrowthRate: z.coerce.number().min(-20).max(50).default(7),
   initialGiaAmount: z.coerce.number().min(0).default(0),
   annualGiaContribution: z.coerce.number().min(0).default(0),
   giaContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   giaGrowthRate: z.coerce.number().min(-20).max(50).default(4),
   
-  targetAnnualNetIncome: z.coerce.number().min(0).default(0),
+  targetAnnualNetIncome: z.coerce.number().min(0).default(25000),
 
   initialDbPensionAmount: z.coerce.number().min(0).default(0),
   dbPensionStartAge: z.coerce.number().min(50).max(80).default(65),
@@ -55,19 +55,19 @@ const formSchema = z.object({
   dcContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeTaxFreeLumpSum: z.boolean().default(false),
   dcLumpSumAction: z.enum(['spend', 'save']).default('save'),
-  investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
-  inflationRate: z.coerce.number().min(-10).max(20).default(3),
+  investmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(7),
+  inflationRate: z.coerce.number().min(-10).max(20).default(3.8),
   dcWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   applyDcWithdrawalRateInSurplus: z.boolean().default(false),
-  annualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
+  annualChargeAMC: z.coerce.number().min(0).max(10).default(0.3),
 
   initialSippValue: z.coerce.number().min(0).default(0),
   annualSippContribution: z.coerce.number().min(0).default(0),
   sippContributionEndAge: z.coerce.number().min(19).max(90).default(67),
   takeSippTaxFreeLumpSum: z.boolean().default(false),
   sippLumpSumAction: z.enum(['spend', 'save']).default('save'),
-  sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(4),
-  sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.5),
+  sippInvestmentPercentageGrowth: z.coerce.number().min(-20).max(50).default(7),
+  sippAnnualChargeAMC: z.coerce.number().min(0).max(10).default(0.3),
   sippWithdrawalRate: z.coerce.number().min(0).max(100).default(4),
   applySippWithdrawalRateInSurplus: z.boolean().default(false),
 
@@ -931,8 +931,8 @@ export default function PensionPilotPage() {
                 <CardContent className="space-y-2">
                     {summaryLines.length > 0 ? (
                         summaryLines.map((summary, index) => (
-                            <Alert key={index} variant="default" className="bg-muted/30">
-                                <AlertDescription>
+                             <Alert key={index} variant="default" className="bg-muted/30 border-muted-foreground/20">
+                                <AlertDescription className="text-foreground">
                                     {summary}
                                 </AlertDescription>
                             </Alert>
@@ -956,5 +956,7 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
 
     
