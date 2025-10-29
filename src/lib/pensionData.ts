@@ -116,12 +116,12 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
     const dcAmcCharge = dcPot * (params.annualChargeAMC / 100);
     const dcAfterCharges = dcPot - dcAmcCharge;
     const dcGrowth = dcAfterCharges * (params.investmentPercentageGrowth / 100);
-    dcPot = dcAfterCharges + dcGrowth;
+    const dcPotAfterGrowth = dcAfterCharges + dcGrowth;
     
     const sippAmcCharge = sippPot * (params.sippAnnualChargeAMC / 100);
     const sippAfterCharges = sippPot - sippAmcCharge;
     const sippGrowth = sippAfterCharges * (params.sippInvestmentPercentageGrowth / 100);
-    sippPot = sippAfterCharges + sippGrowth;
+    const sippPotAfterGrowth = sippAfterCharges + sippGrowth;
 
     const isaGrowth = isaPot * (params.isaGrowthRate / 100);
     isaPot += isaGrowth;
@@ -133,12 +133,15 @@ export function calculatePensionProjection(params: PensionCalculationParameters)
 
     if (age === params.retirementAge) {
       if (params.takeTaxFreeLumpSum) {
-        dcValueBeforeLumpSum = dcPot;
+        dcValueBeforeLumpSum = dcPotAfterGrowth;
       }
       if (params.takeSippTaxFreeLumpSum) {
-        sippValueBeforeLumpSum = sippPot;
+        sippValueBeforeLumpSum = sippPotAfterGrowth;
       }
     }
+    
+    dcPot = dcPotAfterGrowth;
+    sippPot = sippPotAfterGrowth;
 
     // --- Step C: PCLS at Retirement ---
     if (age === params.retirementAge) {
@@ -326,7 +329,11 @@ function generateHeaders(params: PensionCalculationParameters): string[] {
     const hasSavings = hasCash || hasISA || hasGIA;
 
     if (hasDC) {
-        headers.push('Initial DC Pension', 'DC Pension Contribution', 'DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth');
+        headers.push('Initial DC Pension');
+        if (params.annualDcPensionContribution > 0) {
+            headers.push('DC Pension Contribution');
+        }
+        headers.push('DC AMC Charge', 'DC Pension After Deductions', 'DC Pension Growth');
         if (params.takeTaxFreeLumpSum) {
             headers.push('DC Pension Value Before Lump Sum', 'DC Lump Sum Taken');
         }
@@ -334,7 +341,11 @@ function generateHeaders(params: PensionCalculationParameters): string[] {
     }
     
     if (hasSIPP) {
-        headers.push('Initial SIPP', 'SIPP Contribution', 'SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth');
+        headers.push('Initial SIPP');
+        if (params.annualSippContribution > 0) {
+            headers.push('SIPP Contribution');
+        }
+        headers.push('SIPP AMC Charge', 'SIPP After Deductions', 'SIPP Growth');
         if (params.takeSippTaxFreeLumpSum) {
             headers.push('SIPP Value Before Lump Sum', 'SIPP Lump Sum Taken');
         }
@@ -345,9 +356,27 @@ function generateHeaders(params: PensionCalculationParameters): string[] {
     if (hasSP) headers.push('State Pension');
     if (hasOther) headers.push('Other Income');
 
-    if (hasCash) headers.push('Cash Savings Initial', 'Cash Savings Contribution', 'Withdraw from Cash', 'Cash Savings Balance');
-    if (hasISA) headers.push('ISA Initial', 'ISA Contribution', 'ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance');
-    if (hasGIA) headers.push('GIA Initial', 'GIA Contribution', 'GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance');
+    if (hasCash) {
+        headers.push('Cash Savings Initial');
+        if (params.annualCashContribution > 0) {
+            headers.push('Cash Savings Contribution');
+        }
+        headers.push('Withdraw from Cash', 'Cash Savings Balance');
+    }
+    if (hasISA) {
+        headers.push('ISA Initial');
+        if (params.annualIsaContribution > 0) {
+            headers.push('ISA Contribution');
+        }
+        headers.push('ISA Growth', 'ISA Value Before Withdrawal', 'Withdraw from ISA', 'ISA Balance');
+    }
+    if (hasGIA) {
+        headers.push('GIA Initial');
+        if (params.annualGiaContribution > 0) {
+            headers.push('GIA Contribution');
+        }
+        headers.push('GIA Growth', 'GIA Value Before Withdrawal', 'Withdraw from GIA', 'GIA Balance');
+    }
     
     if (hasSavings) headers.push('Total Savings Withdrawn', 'Total Savings Balance');
     
