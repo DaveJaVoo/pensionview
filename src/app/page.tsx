@@ -931,9 +931,8 @@ export default function PensionPilotPage() {
                 <CardContent className="space-y-2">
                     {summaryLines.length > 0 ? (
                         summaryLines.map((summary, index) => (
-                            <Alert key={index} className="bg-primary/10 border-primary/30">
-                                <InfoIcon className="h-5 w-5 text-primary" />
-                                <AlertDescription className="text-primary/90">
+                            <Alert key={index} variant="default" className="bg-muted/30">
+                                <AlertDescription>
                                     {summary}
                                 </AlertDescription>
                             </Alert>
@@ -957,3 +956,5 @@ export default function PensionPilotPage() {
     </div>
   );
 }
+
+    
